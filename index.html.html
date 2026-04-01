@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Transit Control — POs 2026 · Executive Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#071a2e; --bg:#0a2235; --bd:#103a57;
+  --cyan:#06c8e8; --cyan2:#38bdf8; --white:#f0f9ff; --muted:#7fb4cc;
+  --green:#22c55e; --yellow:#f59e0b; --red:#ef4444; --orange:#fb923c;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--navy);color:var(--white);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(6,200,232,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(6,200,232,.025) 1px,transparent 1px);
+  background-size:48px 48px;pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);
+  width:900px;height:600px;background:radial-gradient(ellipse,rgba(6,200,232,.07) 0%,transparent 68%);
+  pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:32px 24px 64px}
+
+/* NAV */
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:10px}
+.nav-back{font-size:12px;color:var(--muted);text-decoration:none;transition:color .2s;display:flex;align-items:center;gap:5px}
+.nav-back:hover{color:var(--cyan)}
+.logo-bar{display:flex;align-items:center;gap:8px}
+.bolt{width:28px;height:28px;background:linear-gradient(135deg,var(--cyan),var(--cyan2));border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 0 14px rgba(6,200,232,.3)}
+.logo-nm{font-family:'Syne',sans-serif;font-size:17px;font-weight:800}
+.logo-nm span{color:var(--cyan)}
+.nav-date{font-size:10px;color:#2a5a7a;display:flex;align-items:center;gap:5px}
+.live{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.4)}50%{box-shadow:0 0 0 5px rgba(34,197,94,0)}}
+
+/* HEADER */
+.hdr{margin-bottom:32px;animation:fadeUp .4s ease both}
+.hdr-tag{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin-bottom:7px}
+.hdr h1{font-family:'Syne',sans-serif;font-size:clamp(22px,3.5vw,34px);font-weight:800;letter-spacing:-.01em;line-height:1.1}
+.hdr h1 em{font-style:normal;background:linear-gradient(90deg,var(--cyan),var(--cyan2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hdr-sub{font-size:12px;color:var(--muted);margin-top:5px}
+.hdr-rule{width:40px;height:3px;background:linear-gradient(90deg,var(--cyan),transparent);border-radius:2px;margin-top:12px}
+
+/* LOADING / ERROR */
+.loading-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:40vh;gap:16px;color:var(--muted)}
+.spinner{width:36px;height:36px;border:3px solid rgba(6,200,232,.15);border-top-color:var(--cyan);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-size:13px;font-weight:500}
+.error-state{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:40vh;gap:12px;text-align:center}
+.error-icon{font-size:40px}
+.error-title{font-size:16px;font-weight:700;color:var(--red)}
+.error-desc{font-size:12px;color:var(--muted);max-width:440px;line-height:1.7}
+.error-code{font-family:'JetBrains Mono',monospace;font-size:11px;color:#3a6e8c;background:var(--bg);padding:8px 14px;border-radius:6px;border:1px solid var(--bd)}
+
+/* SECTION LABEL */
+.sec{font-size:10px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--cyan);
+  margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.sec::after{content:'';flex:1;height:1px;background:var(--bd)}
+
+/* EXECUTIVE CARDS */
+.exec-wrap{margin-bottom:36px}
+.exec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px}
+
+.exec-card{border-radius:14px;overflow:hidden;position:relative;transition:transform .18s}
+.exec-card:hover{transform:translateY(-2px)}
+.exec-card.critical{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.35)}
+.exec-card.attention{background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.28)}
+.exec-card.critical::before,.exec-card.attention::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.exec-card.critical::before{background:linear-gradient(90deg,var(--red),rgba(239,68,68,.1))}
+.exec-card.attention::before{background:linear-gradient(90deg,var(--yellow),rgba(245,158,11,.1))}
+
+.exec-body{padding:20px}
+
+.exec-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:16px}
+.exec-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--white);line-height:1.2}
+
+.cls-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
+  font-size:9px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;flex-shrink:0;margin-top:3px}
+.cls-critical{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+.cls-attention{background:rgba(245,158,11,.12);color:var(--yellow);border:1px solid rgba(245,158,11,.25)}
+.cls-dot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 1.8s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+.exec-total{background:rgba(6,200,232,.07);border:1px solid rgba(6,200,232,.15);
+  border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px}
+.exec-total-num{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:var(--cyan);line-height:1}
+.exec-total-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;line-height:1.5}
+.exec-total-lbl span{display:block;font-size:11px;color:var(--white);font-weight:500;letter-spacing:0;text-transform:none;margin-top:1px}
+
+.exec-metrics{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.exec-metric-row{display:flex;align-items:center;justify-content:space-between;
+  padding:7px 11px;border-radius:7px;background:rgba(16,58,87,.45)}
+.em-label{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:7px}
+.em-label .ico{font-size:12px;line-height:1}
+.em-val{font-family:'Syne',sans-serif;font-size:16px;font-weight:800}
+.em-val.red{color:var(--red)}
+.em-val.orange{color:var(--orange)}
+.em-val.yellow{color:var(--yellow)}
+.em-val.dim{color:#2a5a7a}
+.em-frac{font-size:11px;color:var(--muted);font-weight:400;margin-left:1px}
+
+.exec-impact{display:flex;align-items:center;justify-content:space-between;
+  padding:7px 11px;border-radius:7px;margin-bottom:14px;background:rgba(16,58,87,.28)}
+.impact-lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.imp{display:inline-flex;padding:2px 9px;border-radius:3px;font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.imp-h{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.22)}
+.imp-m{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
+.imp-l{background:rgba(127,180,204,.07);color:var(--muted);border:1px solid rgba(127,180,204,.14)}
+
+.exec-actions{display:flex;flex-direction:column;gap:6px}
+.action-row{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-radius:8px}
+.action-row.a-red   {background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.14)}
+.action-row.a-yellow{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.13)}
+.action-row.a-blue  {background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.11)}
+.action-ico{font-size:12px;flex-shrink:0;line-height:1.5}
+.action-txt{font-size:11px;line-height:1.5;color:var(--muted)}
+.action-txt strong{color:var(--white);font-weight:600}
+
+.exec-empty{text-align:center;padding:32px 20px;color:#2a5a7a;font-size:13px;
+  grid-column:1/-1;background:var(--bg);border-radius:12px;border:1px solid var(--bd)}
+
+/* FILTERS */
+.filters{display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.fbtn{padding:5px 13px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.03em;
+  border:1px solid var(--bd);background:transparent;color:var(--muted);cursor:pointer;transition:.2s}
+.fbtn:hover,.fbtn.on{background:rgba(6,200,232,.12);border-color:var(--cyan);color:var(--cyan)}
+.fbtn.risk-on{background:rgba(239,68,68,.1);border-color:var(--red);color:var(--red)}
+.fsep{width:1px;height:18px;background:var(--bd);flex-shrink:0}
+.fsel{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:5px 28px 5px 11px;
+  font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;outline:none;transition:.2s;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237fb4cc'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center}
+.fsel:focus,.fsel:hover{border-color:var(--cyan);color:var(--cyan)}
+.fsel option{background:#0a2235;color:var(--white)}
+.search-w{margin-left:auto;position:relative}
+.search-w input{background:var(--bg);border:1px solid var(--bd);border-radius:8px;
+  padding:6px 10px 6px 28px;font-size:12px;color:var(--white);outline:none;width:200px;transition:.2s}
+.search-w input:focus{border-color:var(--cyan)}
+.sico{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none}
+
+/* TABLE */
+.tbl-wrap{border-radius:12px;overflow:hidden;border:1px solid var(--bd)}
+.tbl-head{display:grid;padding:11px 14px;background:rgba(6,200,232,.04);border-bottom:1px solid var(--bd);gap:4px}
+.th{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+.trow-wrap{border-bottom:1px solid rgba(16,58,87,.45)}
+.trow-wrap:last-child{border-bottom:none}
+.trow{display:grid;padding:11px 14px;cursor:pointer;transition:background .14s;align-items:center;gap:4px;background:var(--bg)}
+.trow:hover{background:rgba(6,200,232,.03)}
+.trow.expanded{background:rgba(6,200,232,.04)}
+.trow.risk-row{border-left:3px solid var(--red);background:rgba(239,68,68,.03)}
+.trow.risk-row:hover{background:rgba(239,68,68,.06)}
+
+.tc{font-size:12px;color:var(--white)}
+.tc.mono{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--cyan)}
+.tc.sm{font-size:11px;color:var(--muted)}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:9.5px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+.b-green {background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.22)}
+.b-yellow{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.22)}
+.b-red   {background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.b-cyan  {background:rgba(6,200,232,.1);color:var(--cyan);border:1px solid rgba(6,200,232,.2)}
+.b-orange{background:rgba(251,146,60,.1);color:var(--orange);border:1px solid rgba(251,146,60,.2)}
+.bdot{width:5px;height:5px;border-radius:50%;background:currentColor;animation:blink 2s infinite;flex-shrink:0}
+.risk-tag{display:inline-flex;padding:1px 6px;border-radius:3px;font-size:8.5px;font-weight:800;
+  letter-spacing:.05em;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.28);margin-left:5px}
+
+.dir-pill{display:inline-flex;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:700;white-space:nowrap}
+.dp-emob {background:rgba(6,200,232,.1);color:var(--cyan);border:1px solid rgba(6,200,232,.2)}
+.dp-pemob{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.dp-proj {background:rgba(56,189,248,.1);color:var(--cyan2);border:1px solid rgba(56,189,248,.2)}
+.dp-dist {background:rgba(127,180,204,.08);color:var(--muted);border:1px solid rgba(127,180,204,.15)}
+.dp-ele  {background:rgba(167,139,250,.1);color:#a78bfa;border:1px solid rgba(167,139,250,.2)}
+.dp-hex  {background:rgba(251,146,60,.1);color:var(--orange);border:1px solid rgba(251,146,60,.2)}
+
+.days-chip{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;line-height:1}
+.days-chip.d-red   {color:var(--red)}
+.days-chip.d-orange{color:var(--orange)}
+.days-chip.d-norm  {color:var(--muted)}
+.days-chip.d-none  {font-family:'DM Sans',sans-serif;font-size:11px;font-weight:400;color:#2a5a7a}
+
+.dl-ok  {display:inline-flex;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.dl-late{display:inline-flex;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.22)}
+.dl-crit{display:inline-flex;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;background:rgba(239,68,68,.2);color:#ff6b6b;border:1px solid rgba(239,68,68,.38)}
+.dl-nd  {display:inline-flex;padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;background:rgba(127,180,204,.07);color:var(--muted);border:1px solid rgba(127,180,204,.14)}
+
+.dest{display:inline-flex;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:800;font-family:'JetBrains Mono',monospace}
+.d-cwb{background:rgba(56,189,248,.1);color:var(--cyan2);border:1px solid rgba(56,189,248,.2)}
+.d-ftz{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
+.d-man{background:rgba(167,139,250,.1);color:#a78bfa;border:1px solid rgba(167,139,250,.2)}
+
+.arr{width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;
+  color:var(--muted);transition:transform .2s;font-size:9px;flex-shrink:0}
+.expanded .arr{transform:rotate(90deg);color:var(--cyan)}
+
+.items-panel{display:none;background:rgba(6,200,232,.02);border-top:1px solid rgba(6,200,232,.07);padding:12px 14px 14px 40px}
+.items-panel.open{display:block}
+.ip-meta{display:flex;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap}
+.ip-lbl{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.ip-ref{font-size:10px;font-family:'JetBrains Mono',monospace;color:#3a6e8c}
+.cli-tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:9.5px;font-weight:600;background:rgba(56,189,248,.08);color:var(--cyan2);border:1px solid rgba(56,189,248,.15)}
+.item-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(16,58,87,.3)}
+.item-row:last-child{border-bottom:none}
+.item-code{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--cyan2);display:flex;align-items:center;gap:7px}
+.item-desc{font-size:10.5px;color:var(--muted)}
+.item-meta{display:flex;align-items:center;gap:10px}
+.item-need{font-size:10px;color:#3a6e8c}
+.item-qty{font-size:11px;font-weight:600;color:var(--white)}
+
+.recv-wrap{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);cursor:pointer;user-select:none}
+.recv-wrap input{width:13px;height:13px;cursor:pointer;accent-color:var(--green)}
+.recv-wrap.done{color:var(--green)}
+
+.empty{text-align:center;padding:40px;color:#2a5a7a;font-size:12px;background:var(--bg)}
+.footer{text-align:center;font-size:11px;color:#2a5a7a;margin-top:24px;padding-top:18px;border-top:1px solid var(--bd)}
+.footer b{color:var(--muted)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.exec-card:nth-child(1){animation:fadeUp .35s ease .05s both}
+.exec-card:nth-child(2){animation:fadeUp .35s ease .10s both}
+.exec-card:nth-child(3){animation:fadeUp .35s ease .15s both}
+.exec-card:nth-child(4){animation:fadeUp .35s ease .20s both}
+.exec-card:nth-child(5){animation:fadeUp .35s ease .25s both}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<nav class="nav" style="justify-content:flex-end">
+  <div class="nav-date"><span class="live"></span><span id="todayLabel"></span></div>
+</nav>
+
+<div class="hdr">
+  <div class="hdr-tag">Transit Control · Todas as Diretorias · 2026</div>
+  <h1>PO Dashboard — <em>Executive View</em></h1>
+  <p class="hdr-sub">Carregadores EV, Inversores, BESS e componentes em trânsito da China</p>
+  <div class="hdr-rule"></div>
+</div>
+
+<div id="mainContent">
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <div class="loading-txt">Loading data…</div>
+  </div>
+</div>
+
+<div class="footer">
+  <b>Livoltek Power Brasil</b> · SM Livoltek · Internal use · Source: Transit Control (Packing List) · All directorates
+</div>
+</div>
+
+<script>
+/* ── DATE SETUP ─────────────────────────────────────────── */
+const TODAY = new Date();
+TODAY.setHours(0,0,0,0);
+document.getElementById('todayLabel').textContent =
+  TODAY.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'});
+
+/* ── DATA LOADING ───────────────────────────────────────── */
+const FALLBACK_DATA = [{"po":"CWBE001/2026","ip":"H-CWB001/2026","destination":"Curitiba","etd":"24/01/2026","eta_pod":"08/03/2026","eta_dest":"25/03/2026","po_sent":"10/11/2025","status":"Em processo de desembaraço","obs":"","items":[{"code":"C04010E2EAFER11003","qty":10,"necessity":"Mar/26","desc":"Carregador EV DC MC Series 40kW"},{"code":"M18010E2EYFIR11003","qty":13,"necessity":"Mar/26","desc":"MotionFast 180kW"}],"total_qty":23,"wh":"CWB","type":"MOBILITY","risk":false,"directorate":"E-mobility","impact":"medium"},{"po":"FORE001/2026","ip":"H-FOR005/2026","destination":"Fortaleza","etd":"12/12/2025","eta_pod":"02/02/2026","eta_dest":"24/02/2026","po_sent":"03/10/2025","status":"Entregue","obs":"","items":[{"code":"523000841001","qty":200,"necessity":"Jan/26","desc":"PCBA board GT1-6K-DS"}],"total_qty":200,"wh":"FTZ","type":"DISTRIBUTION","risk":false,"directorate":"Distribution","impact":"low"},{"po":"FORE002/2026","ip":"H-FOR005/2026","destination":"Fortaleza","etd":"12/12/2025","eta_pod":"02/02/2026","eta_dest":"24/02/2026","po_sent":"03/10/2025","status":"Entregue","obs":"","items":[{"code":"2061300280","qty":800,"necessity":"Feb/26","desc":"IGBT 650V 40A"},{"code":"2040901391","qty":500,"necessity":"Feb/26","desc":"Relay 31A 250VAC"},{"code":"2061300170","qty":400,"necessity":"Feb/26","desc":"IGBT 650V 150A"},{"code":"2061700040","qty":400,"necessity":"Feb/26","desc":"SiC 650V 60A"},{"code":"2040901421","qty":500,"necessity":"Feb/26","desc":"Relay 50A 277VAC"}],"total_qty":2600,"wh":"FTZ","type":"DISTRIBUTION","risk":false,"directorate":"Distribution","impact":"low"},{"po":"FORE003/2026","ip":"H-FOR006/2026","destination":"Fortaleza","etd":"02/01/2026","eta_pod":"04/01/2026","eta_dest":"21/01/2026","po_sent":"24/10/2025","status":"Entregue","obs":"","items":[{"code":"PSD300R51001","qty":281,"necessity":"Feb/26","desc":"Módulo comunicação WI-SUN (Dongle)"},{"code":"2140104080","qty":281,"necessity":"Feb/26","desc":"Antena RF 902~928MHz"},{"code":"2140500020","qty":311,"necessity":"Feb/26","desc":"Adaptador SMA-N 360°"}],"total_qty":873,"wh":"FTZ","type":"PROJECTS","risk":false,"directorate":"Distribution","impact":"low"},{"po":"FORE015/2026","ip":"H-FOR002/2026","destination":"Fortaleza","etd":"06/02/2026","eta_pod":"21/04/2026","eta_dest":"01/05/2026","po_sent":"24/10/2025","status":"Em trânsito","obs":"","items":[{"code":"8010500480","qty":47,"necessity":"Feb/26","desc":"Chapa de aço metálica"},{"code":"3051506010","qty":311,"necessity":"Feb/26","desc":"Suporte de montagem SUS304"},{"code":"3030702210","qty":622,"necessity":"Feb/26","desc":"Parafuso expansão M6×60"},{"code":"2140103240","qty":311,"necessity":"Feb/26","desc":"Antena FRP 902-928MHz"},{"code":"3051701630","qty":311,"necessity":"Feb/26","desc":"Aro SUS304 1100×10mm"}],"total_qty":1602,"wh":"FTZ","type":"DISTRIBUTION","risk":false,"directorate":"Distribution","impact":"low"},{"po":"FORE004/2026","ip":"H-FOR001/2026","destination":"Fortaleza","etd":"09/03/2026","eta_pod":"26/04/2026","eta_dest":"06/05/2026","po_sent":"03/11/2025","status":"Em trânsito","obs":"","items":[{"code":"BHF-X261DR11001","qty":21,"necessity":"Mar/26","desc":"BESS 261kWh (gabinete integrado)"},{"code":"PCS-125KG1R21001","qty":21,"necessity":"Mar/26","desc":"Conversor estático PCS 125kW"},{"code":"HXEM100R10003","qty":5,"necessity":"Mar/26","desc":"Terminal de Gestão de Energia IEMS"}],"total_qty":47,"wh":"FTZ","type":"PROJECTS","risk":false,"directorate":"Projects","impact":"high"},{"po":"FORE006/2026","ip":"H-FOR004/2026","destination":"Fortaleza","etd":"22/02/2026","eta_pod":"14/04/2026","eta_dest":"24/04/2026","po_sent":"03/11/2025","status":"Em trânsito","obs":"","items":[{"code":"TSR21023","qty":4,"necessity":"Mar/26","desc":"Cabine de transferência 2 paralelos"},{"code":"TSR21021","qty":1,"necessity":"Mar/26","desc":"Cabine transferência 8 vias custom"}],"total_qty":5,"wh":"FTZ","type":"PROJECTS","risk":false,"directorate":"Projects","impact":"medium"},{"po":"FORE005/2026","ip":"H-FOR004/2026","destination":"Fortaleza","etd":"22/02/2026","eta_pod":"14/04/2026","eta_dest":"24/04/2026","po_sent":"03/11/2025","status":"Em trânsito","obs":"","items":[{"code":"Componentes diversos","qty":31,"necessity":"Mar/26","desc":"30 códigos de componentes BESS/PCS"}],"total_qty":31,"wh":"FTZ","type":"PROJECTS","risk":false,"directorate":"Projects","impact":"medium"},{"po":"FORE007/2026","ip":"H-FOR002/2026","destination":"Fortaleza","etd":"06/02/2026","eta_pod":"21/04/2026","eta_dest":"01/05/2026","po_sent":"05/11/2025","status":"Em trânsito","obs":"","items":[{"code":"523400437003","qty":141,"necessity":"Mar/26","desc":"PCBA PV Input Board 36-60kW"},{"code":"523400441003","qty":456,"necessity":"Mar/26","desc":"PCBA PV Input Board 8-Ch"},{"code":"523400442003","qty":208,"necessity":"Mar/26","desc":"PCBA PV Input Board 10-Ch"},{"code":"523400450004","qty":207,"necessity":"Mar/26","desc":"PCBA SPD board"}],"total_qty":1012,"wh":"FTZ","type":"DISTRIBUTION","risk":false,"directorate":"Distribution","impact":"medium"},{"po":"FORE008/2026","ip":"","destination":"Fortaleza","etd":"","eta_pod":"","eta_dest":"","po_sent":"06/11/2025","status":"Aguardando embarque","obs":"2 unid. restantes; quantidade principal embarcada em paralelo","items":[{"code":"LHE34DRR12008","qty":16,"necessity":"Mar/26","desc":"Medidor Energia trifásico CT 250A"},{"code":"3013603080","qty":42,"necessity":"Mar/26","desc":"Transformador corrente BH50I-1000A/5A"}],"total_qty":58,"wh":"FTZ","type":"DISTRIBUTION","risk":true,"directorate":"Projects","impact":"medium"},{"po":"FORE010/2026","ip":"H-FOR002/2026","destination":"Fortaleza","etd":"06/02/2026","eta_pod":"21/04/2026","eta_dest":"01/05/2026","po_sent":"10/11/2025","status":"Em trânsito","obs":"","items":[{"code":"BLF-B51150R11001","qty":245,"necessity":"Mar/26","desc":"Módulo bateria lítio BLF-B51150"},{"code":"HP1-1K5S2R11001","qty":127,"necessity":"Mar/26","desc":"Inversor FV on-grid 1.5kW"},{"code":"Componentes instalação","qty":15185,"necessity":"Mar/26","desc":"Cabos, parafusos, conectores, trilhos"}],"total_qty":15557,"wh":"FTZ","type":"DISTRIBUTION","risk":false,"directorate":"Distribution","impact":"medium"},{"po":"MANL001/2026","ip":"","destination":"Manaus","etd":"","eta_pod":"","eta_dest":"","po_sent":"31/10/2025","status":"Entregue","obs":"Recebido em Fortaleza — enviado pelos Correios para Manaus","items":[{"code":"3090508680","qty":246,"necessity":"Mar/26","desc":"Cabo condutor elétrico até 1000V"},{"code":"3090508620","qty":16,"necessity":"Mar/26","desc":"Cabo condutor elétrico até 1000V"},{"code":"3090508690","qty":57,"necessity":"Mar/26","desc":"Cabo condutor elétrico 3×6mm²"},{"code":"3090508590","qty":16,"necessity":"Mar/26","desc":"Cabo condutor elétrico até 1000V"}],"total_qty":335,"wh":"MAN","type":"ELETRA","risk":false,"directorate":"Eletra","impact":"low"},{"po":"CWBE002/2026","ip":"H-CWB001/2026","destination":"Curitiba","etd":"24/01/2026","eta_pod":"08/03/2026","eta_dest":"25/03/2026","po_sent":"19/11/2025","status":"Em processo de desembaraço","obs":"","items":[{"code":"Componentes instalação solar","qty":6083,"necessity":"Feb/26","desc":"Cabos, conectores, parafusos, trilhos, roteadores"}],"total_qty":6083,"wh":"CWB","type":"DISTRIBUTION","risk":false,"directorate":"Distribution","impact":"low"},{"po":"FORE011/2026","ip":"H-FOR006/2026","destination":"Fortaleza","etd":"23/03/2026","eta_pod":"09/05/2026","eta_dest":"19/05/2026","po_sent":"03/12/2025","status":"Em trânsito","obs":"22/01 - 8 unidades embarcadas paralelamente; saldo parcial incluído","directorate":"Projects E-mobility","impact":"high","items":[{"code":"BHF-X261DR12001","qty":22,"necessity":"Apr/26","desc":"BESS 261kWh gabinete integrado (liquid cooled)"},{"code":"PCS-125KG1R21001","qty":22,"necessity":"Apr/26","desc":"Conversor PCS 125kW"},{"code":"C04010E2EAFER11003","qty":20,"necessity":"Apr/26","desc":"Carregador EV DC MC Series 40kW"},{"code":"LHE34DRR12008","qty":16,"necessity":"Apr/26","desc":"Medidor energia trifásico"},{"code":"HXEM100R10003","qty":16,"necessity":"Apr/26","desc":"Terminal IEMS"},{"code":"DTSU2591R11001","qty":2,"necessity":"Apr/26","desc":"Medidor inteligente Hexing"}],"total_qty":232,"wh":"FTZ","type":"MOBILITY","risk":false},{"po":"FORE012/2026","ip":"","destination":"Fortaleza","etd":"","eta_pod":"","eta_dest":"","po_sent":"09/12/2025","status":"Aguardando embarque","obs":"","items":[{"code":"LHE34DRR12004","qty":8,"necessity":"Jan/26","desc":"Medidor energia trifásico CT ext. 250A"},{"code":"HXEM100R10003","qty":4,"necessity":"Jan/26","desc":"Terminal IEMS industrial"}],"total_qty":12,"wh":"FTZ","type":"PROJECTS","risk":true,"directorate":"Projects","impact":"low"},{"po":"FORE013/2026","ip":"","destination":"Fortaleza","etd":"","eta_pod":"","eta_dest":"","po_sent":"03/12/2025","status":"Aguardando embarque","obs":"","items":[{"code":"BHF-X261DR21001","qty":15,"necessity":"May/26","desc":"BESS 261kWh (novo modelo)"},{"code":"PCS-125KG1R21002","qty":15,"necessity":"May/26","desc":"PCS 125kW"},{"code":"HXEM100R10003","qty":7,"necessity":"May/26","desc":"Terminal IEMS"},{"code":"DTSU2591R11001","qty":14,"necessity":"May/26","desc":"Medidor inteligente"},{"code":"TSR21004","qty":7,"necessity":"May/26","desc":"Cabine interruptor inteligente"}],"total_qty":58,"wh":"FTZ","type":"PROJECTS","risk":true,"directorate":"Projects","impact":"high"},{"po":"FORE014/2026","ip":"H-FOR005/2026","destination":"Fortaleza","etd":"07/02/2026","eta_pod":"07/04/2026","eta_dest":"17/04/2026","po_sent":"03/12/2025","status":"Em trânsito","obs":"","items":[{"code":"BHF-B51100R23001","qty":10,"necessity":"Feb/26","desc":"Bateria lítio alta tensão 5.1kWh"},{"code":"BHF-C01YDR12001","qty":2,"necessity":"Feb/26","desc":"Caixa de controle alta tensão série BHF-G"}],"total_qty":12,"wh":"FTZ","type":"PROJECTS","risk":false,"directorate":"Projects","impact":"medium"},{"po":"CWBE003/2026","ip":"H-CWB002/2026","destination":"Curitiba","etd":"08/02/2026","eta_pod":"19/04/2026","eta_dest":"04/05/2026","po_sent":"30/12/2025","status":"Em trânsito","obs":"","cliente":"SPTrans","items":[{"code":"B1U2ME2E0M5SR11002","qty":3,"necessity":"Jan/26","desc":"BUSH 22kW AC EV Charger (montado) IP55"},{"code":"B1U2ME2E0M5SR12002","qty":10,"necessity":"Jan/26","desc":"BUSH 22kW AC EV Charger IP55"}],"total_qty":13,"wh":"CWB","type":"PROJECTS","risk":false,"directorate":"Projects E-mobility","impact":"high"},{"po":"MANL005/2026","ip":"","destination":"Manaus","etd":"","eta_pod":"","eta_dest":"","po_sent":"18/12/2025","status":"Aguardando embarque","obs":"","items":[{"code":"4032500300","qty":15,"necessity":"May/26","desc":"Bandeja revestida 6mm"},{"code":"4032500550","qty":15,"necessity":"May/26","desc":"Tampa bandeja corrugada"},{"code":"4010207390","qty":2,"necessity":"May/26","desc":"Lixadeira pneumática"}],"total_qty":32,"wh":"MAN","type":"ELETRA","risk":true,"directorate":"Eletra","impact":"low"},{"po":"MANL006/2026","ip":"","destination":"Manaus","etd":"","eta_pod":"","eta_dest":"","po_sent":"13/01/2026","status":"Aguardando embarque","obs":"","items":[{"code":"EDP007SR10001","qty":100,"necessity":"Mar/26","desc":"Motor de Popa 6.9kW DC 36~60V"},{"code":"EDP007LR10001","qty":25,"necessity":"Mar/26","desc":"Motor de Popa 6.9kW DC (L)"},{"code":"BLF-B5150R11001","qty":375,"necessity":"Mar/26","desc":"Bateria BLF-B5150"},{"code":"2160100220L","qty":125,"necessity":"Mar/26","desc":"Carregador ECH10351 2.0kW"},{"code":"ELP1LR10003","qty":125,"necessity":"Mar/26","desc":"Controlador ELP1L DC 5~12V"}],"total_qty":750,"wh":"MAN","type":"ELETRA","risk":true,"directorate":"Eletra","impact":"medium"},{"po":"MANL009/2026","ip":"","destination":"Manaus","etd":"","eta_pod":"","eta_dest":"","po_sent":"","status":"Aguardando embarque","obs":"","items":[{"code":"PSD300R11001","qty":130,"necessity":"Jun/26","desc":"Módulo comunicação WI-SUN (transmissão/recepção)"}],"total_qty":130,"wh":"MAN","type":"ELETRA","risk":true,"directorate":"Eletra","impact":"low"},{"po":"FORE016/2026","ip":"","destination":"Fortaleza","etd":"03/04/2026","eta_pod":"","eta_dest":"","po_sent":"13/01/2026","status":"Aguardando embarque","obs":"Estimativa de embarque em 03/04/2026","directorate":"Projects","impact":"high","items":[{"code":"BES-P125X261R33001","qty":25,"necessity":"Jun/26","desc":"BESS 125kW/261kWh liquid-cooled (integrado)"},{"code":"HXEM100R10003","qty":25,"necessity":"Jun/26","desc":"Terminal IEMS"},{"code":"DTSU2591R11001","qty":80,"necessity":"Jun/26","desc":"Medidor inteligente Hexing"},{"code":"TSR31002","qty":6,"necessity":"Jun/26","desc":"SWB control box + IEMS + switch"},{"code":"TSR31004/31006/31008","qty":7,"necessity":"Jun/26","desc":"Cabines SWB variações"}],"total_qty":143,"wh":"FTZ","type":"PROJECTS","risk":false},{"po":"CWBE004/2026","ip":"H-CWB003/2026","destination":"Curitiba","etd":"","eta_pod":"","eta_dest":"","po_sent":"13/01/2026","status":"Em trânsito","obs":"ACTION: Follow up China — sem ETA confirmada","cliente":"Piracicabana Santos","items":[{"code":"M16010E2GYGHR11001","qty":1,"necessity":"Jun/26","desc":"LIVOLTEK MotionFast 160kW DC Charger"}],"total_qty":1,"wh":"CWB","type":"PROJECTS","risk":true,"directorate":"Projects E-mobility","impact":"high"},{"po":"FORE017/2026","ip":"","destination":"Fortaleza","etd":"","eta_pod":"","eta_dest":"","po_sent":"04/02/2026","status":"Aguardando embarque","obs":"","items":[{"code":"3051515170","qty":5,"necessity":"Jul/26","desc":"Componente estrutural (aguardando descrição)"}],"total_qty":5,"wh":"FTZ","type":"DISTRIBUTION","risk":true,"directorate":"Distribution","impact":"low"},{"po":"FORE018/2026","ip":"","destination":"Fortaleza","etd":"","eta_pod":"","eta_dest":"","po_sent":"02/03/2026","status":"Aguardando embarque","obs":"","items":[{"code":"HXEDE081R10005","qty":50,"necessity":"Aug/26","desc":"Power Scope — Energy Profiling (Hexing)"}],"total_qty":50,"wh":"FTZ","type":"DISTRIBUTION","risk":true,"directorate":"Hexing","impact":"low"},{"po":"CWBE005/2026","ip":"","destination":"Curitiba","etd":"","eta_pod":"","eta_dest":"","po_sent":"09/03/2026","status":"Aguardando embarque","obs":"Wait price confirmation (Kelly Li — HQ)","directorate":"E-mobility","impact":"high","items":[{"code":"A0220400E11R11005","qty":300,"necessity":"Sep/26","desc":"AC Charger 22kW Type2 (R110)"},{"code":"M1201000E2EYR11001","qty":40,"necessity":"Sep/26","desc":"DCFC 120kW CCS2"},{"code":"M0601000E2EYR11001","qty":20,"necessity":"Sep/26","desc":"DCFC 60kW CCS2"},{"code":"C04010E2EAFER11003","qty":20,"necessity":"Sep/26","desc":"MC Series 40kW"},{"code":"C06010E2EAFGR11003","qty":10,"necessity":"Sep/26","desc":"MC Series 60kW"},{"code":"M18010E2EYFIR11003","qty":5,"necessity":"Sep/26","desc":"MotionFast 180kW"},{"code":"Componentes/peças","qty":671,"necessity":"Sep/26","desc":"Fans, módulos, cabos, parafusos, etiquetas"}],"total_qty":1066,"wh":"CWB","type":"MOBILITY","risk":true},{"po":"CWBE006/2026","ip":"H-CWB004/2026","destination":"Curitiba","etd":"","eta_pod":"","eta_dest":"","po_sent":"13/03/2026","status":"Aguardando embarque","obs":"Ag. NCM + descrição de 25 itens (Igor)","items":[{"code":"Componentes carregador","qty":1169,"necessity":"Mar/26","desc":"Painéis, RFID, displays, rótulos, embalagens"}],"total_qty":1169,"wh":"CWB","type":"DISTRIBUTION","risk":true,"directorate":"E-mobility","impact":"medium"},{"po":"FORE-SPENCER/2026","ip":"","destination":"Fortaleza","etd":"","eta_pod":"","eta_dest":"","po_sent":"","status":"Aguardando embarque","obs":"Códigos não localizados no Transit Control — verificar com Kelly","cliente":"Spencer","items":[{"code":"9122003638~9122003646 / 9192220909~9192220931","qty":17,"necessity":"—","desc":"Hexing meters / produtos Spencer (17 SKUs — PO a identificar no Transit Control)"}],"total_qty":17,"wh":"FTZ","type":"PROJECTS","risk":true,"directorate":"Hexing","impact":"medium"},{"po":"FORE020/2026","ip":"H-FOR007/2026","destination":"Fortaleza","etd":"","eta_pod":"","eta_dest":"","po_sent":"17/03/2026","status":"Aguardando embarque","obs":"","items":[{"code":"SWC-G1R11001","qty":1,"necessity":"Apr/26","desc":"SWB Control Box"},{"code":"LHPE72JR11001","qty":4,"necessity":"Apr/26","desc":"Smart Meters Hexing"},{"code":"HXEM100R10003","qty":1,"necessity":"Apr/26","desc":"IEMS terminal"},{"code":"8990011950","qty":1,"necessity":"Apr/26","desc":"Switch 1050A"},{"code":"8990020470","qty":1,"necessity":"Apr/26","desc":"Contactors 1050A"},{"code":"8990025110","qty":12,"necessity":"Apr/26","desc":"CT 1000/5A"}],"total_qty":20,"wh":"FTZ","type":"PROJECTS","risk":true,"directorate":"Projects","impact":"medium"},{"po":"FORE021/2026","ip":"","destination":"Fortaleza","etd":"","eta_pod":"","eta_dest":"","po_sent":"","status":"Aguardando embarque","obs":"Aguardando aprovação do pedido","items":[{"code":"523400526006","qty":20,"necessity":"Set/26","desc":"Componentes eletrônicos BESS C&I"},{"code":"523400517010","qty":20,"necessity":"Set/26","desc":"BMS Main Control Board 261kWh"},{"code":"523400555004","qty":20,"necessity":"Set/26","desc":"261 PCS ARM"},{"code":"523400418004","qty":20,"necessity":"Set/26","desc":"PCS Charge Board 125kW"}],"total_qty":80,"wh":"FTZ","type":"DISTRIBUTION","risk":true,"directorate":"Projects","impact":"low"}];
+
+async function loadData() {
+  try {
+    const res = await fetch('data.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    return FALLBACK_DATA;
+  }
+}
+
+loadData().then(data => { window.DATA = data; initDashboard(); });
+
+/* ── HELPERS ────────────────────────────────────────────── */
+function parseDate(s) {
+  if (!s || /pend|—/i.test(s)) return null;
+  const p = s.split('/');
+  if (p.length !== 3) return null;
+  return new Date(+p[2], +p[1]-1, +p[0]);
+}
+const MON = {jan:0,feb:1,fev:1,mar:2,apr:3,abr:3,may:4,mai:4,
+             jun:5,jul:6,aug:7,ago:7,sep:8,set:8,oct:9,out:9,nov:10,dez:11};
+function parseNecessity(s) {
+  if (!s || s==='—') return null;
+  const p = s.toLowerCase().split('/');
+  const m = MON[p[0]];
+  if (m===undefined) return null;
+  return new Date(2000+parseInt(p[1]||'26'), m+1, 0);
+}
+function daysSince(s) {
+  const d = parseDate(s);
+  return d ? Math.floor((TODAY-d)/86400000) : null;
+}
+function delayDays(r) {
+  const nec = parseNecessity(r.items?.[0]?.necessity);
+  const eta = parseDate(r.eta_dest);
+  if (!nec || !eta) return null;
+  const diff = Math.floor((eta-nec)/86400000);
+  return diff > 0 ? diff : 0;
+}
+
+/* ── INIT ───────────────────────────────────────────────── */
+function initDashboard() {
+  document.getElementById('mainContent').innerHTML = `
+    <div class="exec-wrap">
+      <div class="sec">Directorates Requiring Action</div>
+      <div class="exec-grid" id="execGrid"></div>
+    </div>
+    <div class="sec">PO Detail — Operational View</div>
+    <div class="filters">
+      <button class="fbtn on" data-f="all" onclick="setFilter(this,'all')">All</button>
+      <button class="fbtn" data-f="mob"  onclick="setFilter(this,'mob')">E-Mobility</button>
+      <button class="fbtn" data-f="proj" onclick="setFilter(this,'proj')">Projects</button>
+      <button class="fbtn" data-f="dist" onclick="setFilter(this,'dist')">Distribution</button>
+      <div class="fsep"></div>
+      <select id="monthSelect"   class="fsel" onchange="monthFilt=this.value;render()"><option value="">Necessity Month</option></select>
+      <select id="clienteSelect" class="fsel" onchange="clienteFilt=this.value;render()"><option value="">Client</option></select>
+      <div class="fsep"></div>
+      <button class="fbtn" id="riskBtn" onclick="toggleRisk()">⚠ Risk / No ETD</button>
+      <div class="search-w"><span class="sico">⌕</span>
+        <input type="text" id="searchBox" placeholder="Search PO, code…" oninput="render()">
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <div class="tbl-head"
+           style="grid-template-columns:16px 150px 145px 55px 80px 90px 100px 85px 88px 100px 80px">
+        <div class="th"></div>
+        <div class="th">PO Number</div>
+        <div class="th">Directorate</div>
+        <div class="th">Dest</div>
+        <div class="th">Days Sent</div>
+        <div class="th">ETD China</div>
+        <div class="th">ETA Destination</div>
+        <div class="th">Necessity</div>
+        <div class="th">Delay</div>
+        <div class="th">Status</div>
+        <div class="th">Received</div>
+      </div>
+      <div id="tBody"></div>
+    </div>`;
+  buildExecutive();
+  buildSelects();
+  render();
+}
+
+/* ── EXECUTIVE SECTION ──────────────────────────────────── */
+function buildExecutive() {
+  const active = DATA.filter(r => !/cancelad/i.test(r.status));
+  const dirs = {};
+
+  active.forEach(r => {
+    const key = r.directorate || 'Others';
+    if (!dirs[key]) dirs[key] = {
+      name:key, total:0, delayed:0, critical:0, noEtd:0,
+      highImpact:0, hasDelay:false, hasCritical:false, hasRisk:false
+    };
+    const d = dirs[key];
+    d.total++;
+
+    const dd  = delayDays(r);
+    const nec = parseNecessity(r.items?.[0]?.necessity);
+    const lateNoETA = nec && !r.eta_dest && r.status!=='Entregue' && nec<TODAY;
+    const isDelayed  = (dd&&dd>0) || lateNoETA;
+    const isCritical = (dd&&dd>60) || (lateNoETA && nec && Math.floor((TODAY-nec)/86400000)>60);
+    const isNoEtd    = (!r.etd||r.risk) && r.status!=='Entregue';
+
+    if (isDelayed)  { d.delayed++;  d.hasDelay=true; }
+    if (isCritical) { d.critical++; d.hasCritical=true; }
+    if (isNoEtd)    { d.noEtd++;    d.hasRisk=true; }
+    if (r.impact==='high') d.highImpact++;
+  });
+
+  const toShow = Object.values(dirs)
+    .filter(d => d.hasDelay || d.hasRisk)
+    .sort((a,b) => {
+      if (a.hasCritical!==b.hasCritical) return b.hasCritical-a.hasCritical;
+      if (a.delayed!==b.delayed) return b.delayed-a.delayed;
+      return b.noEtd-a.noEtd;
+    });
+
+  if (!toShow.length) {
+    document.getElementById('execGrid').innerHTML =
+      '<div class="exec-empty">✓ No directorates require immediate action</div>';
+    return;
+  }
+
+  function clsClass(d)  { return d.hasCritical ? 'critical' : 'attention'; }
+  function clsBadge(d) {
+    return d.hasCritical
+      ? '<span class="cls-badge cls-critical"><span class="cls-dot"></span>Critical</span>'
+      : '<span class="cls-badge cls-attention"><span class="cls-dot"></span>Attention</span>';
+  }
+  function impBadge(d) {
+    if (d.highImpact>0) return '<span class="imp imp-h">HIGH</span>';
+    const med = DATA.some(r=>r.directorate===d.name&&r.impact==='medium');
+    return med ? '<span class="imp imp-m">MEDIUM</span>' : '<span class="imp imp-l">LOW</span>';
+  }
+  function actionBlock(d) {
+    const rows = [];
+    if (d.hasDelay)
+      rows.push(`<div class="action-row a-red"><span class="action-ico">🔴</span>
+        <div class="action-txt"><strong>Validate customer impact</strong> and define recovery plan with commercial team</div></div>`);
+    if (d.hasRisk)
+      rows.push(`<div class="action-row a-yellow"><span class="action-ico">🟡</span>
+        <div class="action-txt"><strong>Follow up China</strong> to confirm ETD and production status</div></div>`);
+    if (!d.hasDelay && !d.hasRisk)
+      rows.push(`<div class="action-row a-blue"><span class="action-ico">🔵</span>
+        <div class="action-txt"><strong>Monitor execution</strong> — no immediate action required</div></div>`);
+    return rows.join('');
+  }
+
+  document.getElementById('execGrid').innerHTML = toShow.map(d => `
+    <div class="exec-card ${clsClass(d)}">
+      <div class="exec-body">
+        <div class="exec-top">
+          <div class="exec-name">${d.name}</div>
+          ${clsBadge(d)}
+        </div>
+        <div class="exec-total">
+          <div class="exec-total-num">${d.total}</div>
+          <div class="exec-total-lbl">Total POs<span>${d.total} purchase order${d.total!==1?'s':''} in scope</span></div>
+        </div>
+        <div class="exec-metrics">
+          <div class="exec-metric-row">
+            <div class="em-label"><span class="ico">📅</span>Delayed POs</div>
+            <div><span class="em-val ${d.delayed>0?'red':'dim'}">${d.delayed}</span><span class="em-frac"> / ${d.total}</span></div>
+          </div>
+          <div class="exec-metric-row">
+            <div class="em-label"><span class="ico">⚠️</span>Critical delays (&gt;60 days)</div>
+            <span class="em-val ${d.critical>0?'orange':'dim'}">${d.critical}</span>
+          </div>
+          <div class="exec-metric-row">
+            <div class="em-label"><span class="ico">🚫</span>No ETD confirmed</div>
+            <span class="em-val ${d.noEtd>0?'yellow':'dim'}">${d.noEtd}</span>
+          </div>
+        </div>
+        <div class="exec-impact">
+          <span class="impact-lbl">Impact level</span>
+          ${impBadge(d)}
+        </div>
+        <div class="exec-actions">${actionBlock(d)}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ── TABLE ──────────────────────────────────────────────── */
+let filt='all', monthFilt='', clienteFilt='', riskMode=false, expanded=new Set();
+
+function setFilter(btn,f) {
+  riskMode=false; document.getElementById('riskBtn').classList.remove('risk-on');
+  document.querySelectorAll('.fbtn:not(#riskBtn)').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); filt=f; render();
+}
+function toggleRisk() {
+  riskMode=!riskMode;
+  document.getElementById('riskBtn').classList.toggle('risk-on',riskMode);
+  render();
+}
+
+function dirPill(dir) {
+  if (!dir) return '';
+  const d = dir.toLowerCase();
+  if (d.includes('projects e-mob')) return `<span class="dir-pill dp-pemob">Projects E-mob</span>`;
+  if (d.includes('e-mob'))          return `<span class="dir-pill dp-emob">E-Mobility</span>`;
+  if (d.includes('proj'))           return `<span class="dir-pill dp-proj">Projects</span>`;
+  if (d.includes('dist'))           return `<span class="dir-pill dp-dist">Distribution</span>`;
+  if (d.includes('ele'))            return `<span class="dir-pill dp-ele">Eletra</span>`;
+  if (d.includes('hex'))            return `<span class="dir-pill dp-hex">Hexing</span>`;
+  return `<span class="dir-pill dp-dist">${dir}</span>`;
+}
+function destPill(wh) {
+  if (wh==='CWB') return `<span class="dest d-cwb">CWB</span>`;
+  if (wh==='FTZ') return `<span class="dest d-ftz">FTZ</span>`;
+  return `<span class="dest d-man">MAN</span>`;
+}
+function statusBadge(s) {
+  if (s==='Entregue')              return `<span class="badge b-green">✓ Delivered</span>`;
+  if (s==='Em trânsito')           return `<span class="badge b-cyan"><span class="bdot"></span>In Transit</span>`;
+  if (/desembaraço/i.test(s))      return `<span class="badge b-orange"><span class="bdot"></span>Customs</span>`;
+  if (s==='Aguardando embarque')   return `<span class="badge b-yellow"><span class="bdot"></span>Awaiting ETD</span>`;
+  return `<span class="badge b-yellow">${s}</span>`;
+}
+function daysSinceBadge(s) {
+  const d = daysSince(s);
+  if (d===null) return `<span class="days-chip d-none">—</span>`;
+  const c = d>90?'d-red':d>45?'d-orange':'d-norm';
+  return `<span class="days-chip ${c}">${d}d</span>`;
+}
+function delayBadge(r) {
+  if (r.status==='Entregue') {
+    const dd=delayDays(r);
+    if (dd===null) return `<span class="dl-ok">Delivered</span>`;
+    return dd>0 ? `<span class="dl-late">+${dd}d late</span>` : `<span class="dl-ok">On time</span>`;
+  }
+  const dd  = delayDays(r);
+  const nec = parseNecessity(r.items?.[0]?.necessity);
+  if (!nec) return `<span class="dl-nd">—</span>`;
+  if (!r.eta_dest) {
+    const elapsed = Math.floor((TODAY-nec)/86400000);
+    if (elapsed<=0) return `<span class="dl-nd">Pending</span>`;
+    return elapsed>60 ? `<span class="dl-crit">+${elapsed}d ⚠</span>` : `<span class="dl-late">+${elapsed}d</span>`;
+  }
+  if (dd===0) return `<span class="dl-ok">On track</span>`;
+  return dd>60 ? `<span class="dl-crit">+${dd}d ⚠</span>` : `<span class="dl-late">+${dd}d</span>`;
+}
+
+const TPL = '16px 150px 145px 55px 80px 90px 100px 85px 88px 100px 80px';
+
+function render() {
+  const q = (document.getElementById('searchBox')?.value||'').toLowerCase();
+  const list = DATA.filter(r => {
+    if (/cancelad/i.test(r.status)) return false;
+    if (riskMode && !r.risk && r.etd) return false;
+    const dir = (r.directorate||'').toLowerCase();
+    if (filt==='mob'  && !dir.includes('e-mob'))  return false;
+    if (filt==='proj' && !dir.includes('proj'))   return false;
+    if (filt==='dist' && !dir.includes('dist'))   return false;
+    if (monthFilt && !r.items?.some(i=>i.necessity===monthFilt)) return false;
+    if (clienteFilt && r.cliente!==clienteFilt)   return false;
+    if (q && !r.po.toLowerCase().includes(q)
+          && !(r.directorate||'').toLowerCase().includes(q)
+          && !r.items?.some(i=>i.code.toLowerCase().includes(q)||(i.desc||'').toLowerCase().includes(q)))
+      return false;
+    return true;
+  });
+
+  const b = document.getElementById('tBody');
+  if (!list.length) { b.innerHTML='<div class="empty">No POs found for the selected filters.</div>'; return; }
+
+  b.innerHTML = list.map(r => {
+    const open = expanded.has(r.po);
+    const isRisk = r.risk || !r.etd;
+    const recv = getRecv(r.po);
+    const nec = r.items?.[0]?.necessity || '—';
+    const ps = r.po.replace(/'/g,"\\'");
+    return `<div class="trow-wrap">
+      <div class="trow${open?' expanded':''}${isRisk?' risk-row':''}"
+           style="grid-template-columns:${TPL}" onclick="toggle('${ps}')">
+        <div class="tc"><div class="arr">▶</div></div>
+        <div class="tc mono">${r.po}${isRisk?`<span class="risk-tag">RISK</span>`:''}</div>
+        <div class="tc">${dirPill(r.directorate)}</div>
+        <div class="tc">${destPill(r.wh)}</div>
+        <div class="tc">${daysSinceBadge(r.po_sent)}</div>
+        <div class="tc sm">${r.etd||'<span style="color:var(--red);font-weight:700">No ETD</span>'}</div>
+        <div class="tc sm">${r.eta_dest||'<span style="color:var(--yellow)">—</span>'}</div>
+        <div class="tc sm">${nec}</div>
+        <div class="tc">${delayBadge(r)}</div>
+        <div class="tc">${statusBadge(r.status)}</div>
+        <div class="tc" onclick="event.stopPropagation()">
+          <label class="recv-wrap${recv?' done':''}">
+            <input type="checkbox" ${recv?'checked':''} onchange="toggleRecv(this,'${ps}')">
+            ${recv?'Yes':'No'}
+          </label>
+        </div>
+      </div>
+      <div class="items-panel${open?' open':''}">
+        <div class="ip-meta">
+          <div class="ip-lbl">Items</div>
+          ${r.ip?`<div class="ip-ref">IP: ${r.ip}</div>`:''}
+          ${r.cliente?`<span class="cli-tag">👤 ${r.cliente}</span>`:''}
+          ${r.obs?`<span style="font-size:9.5px;color:var(--orange)">⚠ ${r.obs.slice(0,90)}</span>`:''}
+        </div>
+        ${(r.items||[]).map(i=>`<div class="item-row">
+          <div class="item-code">${i.code}&nbsp;<span class="item-desc">${i.desc||''}</span></div>
+          <div class="item-meta">
+            <div class="item-need">${i.necessity||''}</div>
+            <div class="item-qty">${(i.qty||0).toLocaleString('pt-BR')} un.</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggle(po) { if(expanded.has(po)) expanded.delete(po); else expanded.add(po); render(); }
+function getRecv(po)       { try{return JSON.parse(localStorage.getItem('recv_'+po)||'false');}catch{return false;} }
+function setRecv(po,v)     { localStorage.setItem('recv_'+po,JSON.stringify(v)); }
+function toggleRecv(el,po) { setRecv(po,el.checked); render(); }
+
+function buildSelects() {
+  const ord={jan:1,fev:2,feb:2,mar:3,abr:4,apr:4,mai:5,may:5,jun:6,jul:7,ago:8,aug:8,set:9,sep:9,out:10,oct:10,nov:11,dez:12};
+  const months=new Set();
+  DATA.forEach(r=>(r.items||[]).forEach(i=>{if(i.necessity&&i.necessity!=='—')months.add(i.necessity);}));
+  const sortedM=[...months].sort((a,b)=>{
+    const[ma,ya]=a.toLowerCase().split('/');
+    const[mb,yb]=b.toLowerCase().split('/');
+    const yd=parseInt(ya||'26')-parseInt(yb||'26');
+    return yd!==0?yd:(ord[ma]||99)-(ord[mb]||99);
+  });
+  document.getElementById('monthSelect').innerHTML=
+    '<option value="">Necessity Month</option>'+sortedM.map(m=>`<option value="${m}">${m}</option>`).join('');
+  const clients=[...new Set(DATA.filter(r=>r.cliente).map(r=>r.cliente))].sort();
+  document.getElementById('clienteSelect').innerHTML=
+    '<option value="">Client</option>'+clients.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+</script>
+</body>
+</html>
