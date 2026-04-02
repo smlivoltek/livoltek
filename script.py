@@ -1,96 +1,137 @@
 import pandas as pd
 import json
+from datetime import datetime
 
-# ===== FUNÇÃO: CLASSIFICA DIRETORIA =====
-def classify_directorate(cliente, desc, code):
-    text = (str(cliente) + " " + str(desc) + " " + str(code)).lower()
+# ==============================
+# CONFIG
+# ==============================
 
-    # CLIENTES PRIORITÁRIOS
-    if "sptrans" in text:
-        return "Projects E-mobility"
+INPUT_FILE = "transit.xlsx"
+OUTPUT_FILE = "data.json"
 
-    if "piracicabana" in text:
-        return "Projects E-mobility"
+# ==============================
+# CLASSIFICAÇÃO MANUAL
+# ==============================
 
-    if "vinicio carrara" in text:
-        return "E-mobility"
+CLASSIFICATION = {
+    # MAR/26
+    ("C04010E2EAFER11003", "Mar/26", 20): "E-mobility",
+    ("2080703590", "Mar/26", 1): "Projects",
 
-    if "mateus gomes" in text:
-        return "Projects"
+    # APR/26 - SPTRANS
+    ("B1U2ME2E0M5SR11002", "Apr/26", 3): "Projects E-mobility",
+    ("B1U2ME2E0M5SR12002", "Apr/26", 10): "Projects E-mobility",
 
-    if "boat engine" in text:
-        return "Projects"
+    # APR/26 - SPENCER
+    ("9122003638", "Apr/26", 180): "E-mobility Projects",
+    ("9122003639", "Apr/26", 60): "E-mobility Projects",
+    ("9122003640", "Apr/26", 450): "E-mobility Projects",
+    ("9122003641", "Apr/26", 150): "E-mobility Projects",
 
-    if "kelly li" in text:
-        return "Distribution"
+    # APR/26 - DISTRIBUTION
+    ("5250301010", "Apr/26", 40): "Distribution",
+    ("5250301030", "Apr/26", 40): "Distribution",
 
-    # PRODUTOS
-    if "motor de popa" in text:
-        return "Projects"
+    # MAY/26
+    ("EDP007SR10001", "May/26", 100): "Projects",
+    ("EDP007LR10001", "May/26", 25): "Projects",
+    ("BLF-B5150R11001", "May/26", 375): "Projects",
+    ("2160100160L", "May/26", 125): "Projects",
 
-    if "bess" in text or "pcs" in text:
-        return "Projects"
+    # JUN/26
+    ("M16010E2GYGHR11001", "Jun/26", 1): "Mobility Projects",
 
-    if "charger" in text or "ev" in text:
-        return "E-mobility"
+    # JUL/26
+    ("9192220364", "Jul/26", 5): "E-mobility",
 
-    if "medidor" in text or "hexing" in text:
-        return "Hexing"
+    # AUG/26
+    ("HXEDE081R10001", "Aug/26", 50): "Projects",
+
+    # SEP/26
+    ("A0220400E11R11005", "Sep/26", 300): "E-mobility",
+    ("C04010E2EAFER11003", "Sep/26", 20): "E-mobility",
+    ("C06010E2EAFGR11003", "Sep/26", 10): "E-mobility",
+    ("M0601000E2EYR11001", "Sep/26", 20): "E-mobility",
+    ("M1201000E2EYR11001", "Sep/26", 40): "E-mobility",
+    ("M18010E2EYR11003", "Sep/26", 5): "E-mobility",
+    ("M18010E2GYFIR11001", "Sep/26", 1): "E-mobility",
+}
+
+def classify_directorate(code, necessity, qty):
+    key = (
+        str(code).strip(),
+        str(necessity).strip().title(),
+        int(qty) if str(qty).isdigit() else 0
+    )
+
+    if key in CLASSIFICATION:
+        return CLASSIFICATION[key]
 
     return "Distribution"
 
+# ==============================
+# FUNÇÃO DELAY
+# ==============================
 
-# ===== LER EXCEL =====
-df = pd.read_excel("transit.xlsx")
+def calculate_delay(eta):
+    try:
+        eta_date = pd.to_datetime(eta, errors='coerce')
+        if pd.isna(eta_date):
+            return 0
 
-data = {}
+        today = datetime.now()
+        delay = (today - eta_date).days
+
+        return delay if delay > 0 else 0
+    except:
+        return 0
+
+# ==============================
+# LEITURA EXCEL
+# ==============================
+
+df = pd.read_excel(INPUT_FILE)
+
+data = []
 
 for _, r in df.iterrows():
+    try:
+        necessity = str(r.iloc[6])    # G
+        code = str(r.iloc[7])         # H
+        qty = r.iloc[9]               # J
+        desc = str(r.iloc[8])         # I (descrição)
+        po = str(r.iloc[6])           # se não tiver PO separado
+        etd = str(r.iloc[23])         # X
+        eta = str(r.iloc[27])         # AB
+        status = str(r.iloc[28])      # AC
 
-    # FILTRO: SOMENTE 2026
-    if "26" not in str(r.iloc[2]):
-        continue
+        # FILTRO: só 2026
+        if "26" not in necessity:
+            continue
 
-    po = str(r.iloc[6]).strip()
-    if po == "nan":
-        continue
+        delay_days = calculate_delay(eta)
 
-    cliente = str(r.iloc[1])
-    desc = str(r.iloc[12])
-    code = str(r.iloc[10])
-
-    item = {
-        "code": code,
-        "qty": int(r.iloc[13]) if not pd.isna(r.iloc[13]) else 0,
-        "necessity": str(r.iloc[2]),
-        "desc": desc
-    }
-
-    if po not in data:
-        data[po] = {
+        data.append({
             "po": po,
-            "directorate": classify_directorate(cliente, desc, code),
-            "status": str(r.iloc[28]),
-            "etd": str(r.iloc[23]),
-            "eta_dest": str(r.iloc[27]),
-            "po_sent": str(r.iloc[19]),
-            "items": [],
-            "total_qty": 0,
-            "wh": "",
-            "risk": False,
-            "impact": "medium"
-        }
+            "directorate": classify_directorate(code, necessity, qty),
+            "status": status,
+            "etd": etd,
+            "eta": eta,
+            "necessity": necessity,
+            "code": code,
+            "description": desc,
+            "qty": qty,
+            "delay_days": delay_days
+        })
 
-    data[po]["items"].append(item)
-    data[po]["total_qty"] += item["qty"]
+    except Exception as e:
+        print(f"Erro na linha: {e}")
 
+# ==============================
+# SALVAR JSON
+# ==============================
 
-# ===== REGRA DE RISCO =====
-for po in data:
-    if not data[po]["etd"] or data[po]["etd"] == "nan":
-        data[po]["risk"] = True
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    json.dump(data, f, ensure_ascii=False, indent=2)
 
-
-# ===== SALVAR JSON =====
-with open("data.json", "w", encoding="utf-8") as f:
-    json.dump(list(data.values()), f, ensure_ascii=False, indent=2)
+print("JSON atualizado com sucesso!")
