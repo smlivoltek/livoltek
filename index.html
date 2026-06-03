@@ -669,7 +669,7 @@ function parseTOTVS(csv,wh){
     })
     .map(r=>{
       const o={wh,codigo:String(r[0]).trim(),descricao:String(r[3]).trim(),
-               saldo:pn(r[7]),em separação:pn(r[8]),reserva:0,disp:0};
+               saldo:pn(r[7]),empenho:pn(r[8]),reserva:0,disp:0};
       const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
       return o;
     })
@@ -698,7 +698,7 @@ function parseMAO(csv, wh){
       })
       .map(r=>{
         const o={wh, codigo:String(r[0]).trim(), descricao:String(r[3]).trim(),
-                 saldo:pn(r[7]), em separação:pn(r[8]), reserva:0, disp:0};
+                 saldo:pn(r[7]), empenho:pn(r[8]), reserva:0, disp:0};
         const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
         return o;
       })
@@ -710,7 +710,7 @@ function parseMAO(csv, wh){
       .map(r=>{
         const codigo = String(r[1]||r[0]||'').trim();
         const o={wh, codigo, descricao:String(r[2]||'').trim(),
-                 saldo:pn(r[3]), em separação:0, reserva:0, disp:0};
+                 saldo:pn(r[3]), empenho:0, reserva:0, disp:0};
         const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
         return o;
       })
@@ -749,7 +749,7 @@ function applyRes(){
   ST.forEach(s=>{
     s.reserva=lkp[s.wh+'|'+s.codigo.toUpperCase()]||0;
     // VALIDATED FORMULA: Disponível = max(0, Saldo - Em Separação - Reserva)
-    s.disp=Math.max(0, s.saldo - s.em separação - s.reserva);
+    s.disp=Math.max(0, s.saldo - s.empenho - s.reserva);
   });
 }
 
@@ -871,7 +871,7 @@ function stdRow(r,showCat,showFam){
     ${showCat?`<td>${catTag(r.cat)}</td>`:''}
     <td>${wt(r.wh)}</td>
     <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:${r.em separação>0?'#b45309':'var(--txtm)'}">${r.em separação>0?fmt(r.em separação):'—'}</td>
+    <td class="r" style="color:${r.empenho>0?'#b45309':'var(--txtm)'}">${r.empenho>0?fmt(r.empenho):'—'}</td>
     <td class="r" style="color:${r.reserva>0?'#7c3aed':'var(--txtm)'}">${r.reserva>0?fmt(r.reserva):'—'}</td>
     <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':r.disp>0?'#dc2626':'#94a3b8'}">${fmt(r.disp)}</td>
     <td>${sbadge(r.disp)}</td>
@@ -921,7 +921,7 @@ function rDash(){
   const tots=s=>ST.reduce((a,r)=>a+r[s],0);
   document.getElementById('k-skus').textContent=ST.length;
   document.getElementById('k-sal').textContent=fmt(tots('saldo'));
-  document.getElementById('k-emp').textContent=fmt(tots('em separação'));
+  document.getElementById('k-emp').textContent=fmt(tots('empenho'));
   document.getElementById('k-res').textContent=fmt(tots('reserva'));
   document.getElementById('k-disp').textContent=fmt(tots('disp'));
   buildBarChart('TODOS');
@@ -1033,7 +1033,7 @@ function rAll(){
     <td class="cod">${r.codigo}</td><td class="pname" title="${r.descricao}">${trunc(r.descricao,60)}</td>
     <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
     <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:${r.em separação>0?'#b45309':'var(--txtm)'}">${r.em separação>0?fmt(r.em separação):'—'}</td>
+    <td class="r" style="color:${r.empenho>0?'#b45309':'var(--txtm)'}">${r.empenho>0?fmt(r.empenho):'—'}</td>
     <td class="r" style="color:${r.reserva>0?'#7c3aed':'var(--txtm)'}">${r.reserva>0?fmt(r.reserva):'—'}</td>
     <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':r.disp>0?'#dc2626':'#94a3b8'}">${fmt(r.disp)}</td>
     <td>${sbadge(r.disp)}</td>
@@ -1180,7 +1180,7 @@ function rWH(){
     return mw&&mq;
   }).sort((a,b)=>a.codigo.localeCompare(b.codigo));
   const sal=rows.reduce((a,r)=>a+r.saldo,0);
-  const emp=rows.reduce((a,r)=>a+r.em separação,0);
+  const emp=rows.reduce((a,r)=>a+r.empenho,0);
   const res=rows.reduce((a,r)=>a+r.reserva,0);
   const disp=rows.reduce((a,r)=>a+r.disp,0);
   document.getElementById('wh-sum').innerHTML=`
@@ -1208,7 +1208,7 @@ function rWH(){
     <td class="pname" title="${r.descricao}">${trunc(r.descricao,60)}</td>
     <td>${catTag(r.cat)}</td>
     <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:${r.em separação>0?'#b45309':'var(--txtm)'}">${r.em separação>0?fmt(r.em separação):'—'}</td>
+    <td class="r" style="color:${r.empenho>0?'#b45309':'var(--txtm)'}">${r.empenho>0?fmt(r.empenho):'—'}</td>
     <td class="r" style="color:${r.reserva>0?'#7c3aed':'var(--txtm)'}">${r.reserva>0?fmt(r.reserva):'—'}</td>
     <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':r.disp>0?'#dc2626':'#94a3b8'}">${fmt(r.disp)}</td>
     <td>${sbadge(r.disp)}</td>
@@ -1236,7 +1236,7 @@ function rAlrt(){
   document.getElementById('a1-tbl').innerHTML=a1.map(r=>`<tr>
     <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,48)}</td>
     <td>${wt(r.wh)}</td><td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:#b45309">${r.em separação>0?fmt(r.em separação):'—'}</td>
+    <td class="r" style="color:#b45309">${r.empenho>0?fmt(r.empenho):'—'}</td>
     <td class="r" style="color:var(--pur);font-weight:700">${fmt(r.reserva)}</td>
     <td class="r" style="color:#dc2626;font-weight:700">−${fmt(r.reserva-r.saldo)}</td>
   </tr>`).join('');
@@ -1256,7 +1256,7 @@ function rAlrt(){
     <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,46)}</td>
     <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
     <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:#b45309">${r.em separação>0?fmt(r.em separação):'—'}</td>
+    <td class="r" style="color:#b45309">${r.empenho>0?fmt(r.empenho):'—'}</td>
     <td class="r" style="color:var(--pur)">${r.reserva>0?fmt(r.reserva):'—'}</td>
     <td class="r" style="color:var(--txtm)">0</td>
   </tr>`).join('');
@@ -1283,7 +1283,7 @@ function go(id,btn){
 function exportCSV(){
   const cols=['Armazem','Codigo','Descricao','Familia','Categoria','Saldo','Em Separação','Reserva','Disponivel_Venda'];
   const rows=[cols];
-  ST.forEach(r=>rows.push([r.wh,r.codigo,'"'+r.descricao.replace(/"/g,"'")+'"','"'+(r.familia||'')+'"',r.cat,r.saldo,r.em separação,r.reserva,r.disp]));
+  ST.forEach(r=>rows.push([r.wh,r.codigo,'"'+r.descricao.replace(/"/g,"'")+'"','"'+(r.familia||'')+'"',r.cat,r.saldo,r.empenho,r.reserva,r.disp]));
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.join(';')).join('\n')],{type:'text/csv;charset=utf-8'}));
   a.download='Livoltek_Estoque_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.csv';
