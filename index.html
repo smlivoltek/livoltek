@@ -210,7 +210,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <div class="logo">LV</div>
     <div>
       <div class="hdr-title">LIVOLTEK | Estoque Comercial Brasil</div>
-      <div class="hdr-sub">Armazém 07 · Ao vivo · Saldo − Empenho − Reserva = Disponível para Venda</div>
+      <div class="hdr-sub">Armazém 07 · Saldo − Empenho − Reserva = Disponível para Venda</div>
     </div>
   </div>
   <div class="hdr-r">
@@ -400,11 +400,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   <div class="banner bn-pur"><i class="ti ti-info-circle" style="font-size:15px"></i><span>Reservas = comprometimentos comerciais <strong>não lançados no TOTVS</strong>. Empenho TOTVS é o lançamento formal no ERP. Ambos descontados do Saldo para Disponível para Venda.</span></div>
   <div class="fb">
     <div class="sbar"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código, responsável..." oninput="rRes()"></div>
+    <select class="sel" id="res-dir" onchange="rRes()"><option value="">Todas as diretorias</option><option value="Projects E-mobility">Projects E-mobility</option><option value="Distribution">Distribution</option><option value="Mobility">Mobility</option><option value="Eletra">Eletra</option></select>
     <select class="sel" id="res-arm" onchange="rRes()"><option value="">Todos os armazéns</option><option value="Curitiba">Curitiba</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option></select>
   </div>
   <div class="card">
     <div class="tw"><table class="tbl">
-      <thead><tr><th>Cliente</th><th>Responsável</th><th>Código</th><th>WH</th><th class="r">Qtd</th><th>Solicitado</th><th>Observação</th></tr></thead>
+      <thead><tr><th>Cliente</th><th>Responsável</th><th>Diretoria</th><th>Código</th><th>WH</th><th class="r">Qtd</th><th>Solicitado</th><th>Observação</th></tr></thead>
       <tbody id="res-tbl"></tbody>
     </table></div>
     <div class="cf">Exibindo <span id="res-cnt">0</span> registros · Fonte: aba Reservas da planilha</div>
@@ -676,11 +677,13 @@ function parseELE(csv){
 }
 
 function parseRES(csv){
+  // Columns (with Diretoria): 0=Cliente,1=Responsavel,2=Diretoria,3=Código,4=Descrição,5=Observação,6=Unidade,7=Cancelado,8=Solicitado
   return Papa.parse(csv,{skipEmptyLines:true}).data.slice(1)
-    .filter(r=>r.length>=6&&!String(r[6]||'').trim())
+    .filter(r=>r.length>=7&&!String(r[7]||'').trim())
     .map(r=>({cliente:String(r[0]).trim(),responsavel:String(r[1]).trim(),
-              codigo:String(r[2]).trim().toUpperCase(),descricao:String(r[3]).trim(),
-              obs:String(r[4]).trim(),qtd:pn(r[5]),solicitado:String(r[7]||'').trim()}))
+              diretoria:String(r[2]).trim(),
+              codigo:String(r[3]).trim().toUpperCase(),descricao:String(r[4]).trim(),
+              obs:String(r[5]).trim(),qtd:pn(r[6]),solicitado:String(r[8]||'').trim()}))
     .filter(r=>r.qtd>0);
 }
 
@@ -1014,27 +1017,37 @@ function rResKPIs(){
   const tv=Object.entries(byV).sort((a,b)=>b[1]-a[1])[0];
   if(tp){document.getElementById('r-tp').textContent=tp[0];document.getElementById('r-tpq').textContent=fmt(tp[1])+' unidades';}
   if(tv){document.getElementById('r-tv').textContent=tv[0];document.getElementById('r-tvq').textContent=fmt(tv[1])+' unidades';}
-  // Summary by armazem (proxy for diretoria)
-  const byA={};
-  RES.forEach(r=>{const w=obsToWH(r.obs)||'?';byA[w]=(byA[w]||0)+r.qtd;});
-  const colors={'CWB':WHC.CWB,'FOR':WHC.FOR,'MAO-LIV':WHC['MAO-LIV'],'MAO-ELE':WHC['MAO-ELE'],'?':'#94a3b8'};
-  document.getElementById('res-sum-dir').innerHTML=Object.entries(byA).map(([w,v])=>
-    `<div class="whs-c"><div class="whs-l" style="color:${colors[w]||'#888'}">${WHL[w]||w}</div><div class="whs-v" style="color:${colors[w]||'#888'}">${fmt(v)}</div><div style="font-size:10px;color:var(--txtm);margin-top:2px">unidades reservadas</div></div>`
-  ).join('');
+  // Summary by Diretoria (fallback to armazem when empty)
+  const byD={};
+  RES.forEach(r=>{
+    const d=r.diretoria||obsToWH(r.obs)||'Sem diretoria';
+    byD[d]=(byD[d]||0)+r.qtd;
+  });
+  const dColors={'Projects E-mobility':WHC['MAO-LIV'],'Distribution':WHC.FOR,
+                 'Mobility':WHC.CWB,'Eletra':WHC['MAO-ELE']};
+  document.getElementById('res-sum-dir').innerHTML=Object.entries(byD)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([d,v])=>{
+      const col=dColors[d]||'#64748b';
+      return`<div class="whs-c"><div class="whs-l" style="color:${col}">${d}</div><div class="whs-v" style="color:${col}">${fmt(v)}</div><div style="font-size:10px;color:var(--txtm);margin-top:2px">unidades reservadas</div></div>`;
+    }).join('');
 }
 
 function rRes(){
   const q=(document.getElementById('res-q')?.value||'').toLowerCase();
   const arm=document.getElementById('res-arm')?.value||'';
+  const dir=document.getElementById('res-dir')?.value||'';
   const rows=RES.filter(r=>{
     const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||r.responsavel.toLowerCase().includes(q);
     const ma=!arm||r.obs.includes(arm);
-    return mq&&ma;
+    const md=!dir||r.diretoria===dir;
+    return mq&&ma&&md;
   });
   const c=(w)=>WHC[w]||'#888';
   document.getElementById('res-tbl').innerHTML=rows.map(r=>{
     const w=obsToWH(r.obs)||'?';
     return`<tr><td style="font-weight:500;font-size:12px">${r.cliente}</td><td style="color:var(--txt2);font-size:12px">${r.responsavel}</td>
+    <td style="font-size:11px;color:var(--txt2)">${r.diretoria||'—'}</td>
     <td class="cod">${r.codigo}</td><td>${wt(w)}</td>
     <td class="r" style="font-weight:700;font-size:14px;color:var(--pur)">${fmt(r.qtd)}</td>
     <td style="font-size:11px;color:var(--txtm)">${r.solicitado||'—'}</td>
