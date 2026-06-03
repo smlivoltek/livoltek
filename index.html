@@ -531,7 +531,23 @@ function accGroup(familia){
 let ST=[], RES=[];
 
 // ══ PARSE CSV — PapaParse
-function pn(v){if(!v||v==='-')return 0;return parseFloat(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''))||0;}
+function pn(v){
+  if(!v||v==='-'||v==='') return 0;
+  let s=String(v).trim();
+  // Remove espaços e caracteres não numéricos exceto . , -
+  s=s.replace(/[^0-9.,\-]/g,'');
+  if(!s) return 0;
+  // Formato BR: "1.234,56" → tem vírgula como decimal
+  if(s.includes(',')&&s.includes('.')){
+    // Thousands dot + decimal comma: "1.234,56"
+    s=s.replace(/\./g,'').replace(',','.');
+  } else if(s.includes(',')&&!s.includes('.')){
+    // Só vírgula: "1234,56" → decimal comma
+    s=s.replace(',','.');
+  }
+  // Senão é formato US normal: "1234.56"
+  return parseFloat(s)||0;
+}
 
 function parseTOTVS(csv, wh){
   const rows = Papa.parse(csv,{skipEmptyLines:true}).data;
@@ -553,13 +569,8 @@ function parseTOTVS(csv, wh){
 }
 
 function parseEletra(csv, wh){
-  const rows = Papa.parse(csv,{skipEmptyLines:true}).data.slice(1);
-  return rows.filter(r=>r.length>=4 && pn(r[3])>0).map(r=>{
-    const o={wh, codigo:String(r[1]||r[0]).trim(), descricao:String(r[2]).trim(),
-             saldo:pn(r[3]), empenho:0, reserva:0, disp:0};
-    const cl=classify(o.codigo,o.descricao); o.cat=cl.cat; o.familia=cl.familia;
-    return o;
-  }).filter(o=>o.codigo);
+  // MAO-ELE agora usa formato TOTVS igual CWB/FOR/MAO-LIV
+  return parseTOTVS(csv, wh);
 }
 
 function parseReservas(csv){
@@ -586,7 +597,13 @@ function parseReservas(csv){
 }
 
 function obsToWH(o){
-  const l=o.toLowerCase();
+  const l=o.toLowerCase().trim();
+  // formato direto: "CWB", "FOR", "MAO"
+  if(l==='cwb') return 'CWB';
+  if(l==='for') return 'FOR';
+  if(l==='mao'||l==='mao-liv') return 'MAO-LIV';
+  if(l==='mao-ele') return 'MAO-ELE';
+  // formato antigo: "Reservado ( Curitiba)"
   if(l.includes('curitiba')) return 'CWB';
   if(l.includes('fortaleza')) return 'FOR';
   if(l.includes('manaus')) return 'MAO-LIV';
