@@ -569,8 +569,24 @@ function parseTOTVS(csv, wh){
 }
 
 function parseEletra(csv, wh){
-  // MAO-ELE agora usa formato TOTVS igual CWB/FOR/MAO-LIV
-  return parseTOTVS(csv, wh);
+  // Formato MAO-LIV: TOP, HEXING(codigo), Descricao, Saldo Estoque, ...
+  // Header: TOP,HEXING,Coluna6,Saldo Estoque,...
+  const rows = Papa.parse(csv,{skipEmptyLines:true}).data;
+  // Pula linha de header
+  const hIdx = rows.findIndex(r=>String(r[0]||'').toUpperCase().includes('TOP')||String(r[1]||'').toUpperCase().includes('HEXING'));
+  const data = rows.slice(hIdx>=0 ? hIdx+1 : 1);
+  return data
+    .filter(r=>r.length>=4 && r[1] && pn(r[3])>0)
+    .map(r=>{
+      const o={wh,
+        codigo:   String(r[1]).trim(),
+        descricao:String(r[2]).trim(),
+        saldo:    pn(r[3]),
+        empenho:  0, reserva:0, disp:0};
+      const cl=classify(o.codigo,o.descricao); o.cat=cl.cat; o.familia=cl.familia;
+      return o;
+    })
+    .filter(o=>o.codigo && o.saldo>0);
 }
 
 function parseReservas(csv){
@@ -658,10 +674,10 @@ async function boot(){
 
   document.getElementById('lprog').textContent='Processando e classificando...';
 
-  const cwb = parseTOTVS(raw.CWB||'',   'CWB');
-  const fr  = parseTOTVS(raw.FOR||'',   'FOR');
-  const ml  = parseTOTVS(raw['MAO-LIV']||'', 'MAO-LIV');
-  const me  = parseEletra(raw['MAO-ELE']||'','MAO-ELE');
+  const cwb = parseTOTVS(raw.CWB||'',          'CWB');
+  const fr  = parseTOTVS(raw.FOR||'',          'FOR');
+  const ml  = parseEletra(raw['MAO-LIV']||'',  'MAO-LIV');  // formato: TOP,HEXING,Desc,Saldo
+  const me  = parseTOTVS(raw['MAO-ELE']||'',   'MAO-ELE');  // formato TOTVS
   ST = [...cwb, ...fr, ...ml, ...me];
   RES = parseReservas(raw.RESERVAS||'');
   applyReservas();
