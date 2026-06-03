@@ -510,8 +510,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 const URLS={
   CWB:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=0&single=true&output=csv',
   FOR:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=411796829&single=true&output=csv',
-  'MAO-LIV':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=2006971885&single=true&output=csv',
-  'MAO-ELE':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=1879495818&single=true&output=csv',
+  'MAO-LIV':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=1879495818&single=true&output=csv',
+  'MAO-ELE':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=2006971885&single=true&output=csv',
   RESERVAS:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=577818960&single=true&output=csv',
 };
 const WHL={'CWB':'CWB — Curitiba','FOR':'FOR — Fortaleza','MAO-LIV':'MAO — Livoltek','MAO-ELE':'MAO — Eletra'};
@@ -674,14 +674,36 @@ function parseTOTVS(csv,wh){
     });
 }
 
-function parseELE(csv){
-  const rows=Papa.parse(csv,{skipEmptyLines:true}).data.slice(1);
-  return rows.filter(r=>r.length>=4&&pn(r[3])>0).map(r=>{
-    const o={wh:'MAO-ELE',codigo:String(r[1]||r[0]).trim(),descricao:String(r[2]).trim(),
-             saldo:pn(r[3]),empenho:0,reserva:0,disp:0};
-    const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
-    return o;
-  });
+function parseMAO(csv, wh){
+  const rows = Papa.parse(csv, {skipEmptyLines:true}).data;
+  if(!rows.length) return [];
+  // Detect format by header row
+  // TOTVS format: row[0] = "Saldos em Estoque", row[1] = "CODIGO,TP,GRUPO,DESCRICAO,..."
+  // Eletra format: row[0] = header with "TOP" or "HEXING" or "DESCRICAO" in col 0-2
+  const header0 = String(rows[0][0]||'').toUpperCase();
+  const header1 = rows.length > 1 ? String(rows[1][0]||'').toUpperCase() : '';
+  const isTOTVS = header0.includes('SALDO') || header1.includes('CODIGO') || header1 === 'CODIGO';
+  if(isTOTVS){
+    // Parse as TOTVS — filter ARMZ=7 + VENDAS
+    return rows.slice(2)
+      .filter(r=>r.length>=10 && String(r[6]).trim()==='7' && String(r[12]||'').toUpperCase().includes('VENDAS'))
+      .map(r=>{
+        const o={wh, codigo:String(r[0]).trim(), descricao:String(r[3]).trim(),
+                 saldo:pn(r[7]), empenho:pn(r[8]), reserva:0, disp:0};
+        const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
+        return o;
+      });
+  } else {
+    // Parse as Eletra format — TOP, HEXING/codigo, Descricao, Saldo
+    return rows.slice(1)
+      .filter(r=>r.length>=4 && pn(r[3])>0)
+      .map(r=>{
+        const o={wh, codigo:String(r[1]||r[0]).trim(), descricao:String(r[2]).trim(),
+                 saldo:pn(r[3]), empenho:0, reserva:0, disp:0};
+        const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
+        return o;
+      });
+  }
 }
 
 function parseRES(csv){
@@ -737,7 +759,7 @@ async function boot(){
   document.getElementById('lprog').textContent='Processando e classificando...';
   try{
     ST=[...parseTOTVS(raw.CWB,'CWB'),...parseTOTVS(raw.FOR,'FOR'),
-        ...parseTOTVS(raw['MAO-LIV'],'MAO-LIV'),...parseELE(raw['MAO-ELE'])];
+        ...parseMAO(raw['MAO-LIV'],'MAO-LIV'),...parseMAO(raw['MAO-ELE'],'MAO-ELE')];
     RES=parseRES(raw.RESERVAS);
     applyRes();
   }catch(e){showErr('Erro ao processar: '+e.message+' | '+e.stack);return;}
