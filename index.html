@@ -514,22 +514,18 @@ const URLS={
   'MAO-ELE':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=2006971885&single=true&output=csv',
   RESERVAS:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=577818960&single=true&output=csv',
 };
-// Proxy CORS confiável para Google Sheets publicadas
+// Proxy CORS — tenta allorigins primeiro (mais confiável com Google Sheets)
 async function fetchCSV(url){
-  // Estratégia 1: direto (funciona quando GitHub Pages está no domínio correto)
-  // Estratégia 2: allorigins.win (proxy público confiável para Google Sheets)
-  // Estratégia 3: corsproxy.io
   const attempts = [
-    url,
     `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
     `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url, // direto por último
   ];
   for(const endpoint of attempts){
     try{
       const r = await fetch(endpoint, {cache:'no-store'});
       if(!r.ok) continue;
       const txt = await r.text();
-      // Valida que é CSV real (não HTML de erro/login)
       if(txt && txt.length > 20 && !txt.trim().startsWith('<')){
         return txt;
       }
@@ -808,17 +804,27 @@ async function boot(){
   const lbl={CWB:'CWB',FOR:'FOR','MAO-LIV':'MAO Livoltek','MAO-ELE':'MAO Eletra',RESERVAS:'Reservas'};
   const raw={};
 
-  // Fetch cada aba — tenta direto, depois proxy CORS se necessário
+  // Fetch todas as abas via proxy
+  const failed = [];
   for(const[k,url]of Object.entries(URLS)){
     document.getElementById('lprog').textContent='Buscando '+lbl[k]+'...';
     const txt = await fetchCSV(url);
-    if(!txt && k !== 'RESERVAS'){
-      showErr(`Não foi possível carregar <strong>${lbl[k]}</strong>.<br>
-        Verifique: a planilha deve estar publicada como CSV em<br>
-        <small>Arquivo → Publicar na web → selecionar aba → CSV → Publicar</small>`);
-      return;
+    if(!txt){
+      failed.push(lbl[k]);
+      raw[k] = '';
+    } else {
+      raw[k] = txt;
     }
-    raw[k] = txt || '';
+  }
+  // Se as abas de estoque falharam todas, para
+  const stockKeys = ['CWB','FOR','MAO-LIV','MAO-ELE'];
+  const stockFailed = stockKeys.every(k => !raw[k]);
+  if(stockFailed){
+    showErr(`Não foi possível carregar nenhuma aba de estoque.<br><br>
+      <strong>Solução:</strong> Abra a planilha Google Sheets →<br>
+      <b>Arquivo → Publicar na web → cada aba → CSV → Publicar</b><br><br>
+      Falhas: ${failed.join(', ')}`);
+    return;
   }
 
   document.getElementById('lprog').textContent='Processando e classificando...';
