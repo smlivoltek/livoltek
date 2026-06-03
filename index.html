@@ -283,14 +283,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <div class="card">
       <div class="ch"><span class="ct"><i class="ti ti-sun"></i> Top 10 Inversores — Disponível para Venda</span></div>
       <div class="tw"><table class="tbl">
-        <thead><tr><th style="width:26px">#</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r">Disp. Venda</th><th class="r" style="width:110px">Proporção</th></tr></thead>
+        <thead><tr><th style="width:26px">#</th><th>Produto</th><th>WH</th><th class="r">Disp. para Venda</th><th class="r" style="width:110px">Proporção</th></tr></thead>
         <tbody id="top-inv"></tbody>
       </table></div>
     </div>
     <div class="card">
       <div class="ch"><span class="ct"><i class="ti ti-bolt"></i> Top 10 Carregadores EV — Disponível para Venda</span></div>
       <div class="tw"><table class="tbl">
-        <thead><tr><th style="width:26px">#</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r">Disp. Venda</th><th class="r" style="width:110px">Proporção</th></tr></thead>
+        <thead><tr><th style="width:26px">#</th><th>Produto</th><th>WH</th><th class="r">Disp. para Venda</th><th class="r" style="width:110px">Proporção</th></tr></thead>
         <tbody id="top-ev"></tbody>
       </table></div>
     </div>
@@ -526,18 +526,17 @@ let ST=[], RES=[];
 // Fórmula validada: disp = max(0, saldo - empenho - reserva)
 // ══════════════════════════════════════════════════════════════
 
-// SKU prefix → [cat, familia]
+// SKU prefix → [cat, familia]  — APENAS startsWith para evitar falsos positivos
 const FAM_SKU=[
   // INVERSORES
   ['GT1-','inversor','Inversor GT1'],['GT3-','inversor','Inversor GT3'],
   ['HP1-','inversor','Inversor Híbrido HP1'],['HP3-','inversor','Inversor Híbrido HP3'],
   ['GF1-','inversor','Inversor GF1'],['GF3-','inversor','Inversor GF3'],
-  ['9120692','inversor','Inversor GT1'],
   // BESS
   ['BHF-','bess','BESS BHF'],['BLF-','bess','Bateria BLF'],
   ['BLF51','bess','Bateria BLF51'],['SMI-48','bess','Bateria SMI'],
-  ['PCS-','bess','PCS'],['BMS','bess','BMS'],
-  // CARREGADORES EV — A007 e A0220 OBRIGATÓRIO
+  ['PCS-','bess','PCS'],
+  // CARREGADORES EV — A007 e A0220 obrigatório
   ['A007','ev','Carregador EV CA 7kW'],
   ['A0220','ev','Carregador EV CA 22kW'],
   ['C0301','ev','Carregador EV CC 30kW Compact'],
@@ -558,27 +557,30 @@ const FAM_SKU=[
   ['RS6','kit','Módulo Solar'],['HJT','kit','Módulo Solar'],
   ['HXCB','kit','String Box'],
   ['LHE34','kit','Medidor Hexing'],['LHE12','kit','Medidor Hexing'],
-  // ACESSÓRIOS — prefixos numéricos comuns de peças TOTVS
-  // (descrição prevalece para estes)
 ];
 
-// Descrição keywords → [cat, familia]  (ordem importa: mais específico primeiro)
+// Descrição keywords → [cat, familia]
+// REGRA: específico antes do genérico. PARTE DO CARREGADOR = acessório, não EV.
+// CABO FOTOVOLTAICO = kit, vem antes de CABO genérico.
 const FAM_DESC=[
-  // INVERSORES
+  // ── ACESSÓRIOS que têm "CARREGADOR" na desc — PRIMEIRO que EV
+  ['PARTE DO CARREGADOR','acessorio','Componente EV'],
+  ['DISJUNTOR DE CORRENTE RESIDUAL','acessorio','Disjuntor'],
+  // ── INVERSORES
+  ['INVERSOR SOLAR','inversor','Inversor'],['INVERSOR HIBRIDO','inversor','Inversor Híbrido'],
   ['INVERSOR','inversor','Inversor'],['MICROINVERSOR','inversor','Microinversor'],
   ['GT1 ','inversor','Inversor GT1'],['GT3 ','inversor','Inversor GT3'],
-  ['HP1 ','inversor','Inversor HP1'],['HP3 ','inversor','Inversor HP3'],
   ['GT1-','inversor','Inversor GT1'],['GT3-','inversor','Inversor GT3'],
-  // BESS
-  ['BATERIA DE LITION','bess','Bateria'],['BATERIA DE LI','bess','Bateria'],
-  ['BATERIA BHF','bess','BESS BHF'],['BATERIA BLF','bess','Bateria BLF'],
-  ['BATERIA SMI','bess','Bateria SMI'],['BATERIA 5','bess','Bateria 5kWh'],
+  ['HP1-','inversor','Inversor HP1'],['HP3-','inversor','Inversor HP3'],
+  // ── BESS
+  ['BATERIA DE LI','bess','Bateria'],['BATERIA BHF','bess','BESS BHF'],
+  ['BATERIA BLF','bess','Bateria BLF'],['BATERIA SMI','bess','Bateria SMI'],
   ['BATERIA','bess','Bateria'],['BESS','bess','BESS'],
   ['ACUMULADOR DE ENERGIA','bess','Acumulador'],
   ['ARMAZENAMENTO DE ENERGIA','bess','BESS'],
-  ['BMS ','bess','BMS'],['BHF ','bess','BESS BHF'],
-  ['BLF ','bess','Bateria BLF'],
-  // EV — A007 e A0220 mapeados antes pela descrição também
+  ['BMS ','bess','BMS'],['BHF ','bess','BESS BHF'],['BLF ','bess','Bateria BLF'],
+  // ── EV (depois de PARTE DO CARREGADOR)
+  ['CARREGADOR VE LIVOLTEK','ev','Carregador EV'],
   ['CARREGADOR VEICULAR','ev','Carregador EV'],
   ['CARREGADOR VE ','ev','Carregador EV'],
   ['ATOM CA 7','ev','Carregador EV CA 7kW'],
@@ -586,8 +588,8 @@ const FAM_DESC=[
   ['ATOM ','ev','Carregador EV CA'],
   ['MOTION FAST','ev','Carregador EV CC'],
   ['MOTION COMPACT','ev','Carregador EV CC'],
-  ['MOTION','ev','Carregador EV CC'],
-  // KIT SOLAR
+  // ── KIT SOLAR — CABO FOTOVOLTAICO antes de CABO genérico
+  ['CABO FOTOVOLTAICO','kit','Cabo Fotovoltaico'],
   ['MODULO FOTOVOLTAICO','kit','Módulo Solar'],['MODULO SOLAR','kit','Módulo Solar'],
   ['PAINEL SOLAR','kit','Painel Solar'],['PAINEL FOTOVOLTAICO','kit','Painel Solar'],
   ['STRING BOX','kit','String Box'],['HXCB','kit','String Box'],
@@ -597,49 +599,55 @@ const FAM_DESC=[
   ['KIT TELHADO','kit','Kit Telhado'],['KIT SOLO','kit','Kit Solo'],
   ['KIT MINI','kit','Kit Minigeração'],
   ['MEDIDOR INTELIGENTE','kit','Medidor Hexing'],
-  // ACESSÓRIOS — cabos e mais
+  // ── ACESSÓRIOS (depois de kit para CABO não capturar FOTOVOLTAICO)
   ['CABO SOLAR','acessorio','Cabo'],['CABO FLEX','acessorio','Cabo'],
   ['CABO DE ALUMINIO','acessorio','Cabo'],['CABO DE COBRE','acessorio','Cabo'],
-  ['CABO ','acessorio','Cabo'],
+  ['CABO COAXIAL','acessorio','Cabo'],['CABO ETHERNET','acessorio','Cabo'],
+  ['CABO PP ','acessorio','Cabo'],['CABO COBRE','acessorio','Cabo'],
+  ['CABO ','acessorio','Cabo'],['FIO DE ESPINAR','acessorio','Cabo'],
   ['MC4','acessorio','Conector MC4'],['CONECTOR','acessorio','Conector'],
   ['TERMINAL ','acessorio','Terminal'],['BORNE ','acessorio','Borne'],
-  ['HASTE ','acessorio','Haste'],
+  ['HASTE ','acessorio','Haste'],['ADAPTADOR ESTRIBO','acessorio','Terminal'],
   ['PARAFUSO','acessorio','Fixação'],['PORCA ','acessorio','Fixação'],
   ['ARRUELA','acessorio','Fixação'],['GRAMPO','acessorio','Fixação'],
   ['ABRACADEIRA','acessorio','Fixação'],['BUCHA ','acessorio','Fixação'],
   ['TRILHO DIN','acessorio','Fixação'],['SUPORTE ','acessorio','Suporte'],
-  ['DPS ','acessorio','DPS'],['DISJUNTOR','acessorio','Disjuntor'],
+  ['DPS SOLAR','acessorio','DPS'],['PROTETOR SURTO','acessorio','DPS'],
+  ['DPS ','acessorio','DPS'],
+  ['DISJUNTOR','acessorio','Disjuntor'],['MINIDISJUNTOR','acessorio','Disjuntor'],
   ['FUSIVEL','acessorio','Fusível'],['RELE ','acessorio','Relé'],
   ['VENTILADOR','acessorio','Ventilação'],
   ['ANTENA ','acessorio','Comunicação'],['MODULO WLA','acessorio','Comunicação'],
+  ['MODULO DE COMUNICACAO','acessorio','Comunicação'],
   ['CARTAO DE ACION','acessorio','Comunicação'],
-  ['FONTE CHAVEADA','acessorio','Fonte'],
-  ['QUADRO ','acessorio','Quadro Elétrico'],['CAIXA PVC','acessorio','Caixa'],
+  ['FONTE CHAVEADA','acessorio','Fonte'],['CONVERSOR ESTATICO','acessorio','Fonte'],
+  ['QUADRO DE DISTRIB','acessorio','Quadro Elétrico'],
+  ['CAIXA PVC','acessorio','Caixa'],['CAIXA ','acessorio','Caixa'],
   ['ELETRODUTO','acessorio','Eletroduto'],['BARRAMENTO','acessorio','Barramento'],
-  ['LACRE ','acessorio','Fixação'],['FITA ','acessorio','Fita'],
+  ['LACRE ','acessorio','Fixação'],
+  ['FITA DE ACO','acessorio','Fita'],['FITA ISOLANTE','acessorio','Fita'],['FITA ','acessorio','Fita'],
   ['PALETE','acessorio','Logística'],['CARRINHO DE TRANS','acessorio','Logística'],
   ['EMPILHADEIRA','acessorio','Logística'],
+  ['BORRACHA TIPO','acessorio','Vedação'],
+  ['POSTE FINAL','acessorio','Fixação'],['POSTE ','acessorio','Fixação'],
+  ['INTERRUPTOR','acessorio','Interruptor'],
+  ['PAINEL INDICADOR','acessorio','Comunicação'],
+  ['DISPOSITIVO MICROCONTROLADOR','acessorio','Comunicação'],
+  ['RFID','acessorio','Comunicação'],
 ];
-
-// Group label for accessories
-const ACC_GROUP_ORDER=['Cabo','Conector','Terminal','Fixação','DPS','Disjuntor',
-  'Fusível','Suporte','Comunicação','Borne','Fonte','Quadro Elétrico','Medidor',
-  'Ventilação','Logística','Outros'];
 
 function classify(r){
   const cu=r.codigo.toUpperCase(), du=r.descricao.toUpperCase();
-  // 1. SKU prefix
+  // 1. SKU prefix — APENAS startsWith (nunca includes, evita falsos positivos)
   for(const[pfx,cat,fam]of FAM_SKU){
-    if(cu.startsWith(pfx)||cu.includes(pfx)) return{cat,familia:fam};
+    if(cu.startsWith(pfx)) return{cat,familia:fam};
   }
-  // 2. Description keyword
+  // 2. Description keyword (ordem é crítica — específico antes do genérico)
   for(const[kw,cat,fam]of FAM_DESC){
     if(du.includes(kw)) return{cat,familia:fam};
   }
   return{cat:'outro',familia:'Outros'};
 }
-
-// Accessor-group label from familia
 function accGroup(familia){
   for(const g of ACC_GROUP_ORDER){
     if(familia.includes(g)) return g;
@@ -797,7 +805,7 @@ function filtered(q,wh,cat){
     const mw=!wh||r.wh===wh;
     const mc=!cat||r.cat===cat;
     return mq&&mw&&mc;
-  }).sort((a,b)=>b.disp-a.disp);
+  }).sort((a,b)=>a.codigo.localeCompare(b.codigo));
 }
 function catKPIs(cat,el){
   const rows=ST.filter(r=>r.cat===cat);
@@ -924,9 +932,8 @@ function buildTopTables(){
   const mI=invRows[0]?.disp||1,mE=evRows[0]?.disp||1;
   const topRow=(r,i,max)=>`<tr>
     <td style="color:var(--txtm);font-size:10px">${i+1}</td>
-    <td class="pname" title="${r.descricao}" style="font-size:11px">${trunc(r.descricao,44)}</td>
+    <td class="pname" title="${r.descricao}" style="font-size:11px">${trunc(r.descricao,50)}</td>
     <td>${wt(r.wh)}</td>
-    <td class="r">${fmt(r.saldo)}</td>
     <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':'#dc2626'}">${fmt(r.disp)}</td>
     <td>${spark(r.disp,max)}</td>
   </tr>`;
@@ -943,6 +950,7 @@ function rAll(){
   let rows=filtered(q,wh,cat);
   if(dsp==='1') rows=rows.filter(r=>r.disp>0);
   else if(dsp==='0') rows=rows.filter(r=>r.disp===0);
+  // already sorted by codigo from filtered()
   document.getElementById('all-tbl').innerHTML=rows.map(r=>`<tr style="${r.disp===0&&r.saldo>0?'background:#fff9f9':''}">
     <td class="cod">${r.codigo}</td><td class="pname" title="${r.descricao}">${trunc(r.descricao,60)}</td>
     <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
@@ -1092,7 +1100,7 @@ function rWH(){
     const mw=!wh||r.wh===wh;
     const mq=!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q);
     return mw&&mq;
-  }).sort((a,b)=>b.disp-a.disp);
+  }).sort((a,b)=>a.codigo.localeCompare(b.codigo));
   const sal=rows.reduce((a,r)=>a+r.saldo,0);
   const emp=rows.reduce((a,r)=>a+r.empenho,0);
   const res=rows.reduce((a,r)=>a+r.reserva,0);
