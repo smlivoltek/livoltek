@@ -569,27 +569,27 @@ function parseTOTVS(csv, wh){
 }
 
 function parseEletra(csv, wh){
-  // Formato MAO-LIV: TOP(id único), HEXING(codigo), Descricao, Saldo Estoque
-  // IMPORTANTE: usar coluna TOP (col 0) como chave única pois o mesmo HEXING
-  // pode aparecer como produto final E como matéria-prima (ex: 106171 e 106171M)
-  // Cada linha TOP distinto = um SKU distinto no estoque
+  // Formato MAO-LIV: TOP(id único), HEXING, Descricao, Saldo Estoque
+  // Regra: cada linha é um SKU independente identificado pelo TOP (col 0)
+  // NUNCA agrupar por HEXING — o mesmo HEXING (ex: "7-10KW") pode ter
+  // múltiplas linhas TOP diferentes (produto final + matéria-prima)
   const rows = Papa.parse(csv,{skipEmptyLines:true}).data;
-  const hIdx = rows.findIndex(r=>String(r[0]||'').toUpperCase().includes('TOP')||String(r[1]||'').toUpperCase().includes('HEXING'));
+  const hIdx = rows.findIndex(r=>
+    String(r[0]||'').toUpperCase()==='TOP' ||
+    String(r[1]||'').toUpperCase()==='HEXING'
+  );
   const data = rows.slice(hIdx>=0 ? hIdx+1 : 1);
   return data
-    .filter(r=>r.length>=4 && r[1] && pn(r[3])>0)
+    .filter(r=>r.length>=4 && String(r[0]||'').trim() && pn(r[3])>0)
     .map(r=>{
-      // Usa TOP (col 0) como código quando disponível, senão HEXING (col 1)
-      const top  = String(r[0]||'').trim();
-      const hex  = String(r[1]||'').trim();
-      // Código = TOP se for alfanumérico significativo, senão HEXING
-      const cod  = (top && isNaN(top)) ? top : hex;
+      // Código = TOP (col 0) — sempre único por linha
       const o={wh,
-        codigo:   cod,
-        descricao:String(r[2]).trim(),
+        codigo:   String(r[0]).trim(),
+        descricao:String(r[2]||r[1]||'').trim(),
         saldo:    pn(r[3]),
         empenho:  0, reserva:0, disp:0};
-      const cl=classify(o.codigo,o.descricao); o.cat=cl.cat; o.familia=cl.familia;
+      const cl=classify(String(r[1]||r[0]).trim(), o.descricao);
+      o.cat=cl.cat; o.familia=cl.familia;
       return o;
     })
     .filter(o=>o.codigo && o.saldo>0);
