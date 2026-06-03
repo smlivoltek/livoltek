@@ -514,7 +514,29 @@ const URLS={
   'MAO-ELE':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=2006971885&single=true&output=csv',
   RESERVAS:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=577818960&single=true&output=csv',
 };
-const WHL={'CWB':'CWB — Curitiba','FOR':'FOR — Fortaleza','MAO-LIV':'MAO — Livoltek','MAO-ELE':'MAO — Eletra'};
+// Proxy CORS confiável para Google Sheets publicadas
+async function fetchCSV(url){
+  // Estratégia 1: direto (funciona quando GitHub Pages está no domínio correto)
+  // Estratégia 2: allorigins.win (proxy público confiável para Google Sheets)
+  // Estratégia 3: corsproxy.io
+  const attempts = [
+    url,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  ];
+  for(const endpoint of attempts){
+    try{
+      const r = await fetch(endpoint, {cache:'no-store'});
+      if(!r.ok) continue;
+      const txt = await r.text();
+      // Valida que é CSV real (não HTML de erro/login)
+      if(txt && txt.length > 20 && !txt.trim().startsWith('<')){
+        return txt;
+      }
+    }catch(e){ /* tenta próximo */ }
+  }
+  return null;
+}
 const WHC={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
 
 // ══ STATE
@@ -719,14 +741,36 @@ function parseMAO(csv, wh){
 }
 
 function parseRES(csv){
-  // Columns (with Diretoria): 0=Cliente,1=Responsavel,2=Diretoria,3=Código,4=Descrição,5=Observação,6=Unidade,7=Cancelado,8=Solicitado
-  return Papa.parse(csv,{skipEmptyLines:true}).data.slice(1)
-    .filter(r=>r.length>=7&&!String(r[7]||'').trim())
-    .map(r=>({cliente:String(r[0]).trim(),responsavel:String(r[1]).trim(),
-              diretoria:String(r[2]).trim(),
-              codigo:String(r[3]).trim().toUpperCase(),descricao:String(r[4]).trim(),
-              obs:String(r[5]).trim(),qtd:pn(r[6]),solicitado:String(r[8]||'').trim()}))
-    .filter(r=>r.qtd>0);
+  // Colunas: 0=Cliente, 1=Responsavel, 2=Diretoria, 3=Código, 4=Descrição,
+  //          5=Observação, 6=Unidade(qtd), 7=Cancelado, 8=Solicitado
+  const allRows = Papa.parse(csv, {skipEmptyLines:false}).data;
+  // Encontrar linha do header (que contém "Cliente")
+  let headerIdx = 0;
+  for(let i=0;i<Math.min(5,allRows.length);i++){
+    if(String(allRows[i][0]||'').toUpperCase().includes('CLIENTE')){
+      headerIdx = i; break;
+    }
+  }
+  const dataRows = allRows.slice(headerIdx + 1);
+  const result = [];
+  for(const r of dataRows){
+    // Precisa ter pelo menos código e quantidade
+    const cliente    = String(r[0]||'').trim();
+    const responsavel= String(r[1]||'').trim();
+    const diretoria  = String(r[2]||'').trim();
+    const codigo     = String(r[3]||'').trim().toUpperCase();
+    const descricao  = String(r[4]||'').trim();
+    const obs        = String(r[5]||'').trim();
+    const qtd        = pn(r[6]);
+    const cancelado  = String(r[7]||'').trim();
+    const solicitado = String(r[8]||'').trim();
+    // Ignorar linhas sem código ou quantidade
+    if(!codigo || qtd <= 0) continue;
+    // Ignorar linhas canceladas (qualquer conteúdo na col Cancelado)
+    if(cancelado) continue;
+    result.push({cliente,responsavel,diretoria,codigo,descricao,obs,qtd,solicitado});
+  }
+  return result;
 }
 
 function obsToWH(o){
@@ -764,24 +808,17 @@ async function boot(){
   const lbl={CWB:'CWB',FOR:'FOR','MAO-LIV':'MAO Livoltek','MAO-ELE':'MAO Eletra',RESERVAS:'Reservas'};
   const raw={};
 
-  // Fetch cada aba individualmente com diagnóstico detalhado
+  // Fetch cada aba — tenta direto, depois proxy CORS se necessário
   for(const[k,url]of Object.entries(URLS)){
     document.getElementById('lprog').textContent='Buscando '+lbl[k]+'...';
-    try{
-      const r=await fetch(url);
-      const txt=await r.text();
-      // Valida que recebeu CSV real (não HTML de erro)
-      if(txt.trim().startsWith('<')){
-        showErr(`A aba <strong>${lbl[k]}</strong> retornou HTML em vez de CSV.<br>
-          Verifique se a planilha está publicada corretamente:<br>
-          <small>Arquivo → Publicar na web → selecionar aba → CSV → Publicar</small>`);
-        return;
-      }
-      raw[k]=txt;
-    }catch(e){
-      showErr('Erro ao carregar '+lbl[k]+': '+e.message);
+    const txt = await fetchCSV(url);
+    if(!txt && k !== 'RESERVAS'){
+      showErr(`Não foi possível carregar <strong>${lbl[k]}</strong>.<br>
+        Verifique: a planilha deve estar publicada como CSV em<br>
+        <small>Arquivo → Publicar na web → selecionar aba → CSV → Publicar</small>`);
       return;
     }
+    raw[k] = txt || '';
   }
 
   document.getElementById('lprog').textContent='Processando e classificando...';
@@ -801,7 +838,7 @@ async function boot(){
   catch(e){ showErr('Erro ao processar MAO-ELE: '+e.message); return; }
 
   try{ rs=parseRES(raw.RESERVAS); }
-  catch(e){ showErr('Erro ao processar Reservas: '+e.message); return; }
+  catch(e){ rs=[]; } // reservas com erro não bloqueia o dashboard
 
   ST=[...cwb,...fr,...ml,...me];
   RES=rs;
@@ -822,8 +859,9 @@ async function boot(){
   document.getElementById('mc').style.display='block';
   document.getElementById('btn-csv').disabled=false;
   const now=new Date();
+  const resStatus = rs.length>0 ? `Res:${rs.length}` : '⚠️ Reservas: 0';
   document.getElementById('sync-t').textContent=
-    `Atualizado: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · CWB:${cwb.length} FOR:${fr.length} MAO-LIV:${ml.length} MAO-ELE:${me.length} Res:${rs.length}`;
+    `Atualizado: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · CWB:${cwb.length} FOR:${fr.length} MAO-LIV:${ml.length} MAO-ELE:${me.length} · ${resStatus}`;
   setStatus('ok');
   renderAll();
 }
