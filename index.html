@@ -4,482 +4,678 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIVOLTEK | Estoque Comercial Brasil</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
 :root{
-  --pri:#1E3A5F;--pri-l:#2a4f7c;--pri-pale:#e8eef6;
-  --grn:#22C55E;--grn-pale:#dcfce7;
-  --amb:#F59E0B;--amb-pale:#fef3c7;
-  --red:#EF4444;--red-pale:#fee2e2;
+  --pri:#1E3A5F;--pri2:#2a4f7c;--pri-pale:#e8eef6;
+  --grn:#22C55E;--grn-d:#15803d;--grn-pale:#dcfce7;
+  --amb:#F59E0B;--amb-d:#b45309;--amb-pale:#fef3c7;
+  --red:#EF4444;--red-d:#dc2626;--red-pale:#fee2e2;
   --pur:#7c3aed;--pur-pale:#ede9fe;
-  --org:#f97316;--teal:#0891b2;--teal-pale:#e0f7fa;
+  --org:#f97316;--org-pale:#ffedd5;
+  --teal:#0891b2;--teal-pale:#e0f7fa;
   --bg:#f0f4f8;--surf:#fff;--surf2:#f8fafc;
-  --brd:#e2e8f0;--txt:#0f172a;--txt2:#475569;--txtm:#94a3b8;
+  --brd:#e2e8f0;--brd2:#cbd5e1;
+  --txt:#0f172a;--txt2:#475569;--txtm:#94a3b8;
   --r:10px;--rl:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;min-height:100vh}
 .app{display:flex;flex-direction:column;min-height:100vh}
 
-.hdr{background:var(--pri);padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;gap:12px}
-.hdr-left{display:flex;align-items:center;gap:1rem;flex-shrink:0}
-.logo{width:32px;height:32px;background:linear-gradient(135deg,#22C55E,#16a34a);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;flex-shrink:0}
-.hdr-t{color:#fff;font-size:15px;font-weight:600}
-.hdr-s{color:rgba(255,255,255,.5);font-size:12px}
-.hdr-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.status-badge{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;color:rgba(255,255,255,.9);font-size:12px;white-space:nowrap}
-.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.dot-grn{background:#22C55E;animation:pulse 2s infinite}
-.dot-red{background:#EF4444}
-.dot-amb{background:#F59E0B;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.hdr-meta{color:rgba(255,255,255,.45);font-size:11px;white-space:nowrap}
-.btn-ico{width:34px;height:34px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .15s}
-.btn-ico:hover{background:rgba(255,255,255,.15);color:#fff}
-.btn-exp{display:flex;align-items:center;gap:6px;height:34px;padding:0 14px;border:1px solid rgba(255,255,255,.2);border-radius:8px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);cursor:pointer;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .15s;white-space:nowrap}
-.btn-exp:hover{background:rgba(255,255,255,.15);color:#fff}
-.btn-exp:disabled{opacity:.4;cursor:not-allowed}
+/* ─── HEADER ─── */
+.hdr{background:var(--pri);padding:0 1.75rem;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:200;gap:12px}
+.hdr-l{display:flex;align-items:center;gap:.875rem;flex-shrink:0}
+.logo{width:30px;height:30px;background:linear-gradient(135deg,#22C55E,#16a34a);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0;letter-spacing:-.5px}
+.hdr-title{color:#fff;font-size:14px;font-weight:600;line-height:1.2}
+.hdr-sub{color:rgba(255,255,255,.45);font-size:11px}
+.hdr-r{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.sbadge{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:4px 10px;color:rgba(255,255,255,.88);font-size:11px;white-space:nowrap}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-g{background:#22C55E;animation:blink 2s infinite}
+.dot-r{background:#EF4444}
+.dot-a{background:#F59E0B;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.sync-t{color:rgba(255,255,255,.42);font-size:11px;white-space:nowrap}
+.hbtn{display:flex;align-items:center;gap:5px;height:32px;padding:0 11px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.82);cursor:pointer;font-size:12px;font-family:inherit;font-weight:500;transition:all .15s;white-space:nowrap}
+.hbtn:hover{background:rgba(255,255,255,.14);color:#fff}
+.hbtn:disabled{opacity:.35;cursor:not-allowed}
+.hico{width:32px;height:32px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s}
+.hico:hover{background:rgba(255,255,255,.14);color:#fff}
 
-.tabs-bar{background:var(--surf);border-bottom:1px solid var(--brd);padding:0 1.5rem;display:flex;gap:0;overflow-x:auto}
-.tab-btn{display:flex;align-items:center;gap:6px;padding:0 14px;height:46px;border:none;background:none;color:var(--txt2);font-size:13px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
-.tab-btn i{font-size:15px}
-.tab-btn:hover{color:var(--pri)}
-.tab-btn.active{color:var(--pri);border-bottom-color:var(--pri)}
+/* ─── TABS ─── */
+.nav{background:var(--surf);border-bottom:1px solid var(--brd);padding:0 1.75rem;display:flex;overflow-x:auto;gap:0;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.tbtn{display:flex;align-items:center;gap:5px;padding:0 13px;height:44px;border:none;background:none;color:var(--txt2);font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.tbtn i{font-size:14px}
+.tbtn:hover{color:var(--pri)}
+.tbtn.active{color:var(--pri);border-bottom-color:var(--pri)}
 
-.main{flex:1;padding:1.5rem 2rem;max-width:1600px;width:100%;margin:0 auto}
-.tab-content{display:none}
-.tab-content.active{display:block}
+/* ─── MAIN ─── */
+.main{flex:1;padding:1.25rem 1.75rem;max-width:1680px;width:100%;margin:0 auto}
+.tab{display:none}.tab.active{display:block}
 
-.loading-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 2rem;gap:1rem;color:var(--txt2)}
-.spinner{width:36px;height:36px;border:3px solid var(--brd);border-top-color:var(--pri);border-radius:50%;animation:spin .8s linear infinite}
+/* ─── LOADING / ERROR ─── */
+.ld{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;gap:.875rem;color:var(--txt2)}
+.spin{width:34px;height:34px;border:3px solid var(--brd);border-top-color:var(--pri);border-radius:50%;animation:spin .75s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.err-box{background:#fff1f2;border:1px solid #fecdd3;border-radius:var(--r);padding:1rem 1.25rem;color:#be123c;font-size:13px;margin:1rem 0;display:flex;gap:8px;align-items:flex-start}
+.ld-lbl{font-size:13px}.ld-sub{font-size:11px;color:var(--txtm)}
+.ebox{background:#fff1f2;border:1px solid #fecdd3;border-radius:var(--r);padding:.875rem 1.125rem;color:#be123c;font-size:13px;display:flex;gap:8px;align-items:flex-start;margin:1rem 0}
 
-/* KPI */
-.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:1.75rem}
-.kpi{background:var(--surf);border-radius:var(--rl);padding:1.1rem 1.25rem;border:1px solid var(--brd);position:relative;overflow:hidden}
+/* ─── KPI CARDS ─── */
+.kg{display:grid;gap:12px;margin-bottom:1.5rem}
+.kg-5{grid-template-columns:repeat(5,1fr)}
+.kg-4{grid-template-columns:repeat(4,1fr)}
+.kg-3{grid-template-columns:repeat(3,1fr)}
+.kpi{background:var(--surf);border-radius:var(--rl);padding:1rem 1.125rem;border:1px solid var(--brd);position:relative;overflow:hidden}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.kpi.blue::before{background:var(--pri)}
-.kpi.green::before{background:var(--grn)}
-.kpi.amber::before{background:var(--amb)}
-.kpi.purple::before{background:var(--pur)}
-.kpi.coral::before{background:var(--org)}
-.kpi.teal::before{background:var(--teal)}
-.kpi-ico{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;margin-bottom:10px}
-.kpi.blue .kpi-ico{background:var(--pri-pale);color:var(--pri)}
-.kpi.green .kpi-ico{background:var(--grn-pale);color:#16a34a}
-.kpi.amber .kpi-ico{background:var(--amb-pale);color:#b45309}
-.kpi.purple .kpi-ico{background:var(--pur-pale);color:var(--pur)}
-.kpi.coral .kpi-ico{background:#ffedd5;color:#c2410c}
-.kpi.teal .kpi-ico{background:var(--teal-pale);color:var(--teal)}
-.kpi-lbl{font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}
-.kpi-val{font-size:26px;font-weight:700;color:var(--txt);line-height:1.1;font-family:'DM Mono',monospace;letter-spacing:-1px}
-.kpi-sub{font-size:10px;color:var(--txtm);margin-top:5px}
+.kpi.c-b::before{background:var(--pri)}.kpi.c-g::before{background:var(--grn)}.kpi.c-a::before{background:var(--amb)}.kpi.c-p::before{background:var(--pur)}.kpi.c-o::before{background:var(--org)}.kpi.c-t::before{background:var(--teal)}
+.ki{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:9px}
+.kpi.c-b .ki{background:var(--pri-pale);color:var(--pri)}.kpi.c-g .ki{background:var(--grn-pale);color:var(--grn-d)}.kpi.c-a .ki{background:var(--amb-pale);color:var(--amb-d)}.kpi.c-p .ki{background:var(--pur-pale);color:var(--pur)}.kpi.c-o .ki{background:var(--org-pale);color:var(--org)}.kpi.c-t .ki{background:var(--teal-pale);color:var(--teal)}
+.kl{font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.55px;margin-bottom:3px}
+.kv{font-size:25px;font-weight:700;color:var(--txt);line-height:1.1;font-family:'DM Mono',monospace;letter-spacing:-1px}
+.ks{font-size:10px;color:var(--txtm);margin-top:4px}
 
-/* CARD */
-.card{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;margin-bottom:1.5rem}
-.card-hdr{padding:.875rem 1.25rem;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
-.card-t{font-size:13px;font-weight:600;color:var(--txt);display:flex;align-items:center;gap:7px}
-.card-t i{color:var(--pri);font-size:16px}
-.card-body{padding:1.25rem}
-.card-foot{padding:9px 16px;border-top:1px solid var(--brd);font-size:12px;color:var(--txtm)}
+/* ─── CARD ─── */
+.card{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem}
+.ch{padding:.75rem 1.125rem;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;min-height:46px}
+.ct{font-size:13px;font-weight:600;color:var(--txt);display:flex;align-items:center;gap:6px}
+.ct i{color:var(--pri);font-size:15px}
+.cb{padding:1.125rem}
+.cf{padding:7px 14px;border-top:1px solid var(--brd);font-size:11px;color:var(--txtm)}
 
-/* TABLE */
-.tbl-wrap{overflow-x:auto;max-height:560px;overflow-y:auto}
-.tbl{width:100%;border-collapse:collapse;font-size:13px}
-.tbl th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--txtm);padding:8px 12px;border-bottom:1px solid var(--brd);white-space:nowrap;background:var(--surf2);position:sticky;top:0;z-index:1}
+/* ─── TABLE ─── */
+.tw{overflow-x:auto;max-height:520px;overflow-y:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txtm);padding:7px 11px;border-bottom:1px solid var(--brd);white-space:nowrap;background:var(--surf2);position:sticky;top:0;z-index:2}
 .tbl th.r{text-align:right}
-.tbl td{padding:8px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.tbl td{padding:7px 11px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
 .tbl td.r{text-align:right;font-family:'DM Mono',monospace;font-size:12px}
-.tbl tr:hover td{background:var(--surf2)}
+.tbl tr:hover td{background:#fafbfc}
 .tbl tr:last-child td{border-bottom:none}
+.tbl .cod{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)}
+.tbl .pname{font-weight:500;font-size:12px}
 
-/* BADGES */
-.sb{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
-.sb.hi{background:#dcfce7;color:#15803d}
-.sb.mid{background:#fef3c7;color:#b45309}
-.sb.lo{background:#fee2e2;color:#dc2626}
-.sb.zero{background:#f1f5f9;color:#64748b}
+/* ─── STATUS BADGES ─── */
+.sb{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
+.sb.hi{background:#dcfce7;color:#15803d}.sb.mid{background:#fef3c7;color:#b45309}
+.sb.lo{background:#fee2e2;color:#dc2626}.sb.zr{background:#f1f5f9;color:#64748b}
 
-/* SPARK */
-.sp-w{display:flex;align-items:center;gap:6px}
-.sp-b{height:6px;border-radius:3px;background:var(--pri-pale);flex:1;position:relative;overflow:hidden;min-width:60px}
-.sp-f{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
+/* ─── SPARK BAR ─── */
+.spw{display:flex;align-items:center;gap:5px}
+.spb{height:5px;border-radius:3px;background:var(--pri-pale);flex:1;position:relative;overflow:hidden;min-width:50px}
+.spf{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
 
-/* CHIPS / FILTERS */
-.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border:1px solid var(--brd);border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;background:var(--surf);color:var(--txt2);font-family:'DM Sans',sans-serif;transition:all .15s}
+/* ─── CHIPS ─── */
+.chips{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--brd);border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;background:var(--surf);color:var(--txt2);font-family:inherit;transition:all .15s}
 .chip:hover{border-color:var(--pri);color:var(--pri)}
 .chip.active{background:var(--pri);border-color:var(--pri);color:#fff}
-.sbar{display:flex;align-items:center;gap:8px;background:var(--surf2);border:1px solid var(--brd);border-radius:8px;padding:0 12px;height:34px}
-.sbar i{color:var(--txtm);font-size:14px}
-.sbar input{border:none;background:none;outline:none;font-size:13px;color:var(--txt);font-family:'DM Sans',sans-serif;width:180px}
+
+/* ─── FILTERS BAR ─── */
+.fb{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.sbar{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--brd);border-radius:7px;padding:0 10px;height:32px}
+.sbar i{color:var(--txtm);font-size:13px}
+.sbar input{border:none;background:none;outline:none;font-size:12px;color:var(--txt);font-family:inherit;width:160px}
 .sbar input::placeholder{color:var(--txtm)}
-.sel{height:34px;padding:0 10px;border:1px solid var(--brd);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;background:var(--surf);color:var(--txt)}
+.sel{height:32px;padding:0 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;font-family:inherit;background:var(--surf);color:var(--txt)}
 
-/* WH CARDS */
-.wh-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:1.5rem}
-.wh-c{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:1rem 1.25rem;cursor:pointer;transition:all .2s;border-left:4px solid transparent}
-.wh-c:hover{box-shadow:0 4px 6px -1px rgba(0,0,0,.07)}
-.wh-c.sel{box-shadow:0 0 0 2px var(--pri-pale)}
-.wh-n{font-size:12px;font-weight:700;margin-bottom:1px}
-.wh-loc{font-size:11px;color:var(--txtm);margin-bottom:10px}
-.wh-stat{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px}
-.wh-sl{font-size:10px;color:var(--txtm);margin-top:2px}
+/* ─── CHART GRID ─── */
+.cg2{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:1.25rem}
+.cg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:1.25rem}
 
-/* CHART GRID */
-.chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:1.5rem}
+/* ─── WH CARDS ─── */
+.whg{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1.25rem}
+.whc{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:.875rem 1rem;cursor:pointer;transition:all .2s;border-left:4px solid transparent}
+.whc:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.whc.sel{border-left-color:var(--pri);box-shadow:0 0 0 2px var(--pri-pale)}
+.wn{font-size:11px;font-weight:700;margin-bottom:1px}
+.wloc{font-size:10px;color:var(--txtm);margin-bottom:8px}
+.wv{font-size:20px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px}
+.ws{font-size:10px;margin-top:1px}
+.winfo{font-size:10px;color:var(--txtm);margin-top:4px}
 
-/* SECTION HDR */
-.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
-.sec-t{font-size:14px;font-weight:600;color:var(--txt);display:flex;align-items:center;gap:8px}
-.sec-t i{color:var(--pri);font-size:17px}
+/* ─── WH SUMMARY MINI ─── */
+.wh-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
+.whs-c{background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r);padding:.75rem 1rem}
+.whs-l{font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.whs-v{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px}
 
-/* BANNER */
-.banner{border-radius:var(--r);padding:9px 14px;margin-bottom:1rem;font-size:12px;display:flex;align-items:center;gap:8px}
-.banner.pur{background:#ede9fe;border:1px solid #c4b5fd;color:#5b21b6}
-.banner.blu{background:var(--pri-pale);border:1px solid #bfdbfe;color:var(--pri)}
-.banner.grn{background:var(--grn-pale);border:1px solid #bbf7d0;color:#15803d}
+/* ─── CRITICAL BLOCKS ─── */
+.crit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
 
-/* AUDIT CARD */
-.audit-c{background:linear-gradient(135deg,var(--pri) 0%,#1a3354 100%);border-radius:var(--rl);padding:1.5rem;color:#fff;margin-bottom:1.5rem}
-.audit-c h3{font-size:14px;font-weight:600;margin-bottom:1rem;opacity:.9;display:flex;align-items:center;gap:8px}
-.audit-inds{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.audit-ind{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);border-radius:10px;padding:12px}
-.audit-ind .v{font-size:22px;font-weight:700;font-family:'DM Mono',monospace}
-.audit-ind .l{font-size:11px;opacity:.65;margin-top:2px}
+/* ─── ACCORDION (acessórios) ─── */
+.acc-group{border:1px solid var(--brd);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.acc-hdr{display:flex;align-items:center;justify-content:space-between;padding:.625rem 1rem;background:var(--surf2);cursor:pointer;user-select:none;font-weight:600;font-size:12px}
+.acc-hdr:hover{background:#f1f5f9}
+.acc-hdr .cnt{font-size:11px;color:var(--txtm);font-weight:400;margin-left:8px}
+.acc-hdr .ico{font-size:14px;transition:transform .2s;color:var(--txtm)}
+.acc-hdr.open .ico{transform:rotate(180deg)}
+.acc-body{display:none}
+.acc-hdr.open + .acc-body{display:block}
 
-/* LEGEND */
-.leg-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--brd)}
-.leg-row:last-child{border-bottom:none}
-.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+/* ─── RESERVAS SUMMARY ─── */
+.res-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem}
 
-/* MINI GRID */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.5rem}
+/* ─── ALERT BLOCKS ─── */
+.alrt-block{border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem}
+.alrt-hdr{padding:.75rem 1.125rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px}
+.alrt-hdr.red{background:#fff1f2;border:1px solid #fecdd3;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.alrt-hdr.amb{background:#fffbeb;border:1px solid #fed7aa;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.alrt-hdr.gry{background:var(--surf2);border:1px solid var(--brd);border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.alrt-hdr.pur{background:var(--pur-pale);border:1px solid #c4b5fd;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.alrt-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.alrt-body{background:var(--surf);border:1px solid var(--brd);border-radius:0 0 var(--rl) var(--rl)}
 
-@media(max-width:1300px){.kpi-grid{grid-template-columns:repeat(3,1fr)}.chart-grid{grid-template-columns:1fr}.wh-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:900px){.main{padding:1rem}.kpi-grid{grid-template-columns:repeat(2,1fr)}.two-col{grid-template-columns:1fr}}
-@media print{.hdr,.tabs-bar{print-color-adjust:exact}.tab-content{display:block!important}}
+/* ─── SECTION HEADER ─── */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;flex-wrap:wrap;gap:7px}
+.st{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
+.st i{color:var(--pri);font-size:16px}
+
+/* ─── BANNER ─── */
+.banner{border-radius:var(--r);padding:8px 13px;margin-bottom:1rem;font-size:12px;display:flex;align-items:center;gap:7px}
+.bn-pur{background:var(--pur-pale);border:1px solid #c4b5fd;color:#5b21b6}
+.bn-grn{background:var(--grn-pale);border:1px solid #bbf7d0;color:#15803d}
+.bn-blu{background:var(--pri-pale);border:1px solid #bfdbfe;color:var(--pri)}
+.bn-amb{background:var(--amb-pale);border:1px solid #fcd34d;color:var(--amb-d)}
+
+/* ─── LEGEND ─── */
+.leg{display:flex;flex-direction:column;gap:6px}
+.leg-r{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #f8f8f8}
+.leg-r:last-child{border-bottom:none}
+.leg-d{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* ─── TAG WH ─── */
+.wt{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px}
+
+/* ─── 2-col grid ─── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g2 .card{margin-bottom:0}
+
+/* RESPONSIVE */
+@media(max-width:1400px){.kg-5{grid-template-columns:repeat(3,1fr)}.cg2{grid-template-columns:1fr}.whg{grid-template-columns:repeat(3,1fr)}.cg3{grid-template-columns:1fr 1fr}}
+@media(max-width:900px){.main{padding:.875rem}.kg-5,.kg-4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.whg{grid-template-columns:repeat(2,1fr)}.res-sum{grid-template-columns:repeat(2,1fr)}}
+@media print{.hdr,.nav{print-color-adjust:exact}.tab{display:block!important}}
 </style>
 </head>
 <body>
 <div class="app">
 
+<!-- HEADER -->
 <header class="hdr">
-  <div class="hdr-left">
+  <div class="hdr-l">
     <div class="logo">LV</div>
     <div>
-      <div class="hdr-t">LIVOLTEK | Estoque Comercial Brasil</div>
-      <div class="hdr-s">Armazém 07 · Dados ao vivo · Saldo − Empenho − Reservas</div>
+      <div class="hdr-title">LIVOLTEK | Estoque Comercial Brasil</div>
+      <div class="hdr-sub">Armazém 07 · Ao vivo · Saldo − Empenho − Reserva = Disponível para Venda</div>
     </div>
   </div>
-  <div class="hdr-right">
-    <div class="status-badge"><span class="dot dot-amb" id="sdot"></span><span id="stxt">Carregando...</span></div>
-    <span class="hdr-meta" id="sync-t"></span>
-    <button class="btn-ico" title="Atualizar" onclick="loadAllData()"><i class="ti ti-refresh"></i></button>
-    <button class="btn-exp" id="btn-csv" onclick="exportCSV()" disabled><i class="ti ti-table-export" style="font-size:13px"></i> Excel</button>
-    <button class="btn-exp" onclick="window.print()"><i class="ti ti-file-type-pdf" style="font-size:13px"></i> PDF</button>
+  <div class="hdr-r">
+    <div class="sbadge"><span class="dot dot-a" id="sdot"></span><span id="stxt">Carregando...</span></div>
+    <span class="sync-t" id="sync-t"></span>
+    <button class="hico" title="Atualizar" onclick="boot()"><i class="ti ti-refresh"></i></button>
+    <button class="hbtn" id="btn-csv" onclick="exportCSV()" disabled><i class="ti ti-table-export" style="font-size:12px"></i> Excel</button>
+    <button class="hbtn" onclick="window.print()"><i class="ti ti-file-type-pdf" style="font-size:12px"></i> PDF</button>
   </div>
 </header>
 
-<nav class="tabs-bar" role="tablist">
-  <button class="tab-btn active" onclick="sw('dash',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-  <button class="tab-btn" onclick="sw('inversores',this)"><i class="ti ti-sun"></i> Inversores &amp; BESS</button>
-  <button class="tab-btn" onclick="sw('carregadores',this)"><i class="ti ti-bolt"></i> Carregadores EV</button>
-  <button class="tab-btn" onclick="sw('acessorios',this)"><i class="ti ti-tool"></i> Acessórios</button>
-  <button class="tab-btn" onclick="sw('reservas',this)"><i class="ti ti-bookmark"></i> Reservas</button>
-  <button class="tab-btn" onclick="sw('armazens',this)"><i class="ti ti-building-warehouse"></i> Armazéns</button>
-  <button class="tab-btn" onclick="sw('produtos',this)"><i class="ti ti-packages"></i> Todos os Produtos</button>
-  <button class="tab-btn" onclick="sw('alertas',this)"><i class="ti ti-bell"></i> Alertas</button>
+<!-- NAV -->
+<nav class="nav" role="tablist">
+  <button class="tbtn active" onclick="go('dash',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
+  <button class="tbtn" onclick="go('todos',this)"><i class="ti ti-packages"></i> Todos os Produtos</button>
+  <button class="tbtn" onclick="go('inv',this)"><i class="ti ti-sun"></i> Inversores</button>
+  <button class="tbtn" onclick="go('bess',this)"><i class="ti ti-battery-charging"></i> BESS</button>
+  <button class="tbtn" onclick="go('ev',this)"><i class="ti ti-bolt"></i> Carregadores EV</button>
+  <button class="tbtn" onclick="go('acc',this)"><i class="ti ti-tool"></i> Acessórios</button>
+  <button class="tbtn" onclick="go('kit',this)"><i class="ti ti-solar-panel"></i> Kit Solar &amp; Apoio</button>
+  <button class="tbtn" onclick="go('res',this)"><i class="ti ti-bookmark"></i> Reservas</button>
+  <button class="tbtn" onclick="go('arm',this)"><i class="ti ti-building-warehouse"></i> Armazéns</button>
+  <button class="tbtn" onclick="go('alrt',this)"><i class="ti ti-bell"></i> Alertas</button>
 </nav>
 
-<main class="main" role="main">
-<h2 style="position:absolute;left:-9999px">Dashboard Estoque Comercial Livoltek — Armazém 07</h2>
+<main class="main">
 
-<div id="loading-area" class="loading-overlay">
-  <div class="spinner"></div>
-  <div style="font-size:14px">Carregando dados da planilha...</div>
-  <div id="lprog" style="font-size:12px;color:var(--txtm)"></div>
-</div>
+<!-- LOADING -->
+<div id="ld-area" class="ld"><div class="spin"></div><div class="ld-lbl">Carregando dados da planilha...</div><div id="lprog" class="ld-sub"></div></div>
 <div id="err-area" style="display:none"></div>
 <div id="mc" style="display:none">
 
-<!-- ═══ DASHBOARD ═══ -->
-<div id="tab-dash" class="tab-content active">
-  <div class="kpi-grid">
-    <div class="kpi coral"><div class="kpi-ico"><i class="ti ti-database"></i></div><div class="kpi-lbl">SKUs no Armazém 07</div><div class="kpi-val" id="k-skus">—</div><div class="kpi-sub">produtos ativos</div></div>
-    <div class="kpi blue"><div class="kpi-ico"><i class="ti ti-packages"></i></div><div class="kpi-lbl">Saldo em Estoque</div><div class="kpi-val" id="k-saldo">—</div><div class="kpi-sub">total físico TOTVS col. H</div></div>
-    <div class="kpi amber"><div class="kpi-ico"><i class="ti ti-lock"></i></div><div class="kpi-lbl">Empenhos TOTVS</div><div class="kpi-val" id="k-emp">—</div><div class="kpi-sub">pedidos lançados no ERP</div></div>
-    <div class="kpi purple"><div class="kpi-ico"><i class="ti ti-bookmark"></i></div><div class="kpi-lbl">Reservas Comerciais</div><div class="kpi-val" id="k-res">—</div><div class="kpi-sub">comprometido por vendedores</div></div>
-    <div class="kpi green"><div class="kpi-ico"><i class="ti ti-circle-check"></i></div><div class="kpi-lbl">Disponível para Venda</div><div class="kpi-val" id="k-disp">—</div><div class="kpi-sub">saldo − empenho − reservas</div></div>
+<!-- ══════════════════════ DASHBOARD ══════════════════════ -->
+<div id="tab-dash" class="tab active">
+  <div class="kg kg-5">
+    <div class="kpi c-o"><div class="ki"><i class="ti ti-database"></i></div><div class="kl">SKUs Armazém 07</div><div class="kv" id="k-skus">—</div><div class="ks">produtos ativos</div></div>
+    <div class="kpi c-b"><div class="ki"><i class="ti ti-packages"></i></div><div class="kl">Saldo em Estoque</div><div class="kv" id="k-sal">—</div><div class="ks">total físico TOTVS col. H</div></div>
+    <div class="kpi c-a"><div class="ki"><i class="ti ti-lock"></i></div><div class="kl">Empenhos TOTVS</div><div class="kv" id="k-emp">—</div><div class="ks">pedidos lançados no ERP</div></div>
+    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Reservas Comerciais</div><div class="kv" id="k-res">—</div><div class="ks">comprometido por vendedores</div></div>
+    <div class="kpi c-g"><div class="ki"><i class="ti ti-circle-check"></i></div><div class="kl">Disponível para Venda</div><div class="kv" id="k-disp">—</div><div class="ks">saldo − empenho − reservas</div></div>
   </div>
 
-  <div class="chart-grid">
+  <div class="cg2">
     <div class="card" style="margin-bottom:0">
-      <div class="card-hdr">
-        <span class="card-t"><i class="ti ti-chart-bar"></i> Saldo em Estoque vs Disponível para Venda por Armazém</span>
-        <div class="chips" id="chart-chips">
-          <button class="chip active" onclick="setCatWH('TODOS',this)">Todos</button>
-          <button class="chip" onclick="setCatWH('CWB',this)">CWB</button>
-          <button class="chip" onclick="setCatWH('FOR',this)">FOR</button>
-          <button class="chip" onclick="setCatWH('MAO-LIV',this)">MAO Livoltek</button>
-          <button class="chip" onclick="setCatWH('MAO-ELE',this)">MAO Eletra</button>
+      <div class="ch">
+        <span class="ct"><i class="ti ti-chart-bar"></i> Saldo em Estoque vs Disponível para Venda por Armazém</span>
+        <div class="chips" id="dash-chips">
+          <button class="chip active" onclick="setCW('TODOS',this)">Todos</button>
+          <button class="chip" onclick="setCW('CWB',this)">CWB</button>
+          <button class="chip" onclick="setCW('FOR',this)">FOR</button>
+          <button class="chip" onclick="setCW('MAO-LIV',this)">MAO Livoltek</button>
+          <button class="chip" onclick="setCW('MAO-ELE',this)">MAO Eletra</button>
         </div>
       </div>
-      <div class="card-body"><div style="position:relative;height:300px"><canvas id="catChart" role="img" aria-label="Saldo vs Disponível por armazém"></canvas></div>
-        <div id="chart-legend" style="display:flex;gap:20px;margin-top:10px;font-size:12px;color:var(--txt2)"></div>
+      <div class="cb">
+        <div style="position:relative;height:280px"><canvas id="barChart" role="img" aria-label="Saldo vs Disponível"></canvas></div>
+        <div id="bar-leg" style="display:flex;gap:18px;margin-top:10px;font-size:12px;color:var(--txt2)"></div>
       </div>
     </div>
     <div class="card" style="margin-bottom:0">
-      <div class="card-hdr"><span class="card-t"><i class="ti ti-building-warehouse"></i> Disponível por Armazém</span></div>
-      <div class="card-body">
-        <div style="position:relative;height:180px;margin-bottom:1rem"><canvas id="whChart" role="img" aria-label="Distribuição por armazém"></canvas></div>
-        <div id="wh-legend"></div>
+      <div class="ch"><span class="ct"><i class="ti ti-building-warehouse"></i> Disponível por Armazém</span></div>
+      <div class="cb">
+        <div style="position:relative;height:185px;margin-bottom:.875rem"><canvas id="donutChart" role="img"></canvas></div>
+        <div class="leg" id="donut-leg"></div>
       </div>
     </div>
   </div>
 
-  <div class="two-col">
-    <div class="card" style="margin-bottom:0">
-      <div class="card-hdr"><span class="card-t"><i class="ti ti-sun"></i> Top 10 Inversores — Disponível para Venda</span></div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r">Disp. Venda</th><th class="r" style="width:120px">Proporção</th></tr></thead>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><span class="ct"><i class="ti ti-sun"></i> Top 10 Inversores — Disponível para Venda</span></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th style="width:26px">#</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r">Disp. Venda</th><th class="r" style="width:110px">Proporção</th></tr></thead>
         <tbody id="top-inv"></tbody>
       </table></div>
     </div>
-    <div class="card" style="margin-bottom:0">
-      <div class="card-hdr"><span class="card-t"><i class="ti ti-bolt"></i> Top 10 Carregadores EV — Disponível para Venda</span></div>
-      <div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r">Disp. Venda</th><th class="r" style="width:120px">Proporção</th></tr></thead>
+    <div class="card">
+      <div class="ch"><span class="ct"><i class="ti ti-bolt"></i> Top 10 Carregadores EV — Disponível para Venda</span></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th style="width:26px">#</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r">Disp. Venda</th><th class="r" style="width:110px">Proporção</th></tr></thead>
         <tbody id="top-ev"></tbody>
       </table></div>
     </div>
   </div>
 </div>
 
-<!-- ═══ INVERSORES & BESS ═══ -->
-<div id="tab-inversores" class="tab-content">
-  <div class="banner grn"><i class="ti ti-info-circle" style="font-size:15px"></i> Inversores on-grid, híbridos, BESS, baterias e módulos solares. Disponível = Saldo − Empenho − Reserva.</div>
-  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)" id="inv-kpis"></div>
-  <div class="sec-hdr">
-    <span class="sec-t"><i class="ti ti-sun"></i> Produtos — Inversores, BESS &amp; Baterias</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Buscar..." oninput="renderInv()"></div>
-      <select class="sel" id="inv-wh" onchange="renderInv()"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
-    </div>
+<!-- ══════════════════════ TODOS OS PRODUTOS ══════════════════════ -->
+<div id="tab-todos" class="tab">
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="all-q" placeholder="Código ou produto..." oninput="rAll()"></div>
+    <select class="sel" id="all-wh" onchange="rAll()"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
+    <select class="sel" id="all-cat" onchange="rAll()">
+      <option value="">Todas as categorias</option>
+      <option value="inversor">Inversores</option>
+      <option value="bess">BESS / Baterias</option>
+      <option value="ev">Carregadores EV</option>
+      <option value="kit">Kit Solar / Módulos</option>
+      <option value="acessorio">Acessórios</option>
+      <option value="outro">Outros</option>
+    </select>
+    <select class="sel" id="all-dsp" onchange="rAll()"><option value="">Qualquer disponibilidade</option><option value="1">Disponível &gt; 0</option><option value="0">Zerado</option></select>
   </div>
   <div class="card">
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Código</th><th>Descrição</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:#16a34a">Disp. Venda</th><th>Status</th></tr></thead>
-      <tbody id="inv-table"></tbody>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead>
+      <tbody id="all-tbl"></tbody>
     </table></div>
-    <div class="card-foot">Exibindo <span id="inv-count">0</span> SKUs</div>
+    <div class="cf">Exibindo <span id="all-cnt">0</span> SKUs</div>
   </div>
 </div>
 
-<!-- ═══ CARREGADORES EV ═══ -->
-<div id="tab-carregadores" class="tab-content">
-  <div class="banner blu"><i class="ti ti-info-circle" style="font-size:15px"></i> Carregadores AC e DC para veículos elétricos. Disponível = Saldo − Empenho − Reserva.</div>
-  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)" id="ev-kpis"></div>
-  <div class="sec-hdr">
-    <span class="sec-t"><i class="ti ti-bolt"></i> Produtos — Carregadores EV</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Buscar..." oninput="renderEV()"></div>
-      <select class="sel" id="ev-wh" onchange="renderEV()"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
-    </div>
+<!-- ══════════════════════ INVERSORES ══════════════════════ -->
+<div id="tab-inv" class="tab">
+  <div class="banner bn-blu"><i class="ti ti-info-circle" style="font-size:15px"></i><span>Inversores on-grid e híbridos. Excluídos: String Box, Módulos Fotovoltaicos, Estruturas, Acessórios.</span></div>
+  <div class="kg kg-4" id="inv-kpis"></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Código ou produto..." oninput="rCat('inv')"></div>
+    <select class="sel" id="inv-wh" onchange="rCat('inv')"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
   </div>
   <div class="card">
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Código</th><th>Descrição</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:#16a34a">Disp. Venda</th><th>Status</th></tr></thead>
-      <tbody id="ev-table"></tbody>
-    </table></div>
-    <div class="card-foot">Exibindo <span id="ev-count">0</span> SKUs</div>
+    <div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Família</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead><tbody id="inv-tbl"></tbody></table></div>
+    <div class="cf">Exibindo <span id="inv-cnt">0</span> SKUs</div>
   </div>
 </div>
 
-<!-- ═══ ACESSÓRIOS ═══ -->
-<div id="tab-acessorios" class="tab-content">
-  <div class="banner pur"><i class="ti ti-info-circle" style="font-size:15px"></i> Cabos, conectores, terminais, suportes, kits de fixação e demais acessórios. Itens de apoio às instalações.</div>
-  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)" id="acc-kpis"></div>
-  <div class="sec-hdr">
-    <span class="sec-t"><i class="ti ti-tool"></i> Acessórios em Estoque</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <div class="sbar"><i class="ti ti-search"></i><input id="acc-q" placeholder="Buscar..." oninput="renderAcc()"></div>
-      <select class="sel" id="acc-wh" onchange="renderAcc()"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
-    </div>
+<!-- ══════════════════════ BESS ══════════════════════ -->
+<div id="tab-bess" class="tab">
+  <div class="banner bn-amb"><i class="ti ti-info-circle" style="font-size:15px"></i><span>Baterias de armazenamento de energia, BESS, BMS e PCS.</span></div>
+  <div class="kg kg-4" id="bess-kpis"></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="bess-q" placeholder="Código ou produto..." oninput="rCat('bess')"></div>
+    <select class="sel" id="bess-wh" onchange="rCat('bess')"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
   </div>
   <div class="card">
-    <div class="tbl-wrap"><table class="tbl">
-      <thead><tr><th>Código</th><th>Descrição</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:#16a34a">Disp. Venda</th><th>Status</th></tr></thead>
-      <tbody id="acc-table"></tbody>
+    <div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Família</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead><tbody id="bess-tbl"></tbody></table></div>
+    <div class="cf">Exibindo <span id="bess-cnt">0</span> SKUs</div>
+  </div>
+</div>
+
+<!-- ══════════════════════ CARREGADORES EV ══════════════════════ -->
+<div id="tab-ev" class="tab">
+  <div class="banner bn-grn"><i class="ti ti-info-circle" style="font-size:15px"></i><span>Carregadores CA e CC para veículos elétricos. A007 (CA 7kW) e A0220 (CA 22kW) incluídos.</span></div>
+  <div class="kg kg-4" id="ev-kpis"></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Código ou produto..." oninput="rCat('ev')"></div>
+    <select class="sel" id="ev-wh" onchange="rCat('ev')"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
+  </div>
+  <div class="card">
+    <div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Família</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead><tbody id="ev-tbl"></tbody></table></div>
+    <div class="cf">Exibindo <span id="ev-cnt">0</span> SKUs</div>
+  </div>
+</div>
+
+<!-- ══════════════════════ ACESSÓRIOS ══════════════════════ -->
+<div id="tab-acc" class="tab">
+  <div class="banner bn-pur"><i class="ti ti-info-circle" style="font-size:15px"></i><span>Cabos, conectores, terminais, fixação, comunicação e demais acessórios. Organizados por grupo — clique para expandir.</span></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="acc-q" placeholder="Filtrar acessório..." oninput="rAcc()"></div>
+    <select class="sel" id="acc-wh" onchange="rAcc()"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
+  </div>
+  <div id="acc-groups"></div>
+</div>
+
+<!-- ══════════════════════ KIT SOLAR ══════════════════════ -->
+<div id="tab-kit" class="tab">
+  <div class="banner bn-grn"><i class="ti ti-info-circle" style="font-size:15px"></i><span>Módulos fotovoltaicos, estruturas metálicas, String Box, Medidores, Kits de instalação e cabos principais de projeto solar.</span></div>
+  <div class="kg kg-3" id="kit-kpis"></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="kit-q" placeholder="Código ou produto..." oninput="rCat('kit')"></div>
+    <select class="sel" id="kit-wh" onchange="rCat('kit')"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
+  </div>
+  <div class="card">
+    <div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Família</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead><tbody id="kit-tbl"></tbody></table></div>
+    <div class="cf">Exibindo <span id="kit-cnt">0</span> SKUs</div>
+  </div>
+</div>
+
+<!-- ══════════════════════ RESERVAS ══════════════════════ -->
+<div id="tab-res" class="tab">
+  <div class="res-sum" id="res-sum-dir"></div>
+  <div class="kg kg-4">
+    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Total Reservado</div><div class="kv" id="r-tot">—</div><div class="ks">unidades</div></div>
+    <div class="kpi c-b"><div class="ki"><i class="ti ti-list"></i></div><div class="kl">Linhas de Reserva</div><div class="kv" id="r-lin">—</div><div class="ks">registros</div></div>
+    <div class="kpi c-g"><div class="ki"><i class="ti ti-trophy"></i></div><div class="kl">Produto mais Reservado</div><div id="r-tp" style="font-size:12px;font-weight:600;margin-top:5px;line-height:1.4">—</div><div id="r-tpq" style="font-size:10px;color:var(--txtm);margin-top:3px">—</div></div>
+    <div class="kpi c-a"><div class="ki"><i class="ti ti-user"></i></div><div class="kl">Vendedor mais Ativo</div><div id="r-tv" style="font-size:12px;font-weight:600;margin-top:5px;line-height:1.4">—</div><div id="r-tvq" style="font-size:10px;color:var(--txtm);margin-top:3px">—</div></div>
+  </div>
+  <div class="banner bn-pur"><i class="ti ti-info-circle" style="font-size:15px"></i><span>Reservas = comprometimentos comerciais <strong>não lançados no TOTVS</strong>. Empenho TOTVS é o lançamento formal no ERP. Ambos descontados do Saldo para Disponível para Venda.</span></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código, responsável..." oninput="rRes()"></div>
+    <select class="sel" id="res-arm" onchange="rRes()"><option value="">Todos os armazéns</option><option value="Curitiba">Curitiba</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option></select>
+  </div>
+  <div class="card">
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Cliente</th><th>Responsável</th><th>Código</th><th>WH</th><th class="r">Qtd</th><th>Solicitado</th><th>Observação</th></tr></thead>
+      <tbody id="res-tbl"></tbody>
     </table></div>
-    <div class="card-foot">Exibindo <span id="acc-count">0</span> SKUs</div>
+    <div class="cf">Exibindo <span id="res-cnt">0</span> registros · Fonte: aba Reservas da planilha</div>
   </div>
 </div>
 
-<!-- ═══ RESERVAS ═══ -->
-<div id="tab-reservas" class="tab-content">
-  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-    <div class="kpi purple"><div class="kpi-ico"><i class="ti ti-bookmark"></i></div><div class="kpi-lbl">Total Reservado</div><div class="kpi-val" id="r-tot">—</div><div class="kpi-sub">unidades comprometidas</div></div>
-    <div class="kpi blue"><div class="kpi-ico"><i class="ti ti-list"></i></div><div class="kpi-lbl">Linhas de Reserva</div><div class="kpi-val" id="r-lin">—</div><div class="kpi-sub">registros ativos</div></div>
-    <div class="kpi green"><div class="kpi-ico"><i class="ti ti-trophy"></i></div><div class="kpi-lbl">Produto mais Reservado</div><div id="r-tp" style="font-size:12px;font-weight:600;margin-top:6px;line-height:1.4">—</div><div id="r-tpq" style="font-size:11px;color:var(--txtm);margin-top:4px">—</div></div>
-    <div class="kpi amber"><div class="kpi-ico"><i class="ti ti-user"></i></div><div class="kpi-lbl">Vendedor mais Ativo</div><div id="r-tv" style="font-size:12px;font-weight:600;margin-top:6px;line-height:1.4">—</div><div id="r-tvq" style="font-size:11px;color:var(--txtm);margin-top:4px">—</div></div>
-  </div>
-  <div class="banner pur"><i class="ti ti-info-circle" style="font-size:15px"></i><span>Reservas são comprometimentos comerciais <strong>não lançados no TOTVS</strong>. O empenho TOTVS é lançado formalmente no ERP. Os dois somados são descontados do saldo para gerar o Disponível para Venda.</span></div>
-  <div class="sec-hdr">
-    <span class="sec-t"><i class="ti ti-bookmark"></i> Lista de Reservas Comerciais</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <div class="sbar"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código..." oninput="renderRes()"></div>
-      <select class="sel" id="res-arm" onchange="renderRes()"><option value="">Todos os armazéns</option><option value="Curitiba">Curitiba</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option></select>
+<!-- ══════════════════════ ARMAZÉNS ══════════════════════ -->
+<div id="tab-arm" class="tab">
+  <div class="whg" id="wh-cards"></div>
+  <div class="wh-sum" id="wh-sum"></div>
+  <div class="sh">
+    <span class="st" id="wh-tit"><i class="ti ti-building-warehouse"></i> Selecione um armazém</span>
+    <div class="fb" style="margin-bottom:0">
+      <div class="sbar"><i class="ti ti-search"></i><input id="wh-q" placeholder="Filtrar produto..." oninput="rWH()"></div>
     </div>
   </div>
-  <div class="card"><div class="tbl-wrap"><table class="tbl">
-    <thead><tr><th>Cliente</th><th>Responsável</th><th>Código</th><th>WH</th><th class="r">Qtd</th><th>Solicitado</th><th>Obs.</th></tr></thead>
-    <tbody id="res-table"></tbody>
-  </table></div>
-  <div class="card-foot">Exibindo <span id="res-cnt">0</span> registros · Fonte: aba Reservas da planilha</div></div>
+  <div class="crit-grid" id="wh-crit"></div>
+  <div class="card">
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead>
+      <tbody id="wh-tbl"></tbody>
+    </table></div>
+    <div class="cf">Exibindo <span id="wh-cnt">0</span> SKUs · <span id="wh-sub"></span></div>
+  </div>
 </div>
 
-<!-- ═══ ARMAZÉNS ═══ -->
-<div id="tab-armazens" class="tab-content">
-  <div class="wh-grid" id="wh-cards"></div>
-  <div class="sec-hdr">
-    <span class="sec-t" id="wh-det-t"><i class="ti ti-building-warehouse"></i> Selecione um armazém</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <div class="sbar"><i class="ti ti-search"></i><input id="wh-q" placeholder="Filtrar produto..." oninput="renderWhTable(selWH)"></div>
-    </div>
-  </div>
-  <div class="card"><div class="tbl-wrap"><table class="tbl">
-    <thead><tr><th>Código</th><th>Descrição</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:#16a34a">Disp. Venda</th><th>Status</th></tr></thead>
-    <tbody id="wh-table"></tbody>
-  </table></div>
-  <div class="card-foot"><span id="wh-cnt">0</span> SKUs · <span id="wh-det-sub"></span></div></div>
-</div>
+<!-- ══════════════════════ ALERTAS ══════════════════════ -->
+<div id="tab-alrt" class="tab">
+  <div class="banner bn-amb"><i class="ti ti-bell" style="font-size:15px"></i><span>Central de risco comercial. Use os filtros de cada bloco para investigar rapidamente.</span></div>
 
-<!-- ═══ TODOS OS PRODUTOS ═══ -->
-<div id="tab-produtos" class="tab-content">
-  <div class="sec-hdr">
-    <span class="sec-t"><i class="ti ti-packages"></i> Todos os Produtos — Armazém 07</span>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <div class="sbar"><i class="ti ti-search"></i><input id="all-q" placeholder="Código ou descrição..." oninput="renderAll_prod()"></div>
-      <select class="sel" id="all-wh" onchange="renderAll_prod()"><option value="">Todos os armazéns</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO Livoltek</option><option value="MAO-ELE">MAO Eletra</option></select>
-      <select class="sel" id="all-cat" onchange="renderAll_prod()"><option value="">Todas as categorias</option><option value="inversor">Inversores</option><option value="bateria">Baterias/BESS</option><option value="carregador">Carregadores EV</option><option value="acessorio">Acessórios</option><option value="outro">Outros</option></select>
+  <!-- Reservas acima do saldo -->
+  <div class="alrt-block">
+    <div class="alrt-hdr red">
+      <span class="alrt-title" style="color:#be123c"><i class="ti ti-alert-triangle"></i> Reservas acima do Saldo — <span id="a1-cnt" style="font-size:12px;font-weight:400">0 itens</span></span>
+      <div class="fb" style="margin-bottom:0">
+        <div class="sbar"><i class="ti ti-search"></i><input id="a1-q" placeholder="Filtrar..." oninput="rAlrt()"></div>
+        <select class="sel" id="a1-wh" onchange="rAlrt()"><option value="">Todos WH</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO-LIV</option><option value="MAO-ELE">MAO-ELE</option></select>
+      </div>
     </div>
-  </div>
-  <div class="card"><div class="tbl-wrap"><table class="tbl">
-    <thead><tr><th>Código</th><th>Descrição</th><th>WH</th><th>Categoria</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:#16a34a">Disp. Venda</th><th>Status</th></tr></thead>
-    <tbody id="all-table"></tbody>
-  </table></div>
-  <div class="card-foot">Exibindo <span id="all-cnt">0</span> SKUs</div></div>
-</div>
-
-<!-- ═══ ALERTAS ═══ -->
-<div id="tab-alertas" class="tab-content">
-  <div class="banner grn"><i class="ti ti-bell"></i><span> Painel de atenção operacional — produtos zerados, reservas acima do estoque, e itens com ruptura iminente (&lt;5 unidades disponíveis).</span></div>
-
-  <div class="two-col">
-    <div>
-      <div class="sec-hdr"><span class="sec-t" style="color:#dc2626"><i class="ti ti-alert-triangle"></i> Reservas acima do Saldo</span></div>
-      <div class="card" style="margin-bottom:0"><div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Código</th><th>Descrição</th><th>WH</th><th class="r">Saldo</th><th class="r">Reserva</th><th class="r">Saldo Neg.</th></tr></thead>
-        <tbody id="alrt-over"></tbody>
-      </table></div>
-      <div class="card-foot"><span id="alrt-over-cnt">0</span> registros</div></div>
-    </div>
-    <div>
-      <div class="sec-hdr"><span class="sec-t" style="color:#b45309"><i class="ti ti-alert-circle"></i> Ruptura Iminente (Disp. 1–4 unidades)</span></div>
-      <div class="card" style="margin-bottom:0"><div class="tbl-wrap"><table class="tbl">
-        <thead><tr><th>Código</th><th>Descrição</th><th>WH</th><th class="r">Saldo</th><th class="r">Disp. Venda</th></tr></thead>
-        <tbody id="alrt-low"></tbody>
-      </table></div>
-      <div class="card-foot"><span id="alrt-low-cnt">0</span> registros</div></div>
-    </div>
+    <div class="alrt-body"><div class="tw"><table class="tbl">
+      <thead><tr><th>Código</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:#dc2626">Saldo Neg.</th></tr></thead>
+      <tbody id="a1-tbl"></tbody>
+    </table></div></div>
   </div>
 
-  <div class="sec-hdr" style="margin-top:.5rem"><span class="sec-t" style="color:#64748b"><i class="ti ti-minus"></i> Disponível Zero (saldo existente mas totalmente comprometido)</span></div>
-  <div class="card"><div class="tbl-wrap"><table class="tbl">
-    <thead><tr><th>Código</th><th>Descrição</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r">Reserva</th><th class="r">Disp.</th></tr></thead>
-    <tbody id="alrt-zero"></tbody>
-  </table></div>
-  <div class="card-foot"><span id="alrt-zero-cnt">0</span> registros</div></div>
+  <!-- Ruptura iminente -->
+  <div class="alrt-block">
+    <div class="alrt-hdr amb">
+      <span class="alrt-title" style="color:#92400e"><i class="ti ti-alert-circle"></i> Ruptura Iminente (Disp. 1 a 5 unidades) — <span id="a2-cnt" style="font-size:12px;font-weight:400">0 itens</span></span>
+      <div class="fb" style="margin-bottom:0">
+        <div class="sbar"><i class="ti ti-search"></i><input id="a2-q" placeholder="Filtrar..." oninput="rAlrt()"></div>
+        <select class="sel" id="a2-wh" onchange="rAlrt()"><option value="">Todos WH</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO-LIV</option><option value="MAO-ELE">MAO-ELE</option></select>
+        <select class="sel" id="a2-cat" onchange="rAlrt()"><option value="">Todas cats</option><option value="inversor">Inversores</option><option value="bess">BESS</option><option value="ev">Carregadores EV</option><option value="kit">Kit Solar</option></select>
+      </div>
+    </div>
+    <div class="alrt-body"><div class="tw"><table class="tbl">
+      <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>WH</th><th class="r">Saldo</th><th class="r" style="color:#b45309">Disp. Venda</th></tr></thead>
+      <tbody id="a2-tbl"></tbody>
+    </table></div></div>
+  </div>
+
+  <!-- Zerado mas com saldo -->
+  <div class="alrt-block">
+    <div class="alrt-hdr gry">
+      <span class="alrt-title" style="color:#475569"><i class="ti ti-minus-circle"></i> Disponível Zero (saldo existe mas totalmente comprometido) — <span id="a3-cnt" style="font-size:12px;font-weight:400">0 itens</span></span>
+      <div class="fb" style="margin-bottom:0">
+        <div class="sbar"><i class="ti ti-search"></i><input id="a3-q" placeholder="Filtrar..." oninput="rAlrt()"></div>
+        <select class="sel" id="a3-wh" onchange="rAlrt()"><option value="">Todos WH</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO-LIV</option><option value="MAO-ELE">MAO-ELE</option></select>
+        <select class="sel" id="a3-cat" onchange="rAlrt()"><option value="">Todas cats</option><option value="inversor">Inversores</option><option value="bess">BESS</option><option value="ev">Carregadores EV</option></select>
+      </div>
+    </div>
+    <div class="alrt-body"><div class="tw"><table class="tbl">
+      <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>WH</th><th class="r">Saldo</th><th class="r">Empenho</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r">Disp.</th></tr></thead>
+      <tbody id="a3-tbl"></tbody>
+    </table></div></div>
+  </div>
+
+  <!-- Excesso de estoque -->
+  <div class="alrt-block">
+    <div class="alrt-hdr pur">
+      <span class="alrt-title" style="color:#5b21b6"><i class="ti ti-trending-up"></i> Excesso de Estoque (Disp. &gt; 200 unidades) — <span id="a4-cnt" style="font-size:12px;font-weight:400">0 itens</span></span>
+      <div class="fb" style="margin-bottom:0">
+        <div class="sbar"><i class="ti ti-search"></i><input id="a4-q" placeholder="Filtrar..." oninput="rAlrt()"></div>
+        <select class="sel" id="a4-wh" onchange="rAlrt()"><option value="">Todos WH</option><option value="CWB">CWB</option><option value="FOR">FOR</option><option value="MAO-LIV">MAO-LIV</option><option value="MAO-ELE">MAO-ELE</option></select>
+      </div>
+    </div>
+    <div class="alrt-body"><div class="tw"><table class="tbl">
+      <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>WH</th><th class="r">Saldo</th><th class="r" style="color:#5b21b6">Disp. Venda</th></tr></thead>
+      <tbody id="a4-tbl"></tbody>
+    </table></div></div>
+  </div>
 </div>
 
 </div><!-- /mc -->
 </main>
-</div>
+</div><!-- /app -->
 
 <script>
-// ══ URLS
+// ══════════════════════════════════════════════════════════════
+// URLS — Google Sheets ao vivo
+// ══════════════════════════════════════════════════════════════
 const URLS={
-  CWB:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=0&single=true&output=csv',
-  FOR:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=411796829&single=true&output=csv',
+  CWB:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=0&single=true&output=csv',
+  FOR:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=411796829&single=true&output=csv',
   'MAO-LIV':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=2006971885&single=true&output=csv',
   'MAO-ELE':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=1879495818&single=true&output=csv',
   RESERVAS:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=577818960&single=true&output=csv',
 };
-const WH_LBL={'CWB':'CWB — Curitiba','FOR':'FOR — Fortaleza','MAO-LIV':'MAO — Livoltek','MAO-ELE':'MAO — Eletra'};
-const WH_CLR={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
+const WHL={'CWB':'CWB — Curitiba','FOR':'FOR — Fortaleza','MAO-LIV':'MAO — Livoltek','MAO-ELE':'MAO — Eletra'};
+const WHC={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
 
-// ── State
+// ══ STATE
 let ST=[], RES=[];
 
-// ══ CATEGORIZATION
-// Keywords that indicate ACCESSORY (not a main product)
-const ACC_KW=['CABO ','CONECTOR','TERMINAL ','BORNE','HASTE','PARAFUSO','PORCA','ARRUELA','ABRACADEIRA',
-  'BUCHA','FITA ','TRILHO DIN','DPS ','DISJUNTOR','FUSIVEL','RELE ','VENTILADOR','ANTENA',
-  'MODULO DE COMUNICACAO','FONTE CHAVEADA','ELETRODUTO','BARRAMENTO','SUPORTE DE MONTAGEM',
-  'KIT TELHADO','KIT SOLO','KIT MINI','TRIANGULO RETRATO','ESTRUTURA METALICA','COLUNA DE FIXACAO',
-  'PLACA ','QUADRO ','CAIXA PVC','LAMPADA','TOMADA','INTERRUPTOR','POSTE ','PEDESTAL',
-  'MODULO WLAN','CARTAO DE ACIONAMENTO','LACRE','ARO SUS','TORRE METALICA','CHAPA DE ACO',
-  'GRAMPO','MAQUINAS AUTOMATICA','MEDIDOR','CONTADOR DE ELETRICIDADE','EMPILHADEIRA',
-  'CABO FLEXIVEL','CABO SOLAR','CABO DE ALUMINIO','CABO DE COBRE','HELICE','BLOCO ANTCORR',
-  'CARRINHO DE TRANSPORTE','EMPUNHADURA','ANEL DE VEDACAO','VEDACAO DE BORRACHA','CONE DE NARIZ',
-  'ALCA DE AJUSTE','PLACA DE PRESSAO','BLOCO DE PRESSAO','PINO CILINDRICO','PALETE',
-  'GABARITO','STENCIL','CAPACITOR','DIODO','TRANSISTOR','OPTICAL COUPLER'];
+// ══════════════════════════════════════════════════════════════
+// CLASSIFICAÇÃO COMERCIAL MESTRE
+// Disponível para Venda = Saldo - Empenho - Reserva
+// Fórmula validada: disp = max(0, saldo - empenho - reserva)
+// ══════════════════════════════════════════════════════════════
 
-const INV_KW=['INVERSOR','GT1-','GT3-','HP1-','HP3-','GF1-','GF3-'];
-const BAT_KW=['BATERIA','BHF-','BLF-','BESS','ACUMULADOR','ARMAZENAMENTO DE ENERGIA','BMS','SMI-48'];
-const EV_KW=['CARREGADOR VEICULAR','CARREGADOR VE ','CARREGADOR EV','CC 30KW','CC 40KW','CC 60KW',
-  'CC 120KW','CC 160KW','CC 180KW','CA 7','CA 22','ATOM ','MOTION FAST','MOTION COMPACT',
-  'A007023','A022040','C0301','C0401','C0601','M1601','M1801','M2401','M1201000',
-  'D030038','MFDC','LCDC','M0601'];
+// SKU prefix → [cat, familia]
+const FAM_SKU=[
+  // INVERSORES
+  ['GT1-','inversor','Inversor GT1'],['GT3-','inversor','Inversor GT3'],
+  ['HP1-','inversor','Inversor Híbrido HP1'],['HP3-','inversor','Inversor Híbrido HP3'],
+  ['GF1-','inversor','Inversor GF1'],['GF3-','inversor','Inversor GF3'],
+  ['9120692','inversor','Inversor GT1'],
+  // BESS
+  ['BHF-','bess','BESS BHF'],['BLF-','bess','Bateria BLF'],
+  ['BLF51','bess','Bateria BLF51'],['SMI-48','bess','Bateria SMI'],
+  ['PCS-','bess','PCS'],['BMS','bess','BMS'],
+  // CARREGADORES EV — A007 e A0220 OBRIGATÓRIO
+  ['A007','ev','Carregador EV CA 7kW'],
+  ['A0220','ev','Carregador EV CA 22kW'],
+  ['C0301','ev','Carregador EV CC 30kW Compact'],
+  ['C0401','ev','Carregador EV CC 40kW'],
+  ['C0501','ev','Carregador EV CC 50kW'],
+  ['C0601','ev','Carregador EV CC 60kW'],
+  ['M0601','ev','Carregador EV CC 60kW Mob'],
+  ['M1601','ev','Carregador EV CC 160kW'],
+  ['M1801','ev','Carregador EV CC 180kW'],
+  ['M2401','ev','Carregador EV CC 240kW'],
+  ['M1201000','ev','Carregador EV CC 120kW'],
+  ['M12010','ev','Carregador EV CC 120kW Mob'],
+  ['M06010','ev','Carregador EV CC 60kW Mob'],
+  ['D030038','ev','Carregador EV CC 30kW'],
+  ['2160100','ev','Carregador EV CA 250W'],
+  // KIT SOLAR
+  ['JKM','kit','Módulo Solar'],['QNM','kit','Módulo Solar'],
+  ['RS6','kit','Módulo Solar'],['HJT','kit','Módulo Solar'],
+  ['HXCB','kit','String Box'],
+  ['LHE34','kit','Medidor Hexing'],['LHE12','kit','Medidor Hexing'],
+  // ACESSÓRIOS — prefixos numéricos comuns de peças TOTVS
+  // (descrição prevalece para estes)
+];
+
+// Descrição keywords → [cat, familia]  (ordem importa: mais específico primeiro)
+const FAM_DESC=[
+  // INVERSORES
+  ['INVERSOR','inversor','Inversor'],['MICROINVERSOR','inversor','Microinversor'],
+  ['GT1 ','inversor','Inversor GT1'],['GT3 ','inversor','Inversor GT3'],
+  ['HP1 ','inversor','Inversor HP1'],['HP3 ','inversor','Inversor HP3'],
+  ['GT1-','inversor','Inversor GT1'],['GT3-','inversor','Inversor GT3'],
+  // BESS
+  ['BATERIA DE LITION','bess','Bateria'],['BATERIA DE LI','bess','Bateria'],
+  ['BATERIA BHF','bess','BESS BHF'],['BATERIA BLF','bess','Bateria BLF'],
+  ['BATERIA SMI','bess','Bateria SMI'],['BATERIA 5','bess','Bateria 5kWh'],
+  ['BATERIA','bess','Bateria'],['BESS','bess','BESS'],
+  ['ACUMULADOR DE ENERGIA','bess','Acumulador'],
+  ['ARMAZENAMENTO DE ENERGIA','bess','BESS'],
+  ['BMS ','bess','BMS'],['BHF ','bess','BESS BHF'],
+  ['BLF ','bess','Bateria BLF'],
+  // EV — A007 e A0220 mapeados antes pela descrição também
+  ['CARREGADOR VEICULAR','ev','Carregador EV'],
+  ['CARREGADOR VE ','ev','Carregador EV'],
+  ['ATOM CA 7','ev','Carregador EV CA 7kW'],
+  ['ATOM CA 22','ev','Carregador EV CA 22kW'],
+  ['ATOM ','ev','Carregador EV CA'],
+  ['MOTION FAST','ev','Carregador EV CC'],
+  ['MOTION COMPACT','ev','Carregador EV CC'],
+  ['MOTION','ev','Carregador EV CC'],
+  // KIT SOLAR
+  ['MODULO FOTOVOLTAICO','kit','Módulo Solar'],['MODULO SOLAR','kit','Módulo Solar'],
+  ['PAINEL SOLAR','kit','Painel Solar'],['PAINEL FOTOVOLTAICO','kit','Painel Solar'],
+  ['STRING BOX','kit','String Box'],['HXCB','kit','String Box'],
+  ['ESTRUTURA METALICA','kit','Estrutura Metálica'],
+  ['ESTRUTURA DE SOLO','kit','Estrutura Solo'],
+  ['ESTRUTURA PARA SOLO','kit','Estrutura Solo'],
+  ['KIT TELHADO','kit','Kit Telhado'],['KIT SOLO','kit','Kit Solo'],
+  ['KIT MINI','kit','Kit Minigeração'],
+  ['MEDIDOR INTELIGENTE','kit','Medidor Hexing'],
+  // ACESSÓRIOS — cabos e mais
+  ['CABO SOLAR','acessorio','Cabo'],['CABO FLEX','acessorio','Cabo'],
+  ['CABO DE ALUMINIO','acessorio','Cabo'],['CABO DE COBRE','acessorio','Cabo'],
+  ['CABO ','acessorio','Cabo'],
+  ['MC4','acessorio','Conector MC4'],['CONECTOR','acessorio','Conector'],
+  ['TERMINAL ','acessorio','Terminal'],['BORNE ','acessorio','Borne'],
+  ['HASTE ','acessorio','Haste'],
+  ['PARAFUSO','acessorio','Fixação'],['PORCA ','acessorio','Fixação'],
+  ['ARRUELA','acessorio','Fixação'],['GRAMPO','acessorio','Fixação'],
+  ['ABRACADEIRA','acessorio','Fixação'],['BUCHA ','acessorio','Fixação'],
+  ['TRILHO DIN','acessorio','Fixação'],['SUPORTE ','acessorio','Suporte'],
+  ['DPS ','acessorio','DPS'],['DISJUNTOR','acessorio','Disjuntor'],
+  ['FUSIVEL','acessorio','Fusível'],['RELE ','acessorio','Relé'],
+  ['VENTILADOR','acessorio','Ventilação'],
+  ['ANTENA ','acessorio','Comunicação'],['MODULO WLA','acessorio','Comunicação'],
+  ['CARTAO DE ACION','acessorio','Comunicação'],
+  ['FONTE CHAVEADA','acessorio','Fonte'],
+  ['QUADRO ','acessorio','Quadro Elétrico'],['CAIXA PVC','acessorio','Caixa'],
+  ['ELETRODUTO','acessorio','Eletroduto'],['BARRAMENTO','acessorio','Barramento'],
+  ['LACRE ','acessorio','Fixação'],['FITA ','acessorio','Fita'],
+  ['PALETE','acessorio','Logística'],['CARRINHO DE TRANS','acessorio','Logística'],
+  ['EMPILHADEIRA','acessorio','Logística'],
+];
+
+// Group label for accessories
+const ACC_GROUP_ORDER=['Cabo','Conector','Terminal','Fixação','DPS','Disjuntor',
+  'Fusível','Suporte','Comunicação','Borne','Fonte','Quadro Elétrico','Medidor',
+  'Ventilação','Logística','Outros'];
 
 function classify(r){
-  const d=r.descricao.toUpperCase(), c=r.codigo.toUpperCase();
-  // Check accessory first
-  if(ACC_KW.some(k=>d.includes(k))) return 'acessorio';
-  // Inverter
-  if(INV_KW.some(k=>d.includes(k)||c.startsWith(k.trim()))) return 'inversor';
-  // Battery / BESS
-  if(BAT_KW.some(k=>d.includes(k)||c.includes(k.replace('-','')))) return 'bateria';
-  // EV charger
-  if(EV_KW.some(k=>d.includes(k)||c.startsWith(k.trim()))) return 'carregador';
-  // Solar panel / string box / PCS / meter
-  if(d.includes('MODULO FOTOVOLTAICO')||d.includes('PAINEL SOLAR')||d.includes('MODULO SOLAR')||
-     d.includes('STRING BOX')||d.includes('HXCB')||d.includes('PCS ')||
-     d.includes('PCS-')||d.includes('MEDIDOR INTELIGENTE')||d.includes('LHE34')||d.includes('LHE12')) return 'inversor';
-  return 'outro';
+  const cu=r.codigo.toUpperCase(), du=r.descricao.toUpperCase();
+  // 1. SKU prefix
+  for(const[pfx,cat,fam]of FAM_SKU){
+    if(cu.startsWith(pfx)||cu.includes(pfx)) return{cat,familia:fam};
+  }
+  // 2. Description keyword
+  for(const[kw,cat,fam]of FAM_DESC){
+    if(du.includes(kw)) return{cat,familia:fam};
+  }
+  return{cat:'outro',familia:'Outros'};
+}
+
+// Accessor-group label from familia
+function accGroup(familia){
+  for(const g of ACC_GROUP_ORDER){
+    if(familia.includes(g)) return g;
+  }
+  return 'Outros';
 }
 
 // ══ PARSE
-function pn(v){if(!v||v==='-'||v==='')return 0;return parseFloat(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''))||0;}
+function pn(v){if(!v||v==='-')return 0; return parseFloat(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''))||0;}
 
 function parseTOTVS(csv,wh){
   const rows=Papa.parse(csv,{skipEmptyLines:true}).data.slice(2);
-  return rows.filter(r=>r.length>=10&&String(r[6]).trim()==='7'&&String(r[12]||'').includes('VENDAS'))
-    .map(r=>({wh,codigo:String(r[0]).trim(),descricao:String(r[3]).trim(),saldo:pn(r[7]),empenho:pn(r[8]),reserva:0,disp:0}));
+  // col 6 = ARMZ, col 12 = DESC ARMZ contains "VENDAS" for armazem 07 comercial
+  // IMPORTANT: filter ARMZ = '7' AND desc contains 'VENDAS'
+  return rows.filter(r=>r.length>=10&&String(r[6]).trim()==='7'&&String(r[12]||'').toUpperCase().includes('VENDAS'))
+    .map(r=>{
+      const o={wh,codigo:String(r[0]).trim(),descricao:String(r[3]).trim(),
+               saldo:pn(r[7]),empenho:pn(r[8])};
+      // disp from TOTVS = r[9], but we recalculate after applying reservas
+      // so we store saldo and empenho, reserva will be filled later
+      o.reserva=0; o.disp=0;
+      const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
+      return o;
+    });
 }
 
 function parseELE(csv){
   const rows=Papa.parse(csv,{skipEmptyLines:true}).data.slice(1);
-  return rows.filter(r=>r.length>=4&&pn(r[3])>0)
-    .map(r=>({wh:'MAO-ELE',codigo:String(r[1]||r[0]).trim(),descricao:String(r[2]).trim(),saldo:pn(r[3]),empenho:0,reserva:0,disp:0}));
+  return rows.filter(r=>r.length>=4&&pn(r[3])>0).map(r=>{
+    const o={wh:'MAO-ELE',codigo:String(r[1]||r[0]).trim(),descricao:String(r[2]).trim(),
+             saldo:pn(r[3]),empenho:0,reserva:0,disp:0};
+    const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
+    return o;
+  });
 }
 
-function parseRes(csv){
+function parseRES(csv){
   return Papa.parse(csv,{skipEmptyLines:true}).data.slice(1)
     .filter(r=>r.length>=6&&!String(r[6]||'').trim())
     .map(r=>({cliente:String(r[0]).trim(),responsavel:String(r[1]).trim(),
@@ -497,85 +693,94 @@ function obsToWH(o){
 }
 
 function applyRes(){
+  // Build lookup: wh+codigo -> total reservas
   const lkp={};
-  RES.forEach(r=>{const w=obsToWH(r.obs);if(!w)return;const k=w+'|'+r.codigo;lkp[k]=(lkp[k]||0)+r.qtd;});
-  ST.forEach(s=>{s.reserva=lkp[s.wh+'|'+s.codigo.toUpperCase()]||0;s.disp=Math.max(0,s.saldo-s.empenho-s.reserva);s.cat=classify(s);});
+  RES.forEach(r=>{
+    const w=obsToWH(r.obs); if(!w)return;
+    const k=w+'|'+r.codigo;
+    lkp[k]=(lkp[k]||0)+r.qtd;
+  });
+  // Apply and recalculate disponivel
+  ST.forEach(s=>{
+    s.reserva=lkp[s.wh+'|'+s.codigo.toUpperCase()]||0;
+    // VALIDATED FORMULA: Disponível = max(0, Saldo - Empenho - Reserva)
+    s.disp=Math.max(0, s.saldo - s.empenho - s.reserva);
+  });
 }
 
 // ══ LOAD
-async function loadAllData(){
+async function boot(){
   setStatus('loading');
-  document.getElementById('loading-area').style.display='flex';
+  document.getElementById('ld-area').style.display='flex';
   document.getElementById('err-area').style.display='none';
   document.getElementById('mc').style.display='none';
   document.getElementById('btn-csv').disabled=true;
   ST=[];RES=[];
-  const lbl={CWB:'CWB Curitiba',FOR:'FOR Fortaleza','MAO-LIV':'MAO Livoltek','MAO-ELE':'MAO Eletra',RESERVAS:'Reservas'};
-  const res={};
+  const lbl={CWB:'CWB',FOR:'FOR','MAO-LIV':'MAO Livoltek','MAO-ELE':'MAO Eletra',RESERVAS:'Reservas'};
+  const raw={};
   for(const[k,url]of Object.entries(URLS)){
     document.getElementById('lprog').textContent='Buscando '+lbl[k]+'...';
-    try{const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status);res[k]=await r.text();}
+    try{const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status);raw[k]=await r.text();}
     catch(e){showErr('Erro ao carregar '+lbl[k]+': '+e.message);return;}
   }
-  document.getElementById('lprog').textContent='Processando...';
+  document.getElementById('lprog').textContent='Processando e classificando...';
   try{
-    ST=[...parseTOTVS(res.CWB,'CWB'),...parseTOTVS(res.FOR,'FOR'),...parseTOTVS(res['MAO-LIV'],'MAO-LIV'),...parseELE(res['MAO-ELE'])];
-    RES=parseRes(res.RESERVAS);
+    ST=[...parseTOTVS(raw.CWB,'CWB'),...parseTOTVS(raw.FOR,'FOR'),
+        ...parseTOTVS(raw['MAO-LIV'],'MAO-LIV'),...parseELE(raw['MAO-ELE'])];
+    RES=parseRES(raw.RESERVAS);
     applyRes();
-  }catch(e){showErr('Erro ao processar: '+e.message);return;}
-  document.getElementById('loading-area').style.display='none';
+  }catch(e){showErr('Erro ao processar: '+e.message+' | '+e.stack);return;}
+  document.getElementById('ld-area').style.display='none';
   document.getElementById('mc').style.display='block';
   document.getElementById('btn-csv').disabled=false;
   const now=new Date();
   document.getElementById('sync-t').textContent='Atualizado: '+now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   setStatus('ok');
-  renderEverything();
+  renderAll();
 }
 
 function showErr(m){
-  document.getElementById('loading-area').style.display='none';
+  document.getElementById('ld-area').style.display='none';
   const e=document.getElementById('err-area');e.style.display='block';
-  e.innerHTML='<div class="err-box"><i class="ti ti-alert-circle" style="font-size:18px;flex-shrink:0"></i><div>'+m+'<br><button onclick="loadAllData()" style="margin-top:8px;padding:6px 14px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Tentar novamente</button></div></div>';
+  e.innerHTML='<div class="ebox"><i class="ti ti-alert-circle" style="font-size:17px;flex-shrink:0"></i><div>'+m+'<br><button onclick="boot()" style="margin-top:8px;padding:5px 12px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Tentar novamente</button></div></div>';
   setStatus('err');
 }
-
 function setStatus(s){
-  const d=document.getElementById('sdot'),t=document.getElementById('stxt');
-  d.className='dot';
-  if(s==='ok'){d.classList.add('dot-grn');t.textContent='Base Atualizada';}
-  else if(s==='loading'){d.classList.add('dot-amb');t.textContent='Carregando...';}
-  else{d.classList.add('dot-red');t.textContent='Erro ao carregar';}
+  const d=document.getElementById('sdot'),t=document.getElementById('stxt');d.className='dot';
+  if(s==='ok'){d.classList.add('dot-g');t.textContent='Base Atualizada';}
+  else if(s==='loading'){d.classList.add('dot-a');t.textContent='Carregando...';}
+  else{d.classList.add('dot-r');t.textContent='Erro ao carregar';}
 }
 
 // ══ HELPERS
-function fmt(n){return Math.round(n).toLocaleString('pt-BR');}
-function trunc(s,n=60){return s.length>n?s.slice(0,n)+'…':s;}
-function whtag(w){const c=WH_CLR[w]||'#888';return`<span style="font-size:10px;font-weight:700;color:${c};background:${c}1a;padding:2px 6px;border-radius:4px">${w}</span>`;}
+const fmt=n=>Math.round(n).toLocaleString('pt-BR');
+const trunc=(s,n=58)=>s.length>n?s.slice(0,n)+'…':s;
+function wt(w){const c=WHC[w]||'#888';return`<span class="wt" style="color:${c};background:${c}1a">${w}</span>`;}
 function sbadge(v){
   if(v>20)return`<span class="sb hi"><i class="ti ti-trending-up"></i>${fmt(v)}</span>`;
   if(v>=5)return`<span class="sb mid">${fmt(v)}</span>`;
   if(v>0)return`<span class="sb lo"><i class="ti ti-alert-triangle"></i>${fmt(v)}</span>`;
-  return`<span class="sb zero">0</span>`;
+  return`<span class="sb zr">0</span>`;
 }
 function spark(v,max){
   const p=max>0?Math.min(100,(v/max)*100):0;
   const c=v>20?'#22C55E':v>=5?'#F59E0B':v>0?'#EF4444':'#e2e8f0';
-  return`<div class="sp-w"><div class="sp-b"><div class="sp-f" style="width:${p.toFixed(1)}%;background:${c}"></div></div><span style="font-size:11px;color:var(--txtm);min-width:32px;text-align:right">${fmt(v)}</span></div>`;
+  return`<div class="spw"><div class="spb"><div class="spf" style="width:${p.toFixed(1)}%;background:${c}"></div></div><span style="font-size:10px;color:var(--txtm);min-width:28px;text-align:right">${fmt(v)}</span></div>`;
 }
 function catTag(cat){
-  const m={'inversor':['#dbeafe','#1d4ed8','Inversor'],'bateria':['#fef9c3','#854d0e','Bateria/BESS'],
-           'carregador':['#fff7ed','#c2410c','Carregador EV'],'acessorio':['#f1f5f9','#475569','Acessório'],
-           'outro':['#f8fafc','#64748b','Outro']};
+  const m={inversor:['#dbeafe','#1d4ed8','Inversor'],bess:['#fef9c3','#854d0e','BESS'],
+           ev:['#fff7ed','#c2410c','EV'],kit:['#f0fdf4','#15803d','Kit Solar'],
+           acessorio:['#f1f5f9','#475569','Acessório'],outro:['#f8fafc','#64748b','Outro']};
   const[bg,col,lbl]=m[cat]||m.outro;
-  return`<span style="background:${bg};color:${col};font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px">${lbl}</span>`;
+  return`<span style="background:${bg};color:${col};font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px">${lbl}</span>`;
 }
-
-function prodRow(r,showCat){
-  return`<tr>
-    <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--txtm)">${r.codigo}</td>
-    <td title="${r.descricao}" style="font-weight:500;font-size:12px">${trunc(r.descricao,65)}</td>
-    <td>${whtag(r.wh)}</td>
+function stdRow(r,showCat,showFam){
+  return`<tr style="${r.disp===0&&r.saldo>0?'background:#fff9f9':''}">
+    <td class="cod">${r.codigo}</td>
+    <td class="pname" title="${r.descricao}">${trunc(r.descricao)}</td>
+    ${showFam?`<td style="font-size:11px;color:var(--txt2)">${r.familia||'—'}</td>`:''}
     ${showCat?`<td>${catTag(r.cat)}</td>`:''}
+    <td>${wt(r.wh)}</td>
     <td class="r">${fmt(r.saldo)}</td>
     <td class="r" style="color:${r.empenho>0?'#b45309':'var(--txtm)'}">${r.empenho>0?fmt(r.empenho):'—'}</td>
     <td class="r" style="color:${r.reserva>0?'#7c3aed':'var(--txtm)'}">${r.reserva>0?fmt(r.reserva):'—'}</td>
@@ -583,8 +788,7 @@ function prodRow(r,showCat){
     <td>${sbadge(r.disp)}</td>
   </tr>`;
 }
-
-function filteredStock(q,wh,cat){
+function filtered(q,wh,cat){
   return ST.filter(r=>{
     const mq=!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q);
     const mw=!wh||r.wh===wh;
@@ -592,206 +796,215 @@ function filteredStock(q,wh,cat){
     return mq&&mw&&mc;
   }).sort((a,b)=>b.disp-a.disp);
 }
+function catKPIs(cat,el){
+  const rows=ST.filter(r=>r.cat===cat);
+  el.innerHTML=`
+    <div class="kpi c-b"><div class="ki"><i class="ti ti-database"></i></div><div class="kl">Total SKUs</div><div class="kv">${rows.length}</div><div class="ks">produtos ativos</div></div>
+    <div class="kpi c-b"><div class="ki"><i class="ti ti-packages"></i></div><div class="kl">Saldo em Estoque</div><div class="kv">${fmt(rows.reduce((a,r)=>a+r.saldo,0))}</div><div class="ks">físico TOTVS</div></div>
+    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Reservas Comerciais</div><div class="kv">${fmt(rows.reduce((a,r)=>a+r.reserva,0))}</div><div class="ks">comprometido</div></div>
+    <div class="kpi c-g"><div class="ki"><i class="ti ti-circle-check"></i></div><div class="kl">Disponível para Venda</div><div class="kv">${fmt(rows.reduce((a,r)=>a+r.disp,0))}</div><div class="ks">saldo−empenho−reserva</div></div>`;
+}
 
-// ══ RENDER EVERYTHING
-function renderEverything(){
-  renderDash();
-  renderInv();renderEV();renderAcc();
-  renderResKPIs();renderRes();
-  renderWhCards();renderWhTable(selWH);
-  renderAll_prod();
-  renderAlertas();
+// ══ RENDER ALL
+function renderAll(){
+  rDash(); rAll(); rCat('inv'); rCat('bess'); rCat('ev'); rCat('kit');
+  rAcc(); rResKPIs(); rRes(); renderWH(); rAlrt();
 }
 
 // ── DASHBOARD
-let catChartInst=null,whChartInst=null,curWHF='TODOS';
-
-function renderDash(){
-  const tot_s=ST.reduce((a,r)=>a+r.saldo,0);
-  const tot_e=ST.reduce((a,r)=>a+r.empenho,0);
-  const tot_r=ST.reduce((a,r)=>a+r.reserva,0);
-  const tot_d=ST.reduce((a,r)=>a+r.disp,0);
-  document.getElementById('k-skus').textContent=ST.length;
-  document.getElementById('k-saldo').textContent=fmt(tot_s);
-  document.getElementById('k-emp').textContent=fmt(tot_e);
-  document.getElementById('k-res').textContent=fmt(tot_r);
-  document.getElementById('k-disp').textContent=fmt(tot_d);
-  renderCatChart('TODOS');
-  renderWhDoughnut();
-  renderTopTables();
-}
-
-function getWhStat(wh){
-  const items=ST.filter(r=>wh==='TODOS'||r.wh===wh);
-  return{saldo:items.reduce((a,r)=>a+r.saldo,0),disp:items.reduce((a,r)=>a+r.disp,0)};
-}
-
-let _dataLabelPlugin={
-  id:'dl',
-  afterDatasetsDraw(chart){
-    const{ctx,data}=chart;ctx.save();
-    const meta0=chart.getDatasetMeta(0);
-    meta0.data.forEach((bar,i)=>{
-      const v=data.datasets[0].data[i];if(!v)return;
-      const lbl=v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));
-      ctx.fillStyle='#475569';ctx.font='600 11px DM Sans,sans-serif';
+let barInst=null, donutInst=null, curWH='TODOS';
+const _dlp={id:'dl',afterDatasetsDraw(chart){
+  const{ctx,data}=chart;ctx.save();
+  [0,1].forEach(di=>{
+    chart.getDatasetMeta(di).data.forEach((bar,i)=>{
+      const v=data.datasets[di].data[i]; if(!v)return;
+      const lbl=v>=10000?(v/1000).toFixed(0)+'k':v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));
+      ctx.fillStyle=di===0?'#1E3A5F':'#15803d';
+      ctx.font=`600 10px DM Sans,sans-serif`;
       ctx.textAlign='center';ctx.textBaseline='bottom';
-      ctx.fillText(lbl,bar.x,bar.y-3);
+      ctx.fillText(lbl,bar.x,bar.y-2);
     });
-    ctx.restore();
-  }
-};
+  });
+  ctx.restore();
+}};
 
-function renderCatChart(wh){
-  curWHF=wh;
+function rDash(){
+  const tots=s=>ST.reduce((a,r)=>a+r[s],0);
+  document.getElementById('k-skus').textContent=ST.length;
+  document.getElementById('k-sal').textContent=fmt(tots('saldo'));
+  document.getElementById('k-emp').textContent=fmt(tots('empenho'));
+  document.getElementById('k-res').textContent=fmt(tots('reserva'));
+  document.getElementById('k-disp').textContent=fmt(tots('disp'));
+  buildBarChart('TODOS');
+  buildDonut();
+  buildTopTables();
+}
+
+function getWHdata(wh){
+  const items=ST.filter(r=>wh==='TODOS'||r.wh===wh);
+  return{sal:items.reduce((a,r)=>a+r.saldo,0),disp:items.reduce((a,r)=>a+r.disp,0)};
+}
+
+function buildBarChart(wh){
+  curWH=wh;
   const whs=['CWB','FOR','MAO-LIV','MAO-ELE'];
-  let labels,saldos,disps;
+  let labels,sals,disps;
   if(wh==='TODOS'){
     labels=whs.map(w=>w.replace('MAO-LIV','MAO Liv.').replace('MAO-ELE','MAO Ele.'));
-    saldos=whs.map(w=>getWhStat(w).saldo);
-    disps=whs.map(w=>getWhStat(w).disp);
+    sals=whs.map(w=>getWHdata(w).sal);
+    disps=whs.map(w=>getWHdata(w).disp);
   } else {
-    // Per category within selected warehouse
-    const cats=['inversor','bateria','carregador','acessorio','outro'];
-    const catLbl={'inversor':'Inversores','bateria':'Bateria/BESS','carregador':'Carregador EV','acessorio':'Acessórios','outro':'Outros'};
+    const cats=['inversor','bess','ev','kit','acessorio','outro'];
+    const catLbl={inversor:'Inversores',bess:'BESS',ev:'EV',kit:'Kit Solar',acessorio:'Acessórios',outro:'Outros'};
     labels=cats.map(c=>catLbl[c]);
-    saldos=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c).reduce((a,r)=>a+r.saldo,0));
+    sals=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c).reduce((a,r)=>a+r.saldo,0));
     disps=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c).reduce((a,r)=>a+r.disp,0));
   }
-  if(catChartInst)catChartInst.destroy();
-  catChartInst=new Chart(document.getElementById('catChart').getContext('2d'),{
-    type:'bar',plugins:[_dataLabelPlugin],
+  if(barInst)barInst.destroy();
+  barInst=new Chart(document.getElementById('barChart').getContext('2d'),{
+    type:'bar', plugins:[_dlp],
     data:{labels,datasets:[
-      {label:'Saldo em Estoque',data:saldos,backgroundColor:'#93c5fd',borderRadius:4,borderSkipped:false},
+      {label:'Saldo em Estoque',data:sals,backgroundColor:'#93c5fd',borderRadius:4,borderSkipped:false},
       {label:'Disponível para Venda',data:disps,backgroundColor:'#1E3A5F',borderRadius:4,borderSkipped:false},
     ]},
-    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:22}},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} unidades — ${c.dataset.label}`}}},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:28}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} — ${c.dataset.label}`}}},
       scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#64748b'}},
-              y:{grid:{color:'#f1f5f9'},ticks:{font:{size:11},color:'#94a3b8',callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}},
-    }
+              y:{grid:{color:'#f1f5f9'},ticks:{font:{size:11},color:'#94a3b8',callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}
   });
-  document.getElementById('chart-legend').innerHTML=
-    `<div style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:2px;background:#93c5fd"></span><span>Saldo em Estoque</span></div>
-     <div style="display:flex;align-items:center;gap:5px"><span style="width:12px;height:12px;border-radius:2px;background:#1E3A5F"></span><span>Disponível para Venda</span></div>`;
+  document.getElementById('bar-leg').innerHTML=
+    `<div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:2px;background:#93c5fd"></span>Saldo em Estoque</div>
+     <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:2px;background:#1E3A5F"></span>Disponível para Venda</div>`;
 }
 
-function setCatWH(wh,btn){
-  document.querySelectorAll('#chart-chips .chip').forEach(b=>b.classList.remove('active'));
+function setCW(wh,btn){
+  document.querySelectorAll('#dash-chips .chip').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderCatChart(wh);
+  buildBarChart(wh);
 }
 
-function renderWhDoughnut(){
+function buildDonut(){
   const whs=['CWB','FOR','MAO-LIV','MAO-ELE'];
-  const disps=whs.map(w=>getWhStat(w).disp);
+  const disps=whs.map(w=>getWHdata(w).disp);
   const grand=disps.reduce((a,b)=>a+b,0);
-  const ctr={id:'ctr',afterDraw(chart){
+  const ctrPlugin={id:'ctr',afterDraw(chart){
     const{ctx,chartArea}=chart;
     const cx=(chartArea.left+chartArea.right)/2,cy=(chartArea.top+chartArea.bottom)/2;
     const ac=chart.getActiveElements();
     ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
     if(ac.length){
       const i=ac[0].index;
-      const pct=grand>0?((disps[i]/grand)*100).toFixed(1):0;
-      ctx.fillStyle=Object.values(WH_CLR)[i];ctx.font='700 20px DM Mono,monospace';ctx.fillText(pct+'%',cx,cy-8);
-      ctx.fillStyle='#475569';ctx.font='500 11px DM Sans,sans-serif';ctx.fillText(whs[i],cx,cy+10);
+      const p=grand>0?((disps[i]/grand)*100).toFixed(1):0;
+      ctx.fillStyle=Object.values(WHC)[i];ctx.font='700 18px DM Mono,monospace';ctx.fillText(p+'%',cx,cy-7);
+      ctx.fillStyle='#475569';ctx.font='500 10px DM Sans,sans-serif';ctx.fillText(whs[i],cx,cy+9);
     } else {
       ctx.fillStyle='#94a3b8';ctx.font='400 10px DM Sans,sans-serif';ctx.fillText('hover →%',cx,cy);
     }
     ctx.restore();
   }};
-  if(whChartInst)whChartInst.destroy();
-  whChartInst=new Chart(document.getElementById('whChart').getContext('2d'),{
-    type:'doughnut',plugins:[ctr],
-    data:{labels:whs.map(w=>WH_LBL[w]),datasets:[{data:disps,backgroundColor:Object.values(WH_CLR),borderWidth:0,hoverOffset:6}]},
+  if(donutInst)donutInst.destroy();
+  donutInst=new Chart(document.getElementById('donutChart').getContext('2d'),{
+    type:'doughnut',plugins:[ctrPlugin],
+    data:{labels:whs.map(w=>WHL[w]),datasets:[{data:disps,backgroundColor:Object.values(WHC),borderWidth:0,hoverOffset:5}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const p=grand>0?((c.raw/grand)*100).toFixed(1):0;return` ${fmt(c.raw)} unid. (${p}%)`;}}}}},
   });
-  document.getElementById('wh-legend').innerHTML=whs.map((w,i)=>{
+  document.getElementById('donut-leg').innerHTML=whs.map((w,i)=>{
     const p=grand>0?((disps[i]/grand)*100).toFixed(1):0;
-    return`<div class="leg-row"><div style="display:flex;align-items:center;gap:8px"><span class="leg-dot" style="background:${WH_CLR[w]}"></span><span style="font-size:12px;color:var(--txt2)">${WH_LBL[w]}</span></div><span style="font-size:13px;font-weight:600">${fmt(disps[i])} <span style="font-size:11px;color:var(--txtm)">(${p}%)</span></span></div>`;
+    return`<div class="leg-r"><div style="display:flex;align-items:center;gap:7px"><span class="leg-d" style="background:${WHC[w]}"></span><span style="font-size:12px;color:var(--txt2)">${WHL[w]}</span></div><span style="font-size:12px;font-weight:700">${fmt(disps[i])} <span style="font-size:11px;color:var(--txtm);font-weight:400">(${p}%)</span></span></div>`;
   }).join('');
 }
 
-function renderTopTables(){
+function buildTopTables(){
+  // Inversores ONLY — excluir kit (string box, módulos, estruturas) e acessório
   const invRows=[...ST].filter(r=>r.cat==='inversor').sort((a,b)=>b.disp-a.disp).slice(0,10);
-  const evRows=[...ST].filter(r=>r.cat==='carregador').sort((a,b)=>b.disp-a.disp).slice(0,10);
-  const maxI=invRows[0]?.disp||1, maxE=evRows[0]?.disp||1;
-  document.getElementById('top-inv').innerHTML=invRows.map((r,i)=>`<tr>
-    <td style="color:var(--txtm);font-size:11px">${i+1}</td>
-    <td title="${r.descricao}" style="font-size:12px;font-weight:500">${trunc(r.descricao,45)}</td>
-    <td>${whtag(r.wh)}</td>
+  const evRows=[...ST].filter(r=>r.cat==='ev').sort((a,b)=>b.disp-a.disp).slice(0,10);
+  const mI=invRows[0]?.disp||1,mE=evRows[0]?.disp||1;
+  const topRow=(r,i,max)=>`<tr>
+    <td style="color:var(--txtm);font-size:10px">${i+1}</td>
+    <td class="pname" title="${r.descricao}" style="font-size:11px">${trunc(r.descricao,44)}</td>
+    <td>${wt(r.wh)}</td>
     <td class="r">${fmt(r.saldo)}</td>
     <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':'#dc2626'}">${fmt(r.disp)}</td>
-    <td>${spark(r.disp,maxI)}</td>
-  </tr>`).join('');
-  document.getElementById('top-ev').innerHTML=evRows.map((r,i)=>`<tr>
-    <td style="color:var(--txtm);font-size:11px">${i+1}</td>
-    <td title="${r.descricao}" style="font-size:12px;font-weight:500">${trunc(r.descricao,45)}</td>
-    <td>${whtag(r.wh)}</td>
+    <td>${spark(r.disp,max)}</td>
+  </tr>`;
+  document.getElementById('top-inv').innerHTML=invRows.map((r,i)=>topRow(r,i,mI)).join('');
+  document.getElementById('top-ev').innerHTML=evRows.map((r,i)=>topRow(r,i,mE)).join('');
+}
+
+// ── TODOS OS PRODUTOS
+function rAll(){
+  const q=(document.getElementById('all-q')?.value||'').toLowerCase();
+  const wh=document.getElementById('all-wh')?.value||'';
+  const cat=document.getElementById('all-cat')?.value||'';
+  const dsp=document.getElementById('all-dsp')?.value||'';
+  let rows=filtered(q,wh,cat);
+  if(dsp==='1') rows=rows.filter(r=>r.disp>0);
+  else if(dsp==='0') rows=rows.filter(r=>r.disp===0);
+  document.getElementById('all-tbl').innerHTML=rows.map(r=>`<tr style="${r.disp===0&&r.saldo>0?'background:#fff9f9':''}">
+    <td class="cod">${r.codigo}</td><td class="pname" title="${r.descricao}">${trunc(r.descricao,60)}</td>
+    <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
     <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':'#dc2626'}">${fmt(r.disp)}</td>
-    <td>${spark(r.disp,maxE)}</td>
+    <td class="r" style="color:${r.empenho>0?'#b45309':'var(--txtm)'}">${r.empenho>0?fmt(r.empenho):'—'}</td>
+    <td class="r" style="color:${r.reserva>0?'#7c3aed':'var(--txtm)'}">${r.reserva>0?fmt(r.reserva):'—'}</td>
+    <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':r.disp>0?'#dc2626':'#94a3b8'}">${fmt(r.disp)}</td>
+    <td>${sbadge(r.disp)}</td>
   </tr>`).join('');
+  document.getElementById('all-cnt').textContent=rows.length;
 }
 
-// ── INVERSORES
-function renderInvKPIs(){
-  const rows=ST.filter(r=>r.cat==='inversor'||r.cat==='bateria');
-  const inv=rows.filter(r=>r.cat==='inversor');
-  const bat=rows.filter(r=>r.cat==='bateria');
-  document.getElementById('inv-kpis').innerHTML=`
-    <div class="kpi blue"><div class="kpi-ico"><i class="ti ti-sun"></i></div><div class="kpi-lbl">Inversores SKUs</div><div class="kpi-val">${inv.length}</div><div class="kpi-sub">produtos ativos</div></div>
-    <div class="kpi green"><div class="kpi-ico"><i class="ti ti-circle-check"></i></div><div class="kpi-lbl">Inv. Disp. para Venda</div><div class="kpi-val">${fmt(inv.reduce((a,r)=>a+r.disp,0))}</div><div class="kpi-sub">unidades</div></div>
-    <div class="kpi amber"><div class="kpi-ico"><i class="ti ti-battery-charging"></i></div><div class="kpi-lbl">Baterias/BESS SKUs</div><div class="kpi-val">${bat.length}</div><div class="kpi-sub">produtos ativos</div></div>
-    <div class="kpi purple"><div class="kpi-ico"><i class="ti ti-circle-check"></i></div><div class="kpi-lbl">Bat. Disp. para Venda</div><div class="kpi-val">${fmt(bat.reduce((a,r)=>a+r.disp,0))}</div><div class="kpi-sub">unidades</div></div>`;
-}
-function renderInv(){
-  renderInvKPIs();
-  const q=(document.getElementById('inv-q')?.value||'').toLowerCase();
-  const wh=document.getElementById('inv-wh')?.value||'';
-  const rows=filteredStock(q,wh,'').filter(r=>r.cat==='inversor'||r.cat==='bateria');
-  document.getElementById('inv-table').innerHTML=rows.map(r=>prodRow(r,true)).join('');
-  document.getElementById('inv-count').textContent=rows.length;
+// ── CATEGORY TABS (inv, bess, ev, kit)
+function rCat(id){
+  const el=document.getElementById(id+'-kpis');
+  if(el) catKPIs(id==='inv'?'inversor':id==='bess'?'bess':id==='ev'?'ev':'kit',el);
+  const q=(document.getElementById(id+'-q')?.value||'').toLowerCase();
+  const wh=document.getElementById(id+'-wh')?.value||'';
+  const cat=id==='inv'?'inversor':id==='bess'?'bess':id==='ev'?'ev':'kit';
+  const rows=filtered(q,wh,cat);
+  const tbl=document.getElementById(id+'-tbl');
+  if(tbl) tbl.innerHTML=rows.map(r=>stdRow(r,false,true)).join('');
+  const cnt=document.getElementById(id+'-cnt');
+  if(cnt) cnt.textContent=rows.length;
 }
 
-// ── CARREGADORES EV
-function renderEVKPIs(){
-  const rows=ST.filter(r=>r.cat==='carregador');
-  document.getElementById('ev-kpis').innerHTML=`
-    <div class="kpi blue"><div class="kpi-ico"><i class="ti ti-bolt"></i></div><div class="kpi-lbl">Carregadores SKUs</div><div class="kpi-val">${rows.length}</div><div class="kpi-sub">produtos ativos</div></div>
-    <div class="kpi green"><div class="kpi-ico"><i class="ti ti-circle-check"></i></div><div class="kpi-lbl">Disponível para Venda</div><div class="kpi-val">${fmt(rows.reduce((a,r)=>a+r.disp,0))}</div><div class="kpi-sub">unidades</div></div>
-    <div class="kpi amber"><div class="kpi-ico"><i class="ti ti-packages"></i></div><div class="kpi-lbl">Saldo Total</div><div class="kpi-val">${fmt(rows.reduce((a,r)=>a+r.saldo,0))}</div><div class="kpi-sub">físico TOTVS</div></div>
-    <div class="kpi purple"><div class="kpi-ico"><i class="ti ti-bookmark"></i></div><div class="kpi-lbl">Total Reservado</div><div class="kpi-val">${fmt(rows.reduce((a,r)=>a+r.reserva,0))}</div><div class="kpi-sub">comprometido</div></div>`;
-}
-function renderEV(){
-  renderEVKPIs();
-  const q=(document.getElementById('ev-q')?.value||'').toLowerCase();
-  const wh=document.getElementById('ev-wh')?.value||'';
-  const rows=filteredStock(q,wh,'carregador');
-  document.getElementById('ev-table').innerHTML=rows.map(r=>prodRow(r,false)).join('');
-  document.getElementById('ev-count').textContent=rows.length;
-}
-
-// ── ACESSÓRIOS
-function renderAccKPIs(){
-  const rows=ST.filter(r=>r.cat==='acessorio');
-  document.getElementById('acc-kpis').innerHTML=`
-    <div class="kpi blue"><div class="kpi-ico"><i class="ti ti-tool"></i></div><div class="kpi-lbl">Acessórios SKUs</div><div class="kpi-val">${rows.length}</div><div class="kpi-sub">itens de apoio</div></div>
-    <div class="kpi green"><div class="kpi-ico"><i class="ti ti-circle-check"></i></div><div class="kpi-lbl">Disp. para Venda</div><div class="kpi-val">${fmt(rows.reduce((a,r)=>a+r.disp,0))}</div><div class="kpi-sub">unidades</div></div>
-    <div class="kpi amber"><div class="kpi-ico"><i class="ti ti-packages"></i></div><div class="kpi-lbl">Saldo Total</div><div class="kpi-val">${fmt(rows.reduce((a,r)=>a+r.saldo,0))}</div><div class="kpi-sub">físico TOTVS</div></div>`;
-}
-function renderAcc(){
-  renderAccKPIs();
+// ── ACESSÓRIOS (accordion)
+function rAcc(){
   const q=(document.getElementById('acc-q')?.value||'').toLowerCase();
   const wh=document.getElementById('acc-wh')?.value||'';
-  const rows=filteredStock(q,wh,'acessorio');
-  document.getElementById('acc-table').innerHTML=rows.map(r=>prodRow(r,false)).join('');
-  document.getElementById('acc-count').textContent=rows.length;
+  const rows=filtered(q,wh,'acessorio');
+  // Group by acc group
+  const groups={};
+  rows.forEach(r=>{
+    const g=accGroup(r.familia||'Outros');
+    if(!groups[g]) groups[g]=[];
+    groups[g].push(r);
+  });
+  const ord=ACC_GROUP_ORDER.filter(g=>groups[g]);
+  const el=document.getElementById('acc-groups');
+  el.innerHTML=ord.map(g=>{
+    const items=groups[g];
+    return`<div class="acc-group">
+      <div class="acc-hdr open" onclick="toggleAcc(this)">
+        <span>${g}<span class="cnt">${items.length} SKUs · ${fmt(items.reduce((a,r)=>a+r.disp,0))} disp.</span></span>
+        <i class="ti ti-chevron-down ico"></i>
+      </div>
+      <div class="acc-body"><table class="tbl">
+        <thead><tr><th>Código</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead>
+        <tbody>${items.map(r=>`<tr>
+          <td class="cod">${r.codigo}</td>
+          <td class="pname" title="${r.descricao}" style="font-size:11px">${trunc(r.descricao,60)}</td>
+          <td>${wt(r.wh)}</td>
+          <td class="r">${fmt(r.saldo)}</td>
+          <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':r.disp>0?'#dc2626':'#94a3b8'}">${fmt(r.disp)}</td>
+          <td>${sbadge(r.disp)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>`;
+  }).join('')||(q?'<div style="padding:2rem;text-align:center;color:var(--txtm);font-size:13px">Nenhum resultado encontrado.</div>':'');
 }
+function toggleAcc(h){h.classList.toggle('open');}
 
 // ── RESERVAS
-function renderResKPIs(){
+function rResKPIs(){
   const tot=RES.reduce((a,r)=>a+r.qtd,0);
   document.getElementById('r-tot').textContent=fmt(tot);
   document.getElementById('r-lin').textContent=RES.length;
@@ -801,8 +1014,16 @@ function renderResKPIs(){
   const tv=Object.entries(byV).sort((a,b)=>b[1]-a[1])[0];
   if(tp){document.getElementById('r-tp').textContent=tp[0];document.getElementById('r-tpq').textContent=fmt(tp[1])+' unidades';}
   if(tv){document.getElementById('r-tv').textContent=tv[0];document.getElementById('r-tvq').textContent=fmt(tv[1])+' unidades';}
+  // Summary by armazem (proxy for diretoria)
+  const byA={};
+  RES.forEach(r=>{const w=obsToWH(r.obs)||'?';byA[w]=(byA[w]||0)+r.qtd;});
+  const colors={'CWB':WHC.CWB,'FOR':WHC.FOR,'MAO-LIV':WHC['MAO-LIV'],'MAO-ELE':WHC['MAO-ELE'],'?':'#94a3b8'};
+  document.getElementById('res-sum-dir').innerHTML=Object.entries(byA).map(([w,v])=>
+    `<div class="whs-c"><div class="whs-l" style="color:${colors[w]||'#888'}">${WHL[w]||w}</div><div class="whs-v" style="color:${colors[w]||'#888'}">${fmt(v)}</div><div style="font-size:10px;color:var(--txtm);margin-top:2px">unidades reservadas</div></div>`
+  ).join('');
 }
-function renderRes(){
+
+function rRes(){
   const q=(document.getElementById('res-q')?.value||'').toLowerCase();
   const arm=document.getElementById('res-arm')?.value||'';
   const rows=RES.filter(r=>{
@@ -810,13 +1031,13 @@ function renderRes(){
     const ma=!arm||r.obs.includes(arm);
     return mq&&ma;
   });
-  document.getElementById('res-table').innerHTML=rows.map(r=>{
-    const wh=obsToWH(r.obs)||'?';const c=WH_CLR[wh]||'#888';
-    return`<tr><td style="font-weight:500">${r.cliente}</td><td style="color:var(--txt2)">${r.responsavel}</td>
-    <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--txtm)">${r.codigo}</td>
-    <td><span style="font-size:10px;font-weight:700;color:${c};background:${c}1a;padding:2px 6px;border-radius:4px">${wh}</span></td>
-    <td class="r" style="font-weight:700;font-size:15px;color:var(--pur)">${fmt(r.qtd)}</td>
-    <td style="font-size:12px;color:var(--txtm)">${r.solicitado||'—'}</td>
+  const c=(w)=>WHC[w]||'#888';
+  document.getElementById('res-tbl').innerHTML=rows.map(r=>{
+    const w=obsToWH(r.obs)||'?';
+    return`<tr><td style="font-weight:500;font-size:12px">${r.cliente}</td><td style="color:var(--txt2);font-size:12px">${r.responsavel}</td>
+    <td class="cod">${r.codigo}</td><td>${wt(w)}</td>
+    <td class="r" style="font-weight:700;font-size:14px;color:var(--pur)">${fmt(r.qtd)}</td>
+    <td style="font-size:11px;color:var(--txtm)">${r.solicitado||'—'}</td>
     <td style="font-size:11px;color:var(--txtm)">${r.descricao||'—'}</td></tr>`;
   }).join('');
   document.getElementById('res-cnt').textContent=rows.length;
@@ -824,34 +1045,69 @@ function renderRes(){
 
 // ── ARMAZÉNS
 let selWH='CWB';
-function renderWhCards(){
+function renderWH(){
   const whs=['CWB','FOR','MAO-LIV','MAO-ELE'];
-  document.getElementById('wh-cards').innerHTML=whs.map(w=>{
-    const items=ST.filter(r=>r.wh===w);
-    const s=items.reduce((a,r)=>a+r.saldo,0);
-    const d=items.reduce((a,r)=>a+r.disp,0);
-    const col=WH_CLR[w];
-    return`<div class="wh-c ${selWH===w?'sel':''}" id="whc-${w.replace('-','_')}" onclick="selectWH('${w}')" style="border-left-color:${selWH===w?col:'transparent'}">
-      <div class="wh-n" style="color:${col}">${w}</div>
-      <div class="wh-loc">${WH_LBL[w].split('—')[1]?.trim()||''}</div>
-      <div class="wh-stat" style="color:${col}">${fmt(d)}</div>
-      <div class="wh-sl" style="font-weight:600;color:#16a34a">disponível para venda</div>
-      <div class="wh-sl" style="margin-top:3px">Saldo: ${fmt(s)} · ${items.length} SKUs</div>
+  const allItem={wh:'ALL',label:'Todos',disp:ST.reduce((a,r)=>a+r.disp,0),sal:ST.reduce((a,r)=>a+r.saldo,0),cnt:ST.length};
+  const whItems=whs.map(w=>{const it=ST.filter(r=>r.wh===w);return{wh:w,label:WHL[w],disp:it.reduce((a,r)=>a+r.disp,0),sal:it.reduce((a,r)=>a+r.saldo,0),cnt:it.length};});
+  const allItems=[allItem,...whItems];
+  document.getElementById('wh-cards').innerHTML=allItems.map(x=>{
+    const isSel=selWH===(x.wh==='ALL'?'ALL':x.wh);
+    const col=x.wh==='ALL'?'#1E3A5F':WHC[x.wh]||'#888';
+    return`<div class="whc ${isSel?'sel':''}" onclick="selWHFn('${x.wh}')" style="border-left-color:${isSel?col:'transparent'}">
+      <div class="wn" style="color:${col}">${x.wh==='ALL'?'TODOS':x.wh}</div>
+      <div class="wloc">${x.wh==='ALL'?'Todos os armazéns':x.label.split('—')[1]?.trim()||''}</div>
+      <div class="wv" style="color:${col}">${fmt(x.disp)}</div>
+      <div class="ws" style="color:#16a34a;font-weight:600">disponível para venda</div>
+      <div class="winfo">Saldo: ${fmt(x.sal)} · ${x.cnt} SKUs</div>
     </div>`;
   }).join('');
+  rWH();
 }
-function selectWH(wh){
+
+function selWHFn(wh){
   selWH=wh;
-  renderWhCards();
-  document.getElementById('wh-det-t').innerHTML=`<i class="ti ti-building-warehouse"></i> ${WH_LBL[wh]}`;
-  renderWhTable(wh);
+  renderWH();
+
+  const t=wh==='ALL'?'Todos os Armazéns':(WHL[wh]||wh);
+  document.getElementById('wh-tit').innerHTML=`<i class="ti ti-building-warehouse"></i> ${t}`;
 }
-function renderWhTable(wh){
+
+function rWH(){
   const q=(document.getElementById('wh-q')?.value||'').toLowerCase();
-  const rows=ST.filter(r=>(!wh||r.wh===wh)&&(!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q))).sort((a,b)=>b.disp-a.disp);
-  document.getElementById('wh-table').innerHTML=rows.map(r=>`<tr style="${r.disp===0&&r.saldo>0?'background:#fff1f2':''}">
-    <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--txtm)">${r.codigo}</td>
-    <td title="${r.descricao}" style="font-size:12px;font-weight:500">${trunc(r.descricao,65)}</td>
+  const wh=selWH==='ALL'?'':selWH;
+  const rows=ST.filter(r=>{
+    const mw=!wh||r.wh===wh;
+    const mq=!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q);
+    return mw&&mq;
+  }).sort((a,b)=>b.disp-a.disp);
+  const sal=rows.reduce((a,r)=>a+r.saldo,0);
+  const emp=rows.reduce((a,r)=>a+r.empenho,0);
+  const res=rows.reduce((a,r)=>a+r.reserva,0);
+  const disp=rows.reduce((a,r)=>a+r.disp,0);
+  document.getElementById('wh-sum').innerHTML=`
+    <div class="whs-c"><div class="whs-l">Saldo TOTVS</div><div class="whs-v">${fmt(sal)}</div></div>
+    <div class="whs-c"><div class="whs-l">Empenho TOTVS</div><div class="whs-v" style="color:var(--amb-d)">${fmt(emp)}</div></div>
+    <div class="whs-c"><div class="whs-l">Reservas Comerc.</div><div class="whs-v" style="color:var(--pur)">${fmt(res)}</div></div>
+    <div class="whs-c"><div class="whs-l">Disponível para Venda</div><div class="whs-v" style="color:var(--grn-d)">${fmt(disp)}</div></div>`;
+  const crit=rows.filter(r=>r.disp>=0&&r.disp<=5&&r.saldo>0);
+  const zero=rows.filter(r=>r.saldo>0&&r.disp===0);
+  document.getElementById('wh-crit').innerHTML=`
+    <div class="card" style="margin-bottom:0">
+      <div class="ch"><span class="ct" style="color:#b45309"><i class="ti ti-alert-circle"></i> Produtos Críticos (Disp. ≤ 5)</span><span style="font-size:12px;color:var(--txtm)">${crit.length} itens</span></div>
+      <div class="tw" style="max-height:180px"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th class="r" style="color:#b45309">Disp.</th></tr></thead>
+      <tbody>${crit.length?crit.map(r=>`<tr><td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,45)}</td><td class="r" style="font-weight:700;color:${r.disp===0?'#94a3b8':'#b45309'}">${fmt(r.disp)}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--txtm);padding:1rem">Nenhum item crítico</td></tr>'}</tbody>
+      </table></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="ch"><span class="ct" style="color:#dc2626"><i class="ti ti-minus-circle"></i> Disponível Zero</span><span style="font-size:12px;color:var(--txtm)">${zero.length} itens</span></div>
+      <div class="tw" style="max-height:180px"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th class="r">Saldo</th><th class="r" style="color:var(--pur)">Reserva</th></tr></thead>
+      <tbody>${zero.length?zero.map(r=>`<tr><td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,40)}</td><td class="r">${fmt(r.saldo)}</td><td class="r" style="color:var(--pur)">${r.reserva>0?fmt(r.reserva):'—'}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--txtm);padding:1rem">Nenhum item zerado</td></tr>'}</tbody>
+      </table></div>
+    </div>`;
+  document.getElementById('wh-tbl').innerHTML=rows.map(r=>`<tr style="${r.disp===0&&r.saldo>0?'background:#fff9f9':''}">
+    <td class="cod">${r.codigo}</td>
+    <td class="pname" title="${r.descricao}">${trunc(r.descricao,60)}</td>
+    <td>${catTag(r.cat)}</td>
     <td class="r">${fmt(r.saldo)}</td>
     <td class="r" style="color:${r.empenho>0?'#b45309':'var(--txtm)'}">${r.empenho>0?fmt(r.empenho):'—'}</td>
     <td class="r" style="color:${r.reserva>0?'#7c3aed':'var(--txtm)'}">${r.reserva>0?fmt(r.reserva):'—'}</td>
@@ -859,65 +1115,76 @@ function renderWhTable(wh){
     <td>${sbadge(r.disp)}</td>
   </tr>`).join('');
   document.getElementById('wh-cnt').textContent=rows.length;
-  document.getElementById('wh-det-sub').textContent=wh?WH_LBL[wh]:'Todos';
-}
-
-// ── TODOS OS PRODUTOS
-function renderAll_prod(){
-  const q=(document.getElementById('all-q')?.value||'').toLowerCase();
-  const wh=document.getElementById('all-wh')?.value||'';
-  const cat=document.getElementById('all-cat')?.value||'';
-  const rows=filteredStock(q,wh,cat);
-  document.getElementById('all-table').innerHTML=rows.map(r=>prodRow(r,true)).join('');
-  document.getElementById('all-cnt').textContent=rows.length;
+  document.getElementById('wh-sub').textContent=selWH==='ALL'?'Todos os armazéns':(WHL[selWH]||selWH);
 }
 
 // ── ALERTAS
-function renderAlertas(){
-  const over=ST.filter(r=>r.reserva>r.saldo).sort((a,b)=>(b.reserva-b.saldo)-(a.reserva-a.saldo));
-  const low=ST.filter(r=>r.disp>=1&&r.disp<=4).sort((a,b)=>a.disp-b.disp);
-  const zero=ST.filter(r=>r.saldo>0&&r.disp===0).sort((a,b)=>b.saldo-a.saldo);
-  document.getElementById('alrt-over').innerHTML=over.map(r=>`<tr>
-    <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--txtm)">${r.codigo}</td>
-    <td title="${r.descricao}" style="font-size:12px">${trunc(r.descricao,50)}</td>
-    <td>${whtag(r.wh)}</td>
-    <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:#7c3aed;font-weight:700">${fmt(r.reserva)}</td>
+function rAlrt(){
+  const filt=(rows,qid,whid,catid)=>{
+    const q=(document.getElementById(qid)?.value||'').toLowerCase();
+    const wh=document.getElementById(whid)?.value||'';
+    const cat=catid?document.getElementById(catid)?.value||'':'';
+    return rows.filter(r=>{
+      const mq=!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q);
+      const mw=!wh||r.wh===wh;
+      const mc=!cat||r.cat===cat;
+      return mq&&mw&&mc;
+    });
+  };
+  const a1base=ST.filter(r=>r.reserva>r.saldo);
+  const a1=filt(a1base,'a1-q','a1-wh','');
+  document.getElementById('a1-cnt').textContent=a1.length+' itens';
+  document.getElementById('a1-tbl').innerHTML=a1.map(r=>`<tr>
+    <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,48)}</td>
+    <td>${wt(r.wh)}</td><td class="r">${fmt(r.saldo)}</td>
+    <td class="r" style="color:#b45309">${r.empenho>0?fmt(r.empenho):'—'}</td>
+    <td class="r" style="color:var(--pur);font-weight:700">${fmt(r.reserva)}</td>
     <td class="r" style="color:#dc2626;font-weight:700">−${fmt(r.reserva-r.saldo)}</td>
   </tr>`).join('');
-  document.getElementById('alrt-low').innerHTML=low.map(r=>`<tr>
-    <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--txtm)">${r.codigo}</td>
-    <td title="${r.descricao}" style="font-size:12px">${trunc(r.descricao,50)}</td>
-    <td>${whtag(r.wh)}</td>
+  const a2base=ST.filter(r=>r.disp>=1&&r.disp<=5);
+  const a2=filt(a2base,'a2-q','a2-wh','a2-cat').sort((a,b)=>a.disp-b.disp);
+  document.getElementById('a2-cnt').textContent=a2.length+' itens';
+  document.getElementById('a2-tbl').innerHTML=a2.map(r=>`<tr>
+    <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,46)}</td>
+    <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
     <td class="r">${fmt(r.saldo)}</td>
     <td class="r" style="color:#b45309;font-weight:700">${fmt(r.disp)}</td>
   </tr>`).join('');
-  document.getElementById('alrt-zero').innerHTML=zero.map(r=>`<tr>
-    <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--txtm)">${r.codigo}</td>
-    <td title="${r.descricao}" style="font-size:12px">${trunc(r.descricao,55)}</td>
-    <td>${whtag(r.wh)}</td>
+  const a3base=ST.filter(r=>r.saldo>0&&r.disp===0);
+  const a3=filt(a3base,'a3-q','a3-wh','a3-cat').sort((a,b)=>b.saldo-a.saldo);
+  document.getElementById('a3-cnt').textContent=a3.length+' itens';
+  document.getElementById('a3-tbl').innerHTML=a3.map(r=>`<tr>
+    <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,46)}</td>
+    <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
     <td class="r">${fmt(r.saldo)}</td>
     <td class="r" style="color:#b45309">${r.empenho>0?fmt(r.empenho):'—'}</td>
-    <td class="r" style="color:#7c3aed">${r.reserva>0?fmt(r.reserva):'—'}</td>
-    <td class="r" style="color:#94a3b8">0</td>
+    <td class="r" style="color:var(--pur)">${r.reserva>0?fmt(r.reserva):'—'}</td>
+    <td class="r" style="color:var(--txtm)">0</td>
   </tr>`).join('');
-  document.getElementById('alrt-over-cnt').textContent=over.length;
-  document.getElementById('alrt-low-cnt').textContent=low.length;
-  document.getElementById('alrt-zero-cnt').textContent=zero.length;
+  const a4base=ST.filter(r=>r.disp>200);
+  const a4=filt(a4base,'a4-q','a4-wh','').sort((a,b)=>b.disp-a.disp);
+  document.getElementById('a4-cnt').textContent=a4.length+' itens';
+  document.getElementById('a4-tbl').innerHTML=a4.map(r=>`<tr>
+    <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,48)}</td>
+    <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
+    <td class="r">${fmt(r.saldo)}</td>
+    <td class="r" style="color:#5b21b6;font-weight:700">${fmt(r.disp)}</td>
+  </tr>`).join('');
 }
 
 // ── TABS
-function sw(tab,btn){
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+function go(id,btn){
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
 }
 
-// ── EXPORT
+// ── EXPORT CSV
 function exportCSV(){
-  const rows=[['Armazem','Codigo','Descricao','Categoria','Saldo','Empenho','Reserva','Disponivel_Venda']];
-  ST.forEach(r=>rows.push([r.wh,r.codigo,'"'+r.descricao.replace(/"/g,"'")+'"',r.cat,r.saldo,r.empenho,r.reserva,r.disp]));
+  const cols=['Armazem','Codigo','Descricao','Familia','Categoria','Saldo','Empenho','Reserva','Disponivel_Venda'];
+  const rows=[cols];
+  ST.forEach(r=>rows.push([r.wh,r.codigo,'"'+r.descricao.replace(/"/g,"'")+'"','"'+(r.familia||'')+'"',r.cat,r.saldo,r.empenho,r.reserva,r.disp]));
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.join(';')).join('\n')],{type:'text/csv;charset=utf-8'}));
   a.download='Livoltek_Estoque_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.csv';
@@ -925,7 +1192,7 @@ function exportCSV(){
 }
 
 // ── BOOT
-loadAllData();
+boot();
 </script>
 </body>
 </html>
