@@ -660,49 +660,61 @@ function pn(v){if(!v||v==='-')return 0; return parseFloat(String(v).replace(/\./
 
 function parseTOTVS(csv,wh){
   const rows=Papa.parse(csv,{skipEmptyLines:true}).data.slice(2);
-  // col 6 = ARMZ, col 12 = DESC ARMZ contains "VENDAS" for armazem 07 comercial
-  // IMPORTANT: filter ARMZ = '7' AND desc contains 'VENDAS'
-  return rows.filter(r=>r.length>=10&&String(r[6]).trim()==='7'&&String(r[12]||'').toUpperCase().includes('VENDAS'))
+  return rows
+    .filter(r=>{
+      if(r.length<10) return false;
+      const armz=String(r[6]||'').trim();
+      const descArm=String(r[12]||'').toUpperCase();
+      return (armz==='7'||armz==='07') && descArm.includes('VENDAS');
+    })
     .map(r=>{
       const o={wh,codigo:String(r[0]).trim(),descricao:String(r[3]).trim(),
-               saldo:pn(r[7]),empenho:pn(r[8])};
-      // disp from TOTVS = r[9], but we recalculate after applying reservas
-      // so we store saldo and empenho, reserva will be filled later
-      o.reserva=0; o.disp=0;
+               saldo:pn(r[7]),empenho:pn(r[8]),reserva:0,disp:0};
       const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
       return o;
-    });
+    })
+    .filter(o=>o.codigo && o.saldo>=0);
 }
 
 function parseMAO(csv, wh){
   const rows = Papa.parse(csv, {skipEmptyLines:true}).data;
   if(!rows.length) return [];
-  // Detect format by header row
-  // TOTVS format: row[0] = "Saldos em Estoque", row[1] = "CODIGO,TP,GRUPO,DESCRICAO,..."
-  // Eletra format: row[0] = header with "TOP" or "HEXING" or "DESCRICAO" in col 0-2
-  const header0 = String(rows[0][0]||'').toUpperCase();
-  const header1 = rows.length > 1 ? String(rows[1][0]||'').toUpperCase() : '';
-  const isTOTVS = header0.includes('SALDO') || header1.includes('CODIGO') || header1 === 'CODIGO';
+
+  // Detect format robustly
+  // TOTVS: first non-empty row contains "Saldos em Estoque" OR second row starts with "CODIGO"
+  const r0 = rows[0].map(c=>String(c||'').toUpperCase().trim());
+  const r1 = rows.length>1 ? rows[1].map(c=>String(c||'').toUpperCase().trim()) : [];
+  const isTOTVS = r0[0].includes('SALDO') || r1[0]==='CODIGO' || r1.includes('CODIGO');
+
   if(isTOTVS){
-    // Parse as TOTVS — filter ARMZ=7 + VENDAS
+    // TOTVS: skip 2 header rows, filter ARMZ=7 AND VENDAS in col 12
     return rows.slice(2)
-      .filter(r=>r.length>=10 && String(r[6]).trim()==='7' && String(r[12]||'').toUpperCase().includes('VENDAS'))
+      .filter(r=>{
+        if(r.length<10) return false;
+        const armz = String(r[6]||'').trim();
+        const descArm = String(r[12]||'').toUpperCase();
+        // armazem 07 pode aparecer como "7" ou "07"
+        return (armz==='7'||armz==='07') && descArm.includes('VENDAS');
+      })
       .map(r=>{
         const o={wh, codigo:String(r[0]).trim(), descricao:String(r[3]).trim(),
                  saldo:pn(r[7]), empenho:pn(r[8]), reserva:0, disp:0};
         const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
         return o;
-      });
+      })
+      .filter(o=>o.codigo && o.saldo>=0);
   } else {
-    // Parse as Eletra format — TOP, HEXING/codigo, Descricao, Saldo
+    // Eletra format: skip 1 header row, cols: 0=TOP, 1=codigo(HEXING), 2=descricao, 3=saldo
     return rows.slice(1)
       .filter(r=>r.length>=4 && pn(r[3])>0)
       .map(r=>{
-        const o={wh, codigo:String(r[1]||r[0]).trim(), descricao:String(r[2]).trim(),
+        const codigo = String(r[1]||r[0]||'').trim();
+        const o={wh, codigo, descricao:String(r[2]||'').trim(),
                  saldo:pn(r[3]), empenho:0, reserva:0, disp:0};
         const cl=classify(o); o.cat=cl.cat; o.familia=cl.familia;
         return o;
-      });
+      })
+      .filter(o=>o.codigo);
   }
 }
 
@@ -751,23 +763,67 @@ async function boot(){
   ST=[];RES=[];
   const lbl={CWB:'CWB',FOR:'FOR','MAO-LIV':'MAO Livoltek','MAO-ELE':'MAO Eletra',RESERVAS:'Reservas'};
   const raw={};
+
+  // Fetch cada aba individualmente com diagnóstico detalhado
   for(const[k,url]of Object.entries(URLS)){
     document.getElementById('lprog').textContent='Buscando '+lbl[k]+'...';
-    try{const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status);raw[k]=await r.text();}
-    catch(e){showErr('Erro ao carregar '+lbl[k]+': '+e.message);return;}
+    try{
+      const r=await fetch(url);
+      const txt=await r.text();
+      // Valida que recebeu CSV real (não HTML de erro)
+      if(txt.trim().startsWith('<')){
+        showErr(`A aba <strong>${lbl[k]}</strong> retornou HTML em vez de CSV.<br>
+          Verifique se a planilha está publicada corretamente:<br>
+          <small>Arquivo → Publicar na web → selecionar aba → CSV → Publicar</small>`);
+        return;
+      }
+      raw[k]=txt;
+    }catch(e){
+      showErr('Erro ao carregar '+lbl[k]+': '+e.message);
+      return;
+    }
   }
+
   document.getElementById('lprog').textContent='Processando e classificando...';
-  try{
-    ST=[...parseTOTVS(raw.CWB,'CWB'),...parseTOTVS(raw.FOR,'FOR'),
-        ...parseMAO(raw['MAO-LIV'],'MAO-LIV'),...parseMAO(raw['MAO-ELE'],'MAO-ELE')];
-    RES=parseRES(raw.RESERVAS);
-    applyRes();
-  }catch(e){showErr('Erro ao processar: '+e.message+' | '+e.stack);return;}
+
+  // Parse cada fonte isoladamente para identificar qual falha
+  let cwb=[],fr=[],ml=[],me=[],rs=[];
+  try{ cwb=parseTOTVS(raw.CWB,'CWB'); }
+  catch(e){ showErr('Erro ao processar CWB: '+e.message); return; }
+
+  try{ fr=parseTOTVS(raw.FOR,'FOR'); }
+  catch(e){ showErr('Erro ao processar FOR: '+e.message); return; }
+
+  try{ ml=parseMAO(raw['MAO-LIV'],'MAO-LIV'); }
+  catch(e){ showErr('Erro ao processar MAO-LIV: '+e.message); return; }
+
+  try{ me=parseMAO(raw['MAO-ELE'],'MAO-ELE'); }
+  catch(e){ showErr('Erro ao processar MAO-ELE: '+e.message); return; }
+
+  try{ rs=parseRES(raw.RESERVAS); }
+  catch(e){ showErr('Erro ao processar Reservas: '+e.message); return; }
+
+  ST=[...cwb,...fr,...ml,...me];
+  RES=rs;
+
+  // Diagnóstico — mostra contagens no loading para debug
+  document.getElementById('lprog').textContent=
+    `CWB:${cwb.length} FOR:${fr.length} MAO-LIV:${ml.length} MAO-ELE:${me.length} Reservas:${rs.length} — Aplicando reservas...`;
+
+  try{ applyRes(); }
+  catch(e){ showErr('Erro ao aplicar reservas: '+e.message); return; }
+
+  if(ST.length===0){
+    showErr('Nenhum produto carregado. Verifique se as planilhas estão publicadas com os dados do Armazém 07.');
+    return;
+  }
+
   document.getElementById('ld-area').style.display='none';
   document.getElementById('mc').style.display='block';
   document.getElementById('btn-csv').disabled=false;
   const now=new Date();
-  document.getElementById('sync-t').textContent='Atualizado: '+now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('sync-t').textContent=
+    `Atualizado: ${now.toLocaleDateString('pt-BR')} ${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})} · CWB:${cwb.length} FOR:${fr.length} MAO-LIV:${ml.length} MAO-ELE:${me.length} Res:${rs.length}`;
   setStatus('ok');
   renderAll();
 }
