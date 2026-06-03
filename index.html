@@ -216,7 +216,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   <div class="hdr-r">
     <div class="sbadge"><span class="dot dot-a" id="sdot"></span><span id="stxt">Carregando...</span></div>
     <span class="sync-t" id="sync-t"></span>
-    <button class="hico" title="Atualizar" onclick="boot()"><i class="ti ti-refresh"></i></button>
+    <button class="hico" title="Recarregar dados dos arquivos CSV" onclick="boot()"><i class="ti ti-refresh"></i></button>
     <button class="hbtn" id="btn-csv" onclick="exportCSV()" disabled><i class="ti ti-table-export" style="font-size:12px"></i> Excel</button>
     <button class="hbtn" onclick="window.print()"><i class="ti ti-file-type-pdf" style="font-size:12px"></i> PDF</button>
   </div>
@@ -507,33 +507,28 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 // ══════════════════════════════════════════════════════════════
 // URLS — Google Sheets ao vivo
 // ══════════════════════════════════════════════════════════════
-const URLS={
-  CWB:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=0&single=true&output=csv',
-  FOR:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=411796829&single=true&output=csv',
-  'MAO-LIV':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=1879495818&single=true&output=csv',
-  'MAO-ELE':'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=2006971885&single=true&output=csv',
-  RESERVAS:'https://docs.google.com/spreadsheets/d/e/2PACX-1vQXyqYNC-Rv_Hva2AT0Mid_HzzMt1FeqXYnHCiIH8rThS-9wBVMEc4KShgLYSv-JkoIgFh6tCczQjXX/pub?gid=577818960&single=true&output=csv',
+// ══ FONTES DE DADOS — arquivos CSV locais (pasta data/)
+// Atualizados automaticamente pelo GitHub Actions (update_data.py)
+const CSV_FILES = {
+  CWB:      'data/CWB.csv',
+  FOR:      'data/FOR.csv',
+  'MAO-LIV':'data/MAO-LIV.csv',
+  'MAO-ELE':'data/MAO-ELE.csv',
+  RESERVAS: 'data/RESERVAS.csv',
 };
-// Proxy CORS — tenta allorigins primeiro (mais confiável com Google Sheets)
-async function fetchCSV(url){
-  const attempts = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    url, // direto por último
-  ];
-  for(const endpoint of attempts){
-    try{
-      const r = await fetch(endpoint, {cache:'no-store'});
-      if(!r.ok) continue;
-      const txt = await r.text();
-      if(txt && txt.length > 20 && !txt.trim().startsWith('<')){
-        return txt;
-      }
-    }catch(e){ /* tenta próximo */ }
-  }
-  return null;
-}
+const WHL={'CWB':'CWB — Curitiba','FOR':'FOR — Fortaleza','MAO-LIV':'MAO — Livoltek','MAO-ELE':'MAO — Eletra'};
 const WHC={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
+
+// Lê arquivo local — sem CORS, sem proxy, sempre funciona
+async function fetchCSV(path){
+  try{
+    const r = await fetch(path, {cache:'no-store'});
+    if(!r.ok) return null;
+    const txt = await r.text();
+    if(txt && txt.length > 10 && !txt.trim().startsWith('<')) return txt;
+    return null;
+  }catch(e){ return null; }
+}
 
 // ══ STATE
 let ST=[], RES=[];
@@ -804,25 +799,22 @@ async function boot(){
   const lbl={CWB:'CWB',FOR:'FOR','MAO-LIV':'MAO Livoltek','MAO-ELE':'MAO Eletra',RESERVAS:'Reservas'};
   const raw={};
 
-  // Fetch todas as abas via proxy
+  // Lê os CSV locais da pasta data/ — sem CORS, sem proxy
   const failed = [];
-  for(const[k,url]of Object.entries(URLS)){
-    document.getElementById('lprog').textContent='Buscando '+lbl[k]+'...';
-    const txt = await fetchCSV(url);
-    if(!txt){
-      failed.push(lbl[k]);
-      raw[k] = '';
-    } else {
-      raw[k] = txt;
-    }
+  for(const[k,path]of Object.entries(CSV_FILES)){
+    document.getElementById('lprog').textContent='Carregando '+lbl[k]+'...';
+    const txt = await fetchCSV(path);
+    if(!txt){ failed.push(lbl[k]); raw[k]=''; }
+    else raw[k]=txt;
   }
+
   // Se as abas de estoque falharam todas, para
   const stockKeys = ['CWB','FOR','MAO-LIV','MAO-ELE'];
   const stockFailed = stockKeys.every(k => !raw[k]);
   if(stockFailed){
-    showErr(`Não foi possível carregar nenhuma aba de estoque.<br><br>
-      <strong>Solução:</strong> Abra a planilha Google Sheets →<br>
-      <b>Arquivo → Publicar na web → cada aba → CSV → Publicar</b><br><br>
+    showErr(`Arquivos CSV não encontrados na pasta <b>data/</b>.<br><br>
+      Execute o script <b>update_data.py</b> localmente ou aguarde o<br>
+      GitHub Actions rodar automaticamente.<br><br>
       Falhas: ${failed.join(', ')}`);
     return;
   }
