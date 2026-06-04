@@ -206,7 +206,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   <button class="tbtn" onclick="go('todos',this)"><i class="ti ti-packages"></i> Todos os Produtos</button>
   <button class="tbtn" onclick="go('inv',this)"><i class="ti ti-sun"></i> Inversores</button>
   <button class="tbtn" onclick="go('bess',this)"><i class="ti ti-battery-charging"></i> BESS</button>
-  <button class="tbtn" onclick="go('ev',this)"><i class="ti ti-bolt"></i> Carregadores EV</button>
+  <button class="tbtn" onclick="go('ev',this)"><i class="ti ti-bolt"></i> Carregadores EV &amp; Acessórios</button>
   <button class="tbtn" onclick="go('acc',this)"><i class="ti ti-tool"></i> Acessórios</button>
   <button class="tbtn" onclick="go('kit',this)"><i class="ti ti-solar-panel"></i> Kit Solar &amp; Apoio</button>
   <button class="tbtn" onclick="go('res',this)"><i class="ti ti-bookmark"></i> Reservas</button>
@@ -345,7 +345,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
-<!-- CARREGADORES EV -->
+<!-- CARREGADORES EV & ACESSÓRIOS -->
 <div id="tab-ev" class="tab">
   <div id="ev-kpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center"></div>
   <div class="fb">
@@ -353,8 +353,17 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <select class="sel" id="ev-wh" onchange="rEV()"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
   </div>
   <div id="ev-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:1.5rem"></div>
+  <!-- Matéria-prima EV -->
+  <div id="ev-mp-sec" style="display:none;margin-top:.5rem">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:.875rem">
+      <div style="height:1px;flex:1;background:var(--brd)"></div>
+      <span style="font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.6px;padding:3px 10px;border:1px solid var(--red);border-radius:20px">Matéria-Prima / Acessórios EV</span>
+      <div style="height:1px;flex:1;background:var(--brd)"></div>
+    </div>
+    <div id="ev-mp-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px"></div>
+  </div>
   <div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:7px 14px;font-size:11px;color:var(--txtm)">
-    <span id="ev-cnt">0</span> produtos
+    <span id="ev-cnt">0</span> produtos · <span id="ev-mp-cnt">0</span> matéria-prima/acessórios
   </div>
 </div>
 
@@ -1346,9 +1355,9 @@ window.evFilter='';
 const EV_FAMS=[
   ['A007','CA 7kW'],['A0220','CA 22kW'],
   ['C030','CC 30kW'],['C040','CC 40kW'],['C050','CC 50kW'],['C060','CC 60kW'],
-  ['M060','CC 60kW Mob'],['M120','CC 120kW'],['M160','CC 160kW'],
-  ['M180','CC 180kW'],['M240','CC 240kW'],
-  ['D030','CC 30kW Wall'],
+  ['M060','CC 60kW Mob'],['M1201000','CC 120kW'],['M12010','CC 120kW'],['M120','CC 120kW'],
+  ['M160','CC 160kW'],['M180','CC 180kW'],['M240','CC 240kW'],
+  ['D030','CC 30kW Wall'],['2160','CA 250W'],
 ];
 const EV_COLORS={'CA 7kW':'#15803d','CA 22kW':'#166534',
   'CC 30kW':'#1E3A5F','CC 40kW':'#1d4ed8','CC 50kW':'#2563eb',
@@ -1359,6 +1368,59 @@ const EV_COLORS={'CA 7kW':'#15803d','CA 22kW':'#166534',
 function rEV(){
   buildCatCards('ev', EV_FAMS, EV_COLORS,
     'ev-cards','ev-kpis','ev-cnt','ev-q','ev-wh','evFilter');
+  // Matéria-prima / acessórios EV do MAO-LIV
+  const q=(document.getElementById('ev-q')?.value||'').toLowerCase();
+  const wh=document.getElementById('ev-wh')?.value||'';
+  const WHC_L={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
+  const WH_LIST=['CWB','FOR','MAO-LIV','MAO-ELE'];
+  // Inclui matéria-prima E acessórios que são componentes de carregadores
+  const mpItems=ST.filter(r=>{
+    const match=(!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q))&&(!wh||r.wh===wh);
+    const isEvComp=isMateriaP(r)||(r.cat==='acessorio'&&(
+      r.descricao.toUpperCase().includes('CARREGADOR')||
+      r.descricao.toUpperCase().includes('PEDESTAL')||
+      r.descricao.toUpperCase().includes('CABO DE CARGA')||
+      r.descricao.toUpperCase().includes('CONECTOR CCS')||
+      r.descricao.toUpperCase().includes('CONECTOR CHAdeMO')||
+      r.descricao.toUpperCase().includes('CABO EV')));
+    return match && isEvComp;
+  });
+  const mpSec=document.getElementById('ev-mp-sec');
+  const mpCnt=document.getElementById('ev-mp-cnt');
+  if(mpCnt) mpCnt.textContent=mpItems.length;
+  if(mpItems.length){
+    mpSec.style.display='block';
+    document.getElementById('ev-mp-cards').innerHTML=mpItems.map(r=>{
+      const whRows=WH_LIST.map(w=>{
+        const s=ST.filter(x=>x.codigo===r.codigo&&x.wh===w).reduce((a,x)=>a+x.saldo,0);
+        if(!s) return '';
+        const c=WHC_L[w];
+        return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
+          <span style="font-size:11px;font-weight:700;color:${c}">${w}</span>
+          <span style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
+        </div>`;
+      }).join('');
+      const totalS=ST.filter(x=>x.codigo===r.codigo).reduce((a,x)=>a+x.saldo,0);
+      const label=isMateriaP(r)?'MAT.PRIMA':'ACESS.EV';
+      const borderCol=isMateriaP(r)?'#fecdd3':'#bfdbfe';
+      const bgCol=isMateriaP(r)?'#fff1f2':'#eff6ff';
+      const badgeCol=isMateriaP(r)?'#dc2626':'#1d4ed8';
+      return`<div style="background:var(--surf);border:1px solid ${borderCol};border-radius:var(--rl);overflow:hidden">
+        <div style="background:${bgCol};border-bottom:1px solid ${borderCol};padding:.625rem 1rem;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${r.codigo}</div>
+            <div style="font-size:10px;color:var(--txt2);margin-top:1px">${trunc(r.descricao,50)}</div>
+          </div>
+          <span style="font-size:9px;font-weight:700;color:${badgeCol};background:${borderCol};padding:2px 6px;border-radius:4px;flex-shrink:0;margin-left:6px">${label}</span>
+        </div>
+        <div style="padding:.625rem 1rem;text-align:center;border-bottom:1px solid ${borderCol}">
+          <div style="font-size:9px;color:var(--txtm);text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px">Saldo</div>
+          <div style="font-size:26px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${fmt(totalS)}</div>
+        </div>
+        <div style="padding:.5rem 1rem;background:var(--surf2)">${whRows||'—'}</div>
+      </div>`;
+    }).join('');
+  } else { mpSec.style.display='none'; }
 }
 
 // ── ACESSÓRIOS (accordion)
