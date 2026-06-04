@@ -167,7 +167,6 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   <button class="tbtn" onclick="go('ev',this)"><i class="ti ti-bolt"></i> Carregadores EV</button>
   <button class="tbtn" onclick="go('kit',this)"><i class="ti ti-solar-panel"></i> Kit Solar</button>
   <button class="tbtn" onclick="go('acc',this)"><i class="ti ti-tool"></i> Acessórios</button>
-  <button class="tbtn" onclick="go('mp',this)"><i class="ti ti-box"></i> Matéria-Prima</button>
   <button class="tbtn" onclick="go('res',this)"><i class="ti ti-bookmark"></i> Reservas</button>
   <button class="tbtn" onclick="go('todos',this)"><i class="ti ti-packages"></i> Todos</button>
   <button class="tbtn" onclick="go('alrt',this)"><i class="ti ti-bell"></i> Alertas</button>
@@ -245,7 +244,11 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <select class="sel" id="bess-wh" onchange="renderCat('bess')"><option value="">Todos os armazéns</option></select>
   </div>
   <div class="cards-grid" id="bess-cards"></div>
-  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="bess-cnt">0</span> SKUs</div>
+  <div id="bess-mp-sec" style="display:none">
+    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Matéria-Prima</span><div class="sec-sep-line"></div></div>
+    <div class="cards-grid" id="bess-mp-cards"></div>
+  </div>
+  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="bess-cnt">0</span> produtos · <span id="bess-mp-cnt">0</span> matéria-prima</div>
 </div>
 
 <!-- CARREGADORES EV -->
@@ -270,7 +273,11 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <select class="sel" id="kit-wh" onchange="renderCat('kit')"><option value="">Todos os armazéns</option></select>
   </div>
   <div class="cards-grid" id="kit-cards"></div>
-  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="kit-cnt">0</span> SKUs</div>
+  <div id="kit-mp-sec" style="display:none">
+    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Matéria-Prima</span><div class="sec-sep-line"></div></div>
+    <div class="cards-grid" id="kit-mp-cards"></div>
+  </div>
+  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="kit-cnt">0</span> produtos · <span id="kit-mp-cnt">0</span> matéria-prima</div>
 </div>
 
 <!-- ACESSÓRIOS -->
@@ -280,19 +287,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <select class="sel" id="acc-wh" onchange="renderCat('acc')"><option value="">Todos os armazéns</option></select>
   </div>
   <div class="cards-grid" id="acc-cards"></div>
-  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="acc-cnt">0</span> SKUs</div>
+  <div id="acc-mp-sec" style="display:none">
+    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Matéria-Prima</span><div class="sec-sep-line"></div></div>
+    <div class="cards-grid" id="acc-mp-cards"></div>
+  </div>
+  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="acc-cnt">0</span> produtos · <span id="acc-mp-cnt">0</span> matéria-prima</div>
 </div>
 
-<!-- MATÉRIA-PRIMA -->
-<div id="tab-mp" class="tab">
-  <div class="banner bn-pur"><i class="ti ti-info-circle" style="font-size:14px"></i> Matéria-prima identificada pelo cadastro (Categoria = MATÉRIA-PRIMA). Nunca exibida em outras abas.</div>
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="mp-q" placeholder="Código ou nome..." oninput="renderCat('mp')"></div>
-    <select class="sel" id="mp-wh" onchange="renderCat('mp')"><option value="">Todos os armazéns</option></select>
-  </div>
-  <div class="cards-grid" id="mp-cards"></div>
-  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="mp-cnt">0</span> SKUs de matéria-prima</div>
-</div>
+
 
 <!-- RESERVAS -->
 <div id="tab-res" class="tab">
@@ -424,11 +426,17 @@ function parseEstoque(csv, cad){
     const isEletra = ['10108','10102','10106'].includes(fl);
     if(isEletra && armz !== '7') return;
 
-    // Cadastro do produto
-    const info = cad[codigo] || {};
-    const nome = info.nome || String(r.DESCRICAO||r.descricao||'').trim();
-    const cat  = info.categoria || '';
-    const fam  = info.familia || '';
+    // Categoria e Família vêm direto do ESTOQUE.csv (últimas colunas)
+    // Fallback: tentar cadastro pelo CODIGO TOP MANAGE
+    const topManage = String(r['CODIGO TOP MANAGE']||r['Codigo Top Manage']||'').trim();
+    const info = cad[topManage] || cad[codigo] || {};
+
+    // Prioridade: coluna do ESTOQUE.csv → cadastro → vazio
+    const catRaw  = String(r['Categoria']||r['CATEGORIA']||info.categoria||'').trim();
+    const famRaw  = String(r['Família']||r['Familia']||r['FAMILIA']||info.familia||'').trim();
+    const nome    = info.nome || String(r['Nome Comercial']||r.DESCRICAO||r.descricao||'').trim();
+    const cat     = catRaw;
+    const fam     = famRaw;
 
     const saldo  = pn(r['SALDO EM ESTOQUE']);
     const empenho= pn(r['NO PARA REQ/PV/RE']||r['EMPENHO']||0);
@@ -598,19 +606,27 @@ function pCard(r){
 // ══ CATEGORIAS
 // Derivar categoria do cadastro — não inferir
 function getMainCat(r){
-  const cat=r.categoria.toUpperCase();
-  if(cat==='MATÉRIA-PRIMA'||cat==='MATERIA-PRIMA') return 'mp';
-  const fam=r.familia.toUpperCase();
-  if(fam.includes('INVERSOR')||cat.includes('INVERSOR')) return 'inv';
+  // Matéria-prima pertence à família → mesma aba, seção inferior
+  // Usar a família para determinar qual aba, mesmo sendo MP
+  const cat=(r.categoria||'').toUpperCase();
+  const fam=(r.familia||'').toUpperCase();
+  const desc=(r.nome||'').toUpperCase();
+  // Classificar pela família (independente de ser PRODUTO ou MATÉRIA-PRIMA)
+  if(fam.includes('INVERSOR')||cat.includes('INVERSOR')||desc.includes('INVERSOR')) return 'inv';
   if(fam.includes('BESS')||fam.includes('BATERIA')||cat.includes('BESS')||cat.includes('BATERIA')) return 'bess';
-  if(fam.includes('CARREGADOR')||cat.includes('CARREGADOR')) return 'ev';
-  if(fam.includes('KIT')||fam.includes('TELHADO')||fam.includes('SOLO')||fam.includes('STRING')||fam.includes('MEDIDOR')||cat.includes('KIT')) return 'kit';
-  if(cat.includes('ACESSÓRIO')||cat.includes('ACESSORIO')||fam.includes('ACESSÓRIO')) return 'acc';
+  if(fam.includes('CARREGADOR')||cat.includes('CARREGADOR')||
+     desc.includes('CARREGADOR VE')||desc.includes('CARREGADOR VEICULAR')) return 'ev';
+  if(fam.includes('KIT')||fam.includes('TELHADO')||fam.includes('SOLO')||
+     fam.includes('STRING')||fam.includes('MEDIDOR')||cat.includes('KIT')) return 'kit';
+  if(cat.includes('ACESSÓRIO')||cat.includes('ACESSORIO')||fam.includes('ACESSÓRIO')||
+     fam.includes('CABO')&&!fam.includes('INVERSOR')&&!fam.includes('BESS')) return 'acc';
+  if(desc.includes('BATERIA')||desc.includes('BESS')||desc.includes('BMS')) return 'bess';
+  if(desc.includes('STRING BOX')||desc.includes('MODULO FOTOVOLTAICO')) return 'kit';
   return 'outro';
 }
 
 // ══ PILLS genérico
-let catFilters={inv:'',bess:'',ev:'',kit:'',acc:'',mp:''};
+let catFilters={inv:'',bess:'',ev:'',kit:'',acc:''};
 
 function buildPills(tabId, items, famField){
   const fams={};
@@ -681,26 +697,20 @@ function renderCat(tabId){
   const fam=catFilters[tabId]||'';
   const filtered=fam?dedup.filter(r=>r.familia===fam):dedup;
 
-  // Separate MP from main (for inv and ev tabs)
-  if(tabId==='inv'||tabId==='ev'){
-    const main=filtered.filter(r=>!r.isMP);
-    const mp=filtered.filter(r=>r.isMP);
-    const cntEl=document.getElementById(tabId+'-cnt');
-    const mpCntEl=document.getElementById(tabId+'-mp-cnt');
-    if(cntEl) cntEl.textContent=main.length;
-    if(mpCntEl) mpCntEl.textContent=mp.length;
-    const cardsEl=document.getElementById(tabId+'-cards');
-    const mpCardsEl=document.getElementById(tabId+'-mp-cards');
-    const mpSecEl=document.getElementById(tabId+'-mp-sec');
-    if(cardsEl) cardsEl.innerHTML=main.map(pCard).join('')||`<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum produto encontrado.</div>`;
-    if(mpSecEl) mpSecEl.style.display=mp.length?'block':'none';
-    if(mpCardsEl) mpCardsEl.innerHTML=mp.map(pCard).join('');
-  } else {
-    const cntEl=document.getElementById(tabId+'-cnt');
-    if(cntEl) cntEl.textContent=filtered.length;
-    const cardsEl=document.getElementById(tabId+'-cards');
-    if(cardsEl) cardsEl.innerHTML=filtered.map(pCard).join('')||`<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum produto encontrado.</div>`;
-  }
+  // Separar produtos acabados (PRODUTO) da matéria-prima
+  // MP fica na seção inferior da mesma aba
+  const main=filtered.filter(r=>!r.isMP);
+  const mp=filtered.filter(r=>r.isMP);
+  const cntEl=document.getElementById(tabId+'-cnt');
+  const mpCntEl=document.getElementById(tabId+'-mp-cnt');
+  if(cntEl) cntEl.textContent=main.length;
+  if(mpCntEl) mpCntEl.textContent=mp.length;
+  const cardsEl=document.getElementById(tabId+'-cards');
+  const mpCardsEl=document.getElementById(tabId+'-mp-cards');
+  const mpSecEl=document.getElementById(tabId+'-mp-sec');
+  if(cardsEl) cardsEl.innerHTML=main.map(pCard).join('')||`<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum produto encontrado.</div>`;
+  if(mpSecEl) mpSecEl.style.display=mp.length?'block':'none';
+  if(mpCardsEl) mpCardsEl.innerHTML=mp.map(pCard).join('');
 }
 
 // ══ DASHBOARD
@@ -883,7 +893,7 @@ function rAlrt(){
 // ══ RENDER ALL
 function renderAll(){
   rDash();
-  ['inv','bess','ev','kit','acc','mp'].forEach(t=>renderCat(t));
+  ['inv','bess','ev','kit','acc'].forEach(t=>renderCat(t));
   rAll(); rRes(); rAlrt();
 }
 
