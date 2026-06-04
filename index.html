@@ -334,29 +334,27 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <!-- BESS -->
 <div id="tab-bess" class="tab">
-  <div class="banner bn-amb"><i class="ti ti-info-circle" style="font-size:15px"></i> Baterias de armazenamento, BESS, BMS e PCS.</div>
-  <div class="kg kg-4" id="bess-kpis"></div>
+  <div id="bess-kpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center"></div>
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="bess-q" placeholder="Código ou produto..." oninput="rCat('bess')"></div>
-    <select class="sel" id="bess-wh" onchange="rCat('bess')"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
+    <div class="sbar"><i class="ti ti-search"></i><input id="bess-q" placeholder="Código ou descrição..." oninput="rBess()"></div>
+    <select class="sel" id="bess-wh" onchange="rBess()"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
   </div>
-  <div class="card">
-    <div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Família</th><th>WH</th><th class="r">Saldo</th><th class="r">Em Separação</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead><tbody id="bess-tbl"></tbody></table></div>
-    <div class="cf">Exibindo <span id="bess-cnt">0</span> SKUs</div>
+  <div id="bess-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:1.5rem"></div>
+  <div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:7px 14px;font-size:11px;color:var(--txtm)">
+    <span id="bess-cnt">0</span> produtos
   </div>
 </div>
 
 <!-- CARREGADORES EV -->
 <div id="tab-ev" class="tab">
-  <div class="banner bn-grn"><i class="ti ti-info-circle" style="font-size:15px"></i> Carregadores CA (A007, A0220) e CC para veículos elétricos.</div>
-  <div class="kg kg-4" id="ev-kpis"></div>
+  <div id="ev-kpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center"></div>
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Código ou produto..." oninput="rCat('ev')"></div>
-    <select class="sel" id="ev-wh" onchange="rCat('ev')"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
+    <div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Código ou descrição..." oninput="rEV()"></div>
+    <select class="sel" id="ev-wh" onchange="rEV()"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
   </div>
-  <div class="card">
-    <div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Família</th><th>WH</th><th class="r">Saldo</th><th class="r">Em Separação</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead><tbody id="ev-tbl"></tbody></table></div>
-    <div class="cf">Exibindo <span id="ev-cnt">0</span> SKUs</div>
+  <div id="ev-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:1.5rem"></div>
+  <div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:7px 14px;font-size:11px;color:var(--txtm)">
+    <span id="ev-cnt">0</span> produtos
   </div>
 </div>
 
@@ -830,7 +828,7 @@ function catKPIs(cat,el){
 
 // ══ RENDER ALL
 function renderAll(){
-  rDash(); rAll(); rInv(); rCat('bess'); rCat('ev'); rCat('kit');
+  rDash(); rAll(); rInv(); rBess(); rEV(); rCat('kit');
   rAcc(); rResKPIs(); rRes(); renderWH(); rAlrt();
 }
 
@@ -1005,8 +1003,10 @@ function rAll(){
 // ── ABAS POR CATEGORIA
 function rCat(id){
   if(id==='inv'){ rInv(); return; }
+  if(id==='bess'){ rBess(); return; }
+  if(id==='ev'){ rEV(); return; }
   const el=document.getElementById(id+'-kpis');
-  const cat=id==='bess'?'bess':id==='ev'?'ev':'kit';
+  const cat=id==='kit'?'kit':'outro';
   if(el) catKPIs(cat,el);
   const q=(document.getElementById(id+'-q')?.value||'').toLowerCase();
   const wh=document.getElementById(id+'-wh')?.value||'';
@@ -1198,6 +1198,167 @@ function rInv(){
 function setInvFam(fam){
   invFamFilter=invFamFilter===fam?'':fam;
   rInv();
+}
+
+// ── CARD GENÉRICO (reutilizado por BESS e EV)
+function buildCatCards(cat, pillFams, pillColors, containerId, kpiId, cntId, qId, whId, famFilterKey){
+  const q=(document.getElementById(qId)?.value||'').toLowerCase();
+  const wh=document.getElementById(whId)?.value||'';
+  const WH_LIST=['CWB','FOR','MAO-LIV','MAO-ELE'];
+  const WHC_L={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
+
+  // Todos os itens da categoria sem cabos/matéria-prima
+  let allItems=filtered(q,wh,cat).filter(r=>!isCabo(r)&&!isMateriaP(r));
+
+  // Família de cada item
+  const famKey=r=>{
+    const c=r.codigo.toUpperCase(), d=r.descricao.toUpperCase();
+    for(const[pfx,lbl] of pillFams){
+      if(c.startsWith(pfx)||d.includes(pfx)) return lbl;
+    }
+    return 'Outros';
+  };
+
+  // KPI pills
+  const famCounts={};
+  allItems.forEach(r=>{ const f=famKey(r); famCounts[f]=(famCounts[f]||0)+1; });
+  const totalSaldo=allItems.reduce((a,r)=>a+r.saldo,0);
+  const totalRes=allItems.reduce((a,r)=>a+r.reserva,0);
+  const totalEmp=allItems.reduce((a,r)=>a+r.empenho,0);
+
+  const curFam=window[famFilterKey]||'';
+  const kpiEl=document.getElementById(kpiId);
+  if(kpiEl){
+    const totalActive=curFam==='';
+    let pills=[`<button onclick="setCatFam('${famFilterKey}','')" style="
+      display:flex;flex-direction:column;align-items:center;padding:8px 18px;border-radius:10px;
+      cursor:pointer;border:2px solid ${totalActive?'var(--pri)':'var(--brd)'};
+      background:${totalActive?'var(--pri)':'var(--surf)'};transition:all .15s;min-width:100px">
+      <span style="font-size:13px;font-weight:700;color:${totalActive?'#fff':'var(--txt)'}">Todos</span>
+      <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:${totalActive?'#fff':'var(--pri)'};">${totalSaldo.toLocaleString('pt-BR')}</span>
+      <span style="font-size:10px;color:${totalActive?'rgba(255,255,255,.7)':'var(--txtm)'}">em estoque</span>
+      ${totalRes>0||totalEmp>0?`<div style="margin-top:3px;display:flex;gap:6px">
+        ${totalRes>0?`<span style="font-size:9px;color:${totalActive?'#c4b5fd':'var(--pur)'};font-weight:600">Res:${totalRes}</span>`:''}
+        ${totalEmp>0?`<span style="font-size:9px;color:${totalActive?'#fcd34d':'var(--amb-d)'};font-weight:600">Sep:${totalEmp}</span>`:''}
+      </div>`:''}
+    </button>`];
+
+    pillFams.forEach(([pfx,lbl])=>{
+      if(!famCounts[lbl]) return;
+      const active=curFam===lbl;
+      const col=pillColors[lbl]||'#475569';
+      const salF=allItems.filter(r=>famKey(r)===lbl).reduce((a,r)=>a+r.saldo,0);
+      const resF=allItems.filter(r=>famKey(r)===lbl).reduce((a,r)=>a+r.reserva,0);
+      const empF=allItems.filter(r=>famKey(r)===lbl).reduce((a,r)=>a+r.empenho,0);
+      pills.push(`<button onclick="setCatFam('${famFilterKey}','${lbl}')" style="
+        display:flex;flex-direction:column;align-items:center;padding:8px 18px;border-radius:10px;
+        cursor:pointer;border:2px solid ${active?col:'var(--brd)'};
+        background:${active?col:'var(--surf)'};transition:all .15s;min-width:90px">
+        <span style="font-size:11px;font-weight:700;color:${active?'#fff':'var(--txt2)'}">${lbl}</span>
+        <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:${active?'#fff':col};">${salF.toLocaleString('pt-BR')}</span>
+        <span style="font-size:10px;color:${active?'rgba(255,255,255,.7)':'var(--txtm)'}">em estoque</span>
+        ${resF>0||empF>0?`<div style="margin-top:3px;display:flex;gap:6px">
+          ${resF>0?`<span style="font-size:9px;color:${active?'#c4b5fd':'var(--pur)'};font-weight:600">Res:${resF}</span>`:''}
+          ${empF>0?`<span style="font-size:9px;color:${active?'#fcd34d':'var(--amb-d)'};font-weight:600">Sep:${empF}</span>`:''}
+        </div>`:''}
+      </button>`);
+    });
+    kpiEl.innerHTML=pills.join('');
+  }
+
+  // Aplicar filtro de família
+  if(curFam) allItems=allItems.filter(r=>famKey(r)===curFam);
+
+  // Ordenar por família depois por código
+  allItems.sort((a,b)=>{
+    const fa=famKey(a), fb=famKey(b);
+    if(fa!==fb) return fa.localeCompare(fb);
+    return a.codigo.localeCompare(b.codigo);
+  });
+
+  document.getElementById(cntId).textContent=allItems.length;
+
+  // Render cards
+  document.getElementById(containerId).innerHTML=allItems.map(r=>{
+    const fam=famKey(r);
+    const famCol=pillColors[fam]||'#475569';
+    const totalSaldoR=ST.filter(x=>x.codigo===r.codigo&&!isMateriaP(x)).reduce((a,x)=>a+x.saldo,0);
+    const totalResR=ST.filter(x=>x.codigo===r.codigo).reduce((a,x)=>a+x.reserva,0);
+    const totalEmpR=ST.filter(x=>x.codigo===r.codigo).reduce((a,x)=>a+x.empenho,0);
+    const whRows=WH_LIST.map(w=>{
+      const s=ST.filter(x=>x.codigo===r.codigo&&x.wh===w).reduce((a,x)=>a+x.saldo,0);
+      if(!s) return '';
+      const c=WHC_L[w];
+      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--brd)">
+        <span style="font-size:11px;font-weight:700;color:${c}">${w}</span>
+        <span style="font-size:13px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
+      </div>`;
+    }).join('');
+    return`<div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden">
+      <div style="background:${famCol}0f;border-bottom:1px solid var(--brd);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-.3px">${r.codigo}</div>
+          <div style="font-size:11px;color:var(--txt2);margin-top:1px;line-height:1.3">${trunc(r.descricao,52)}</div>
+        </div>
+        <span style="font-size:10px;font-weight:700;color:${famCol};background:${famCol}18;padding:2px 7px;border-radius:5px;flex-shrink:0;margin-left:6px;text-align:center;max-width:70px;line-height:1.3">${fam}</span>
+      </div>
+      <div style="padding:.875rem 1rem;text-align:center;border-bottom:1px solid var(--brd)">
+        <div style="font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Saldo em Estoque</div>
+        <div style="font-size:36px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1">${fmt(totalSaldoR)}</div>
+      </div>
+      <div style="padding:.625rem 1rem;border-bottom:1px solid var(--brd)">
+        ${whRows||'<div style="font-size:11px;color:var(--txtm);text-align:center;padding:4px 0">—</div>'}
+      </div>
+      <div style="padding:.5rem 1rem;display:flex;justify-content:space-between;background:var(--surf2)">
+        <span style="font-size:11px;color:${totalResR>0?'var(--pur)':'var(--txtm)'}">
+          ${totalResR>0?`<strong style="color:var(--pur)">Reservas: ${fmt(totalResR)}</strong>`:'Sem reservas'}
+        </span>
+        <span style="font-size:11px;color:${totalEmpR>0?'var(--amb-d)':'var(--txtm)'}">
+          ${totalEmpR>0?`<strong>Em Sep.: ${fmt(totalEmpR)}</strong>`:'Sem separação'}
+        </span>
+      </div>
+    </div>`;
+  }).join('')||`<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum produto encontrado.</div>`;
+}
+
+function setCatFam(filterKey, fam){
+  window[filterKey]=window[filterKey]===fam?'':fam;
+  if(filterKey==='bessFilter') rBess();
+  else if(filterKey==='evFilter') rEV();
+}
+
+// ── BESS
+window.bessFilter='';
+const BESS_FAMS=[
+  ['BHF-','BHF'],['BLF-','BLF'],['BLF51','BLF51'],
+  ['SMI-48','SMI'],['PCS-','PCS'],['BMS','BMS'],
+];
+const BESS_COLORS={'BHF':'#0891b2','BLF':'#7c3aed','BLF51':'#5b21b6',
+  'SMI':'#059669','PCS':'#d97706','BMS':'#374151','Outros':'#475569'};
+
+function rBess(){
+  buildCatCards('bess', BESS_FAMS, BESS_COLORS,
+    'bess-cards','bess-kpis','bess-cnt','bess-q','bess-wh','bessFilter');
+}
+
+// ── CARREGADORES EV
+window.evFilter='';
+const EV_FAMS=[
+  ['A007','CA 7kW'],['A0220','CA 22kW'],
+  ['C030','CC 30kW'],['C040','CC 40kW'],['C050','CC 50kW'],['C060','CC 60kW'],
+  ['M060','CC 60kW Mob'],['M120','CC 120kW'],['M160','CC 160kW'],
+  ['M180','CC 180kW'],['M240','CC 240kW'],
+  ['D030','CC 30kW Wall'],
+];
+const EV_COLORS={'CA 7kW':'#15803d','CA 22kW':'#166534',
+  'CC 30kW':'#1E3A5F','CC 40kW':'#1d4ed8','CC 50kW':'#2563eb',
+  'CC 60kW':'#3b82f6','CC 60kW Mob':'#60a5fa',
+  'CC 120kW':'#7c3aed','CC 160kW':'#6d28d9','CC 180kW':'#5b21b6',
+  'CC 240kW':'#4c1d95','CC 30kW Wall':'#b45309','Outros':'#475569'};
+
+function rEV(){
+  buildCatCards('ev', EV_FAMS, EV_COLORS,
+    'ev-cards','ev-kpis','ev-cnt','ev-q','ev-wh','evFilter');
 }
 
 // ── ACESSÓRIOS (accordion)
