@@ -1141,43 +1141,38 @@ function rInv(){
       const s=ST.filter(x=>x.codigo===r.codigo&&x.wh===w).reduce((a,x)=>a+x.saldo,0);
       if(!s) return '';
       const c=WHC_L[w];
-      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--brd)">
-        <span style="font-size:11px;font-weight:700;color:${c}">${w}</span>
-        <span style="font-size:13px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
+      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
+        <span style="font-size:12px;font-weight:600;color:${c}">${w}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
       </div>`;
     }).join('');
 
     const fam=invFamKey(r);
     const famCol=fam==='GT1'?'#1E3A5F':fam==='GT3'?'#0891b2':fam.startsWith('HP')?'#7c3aed':'#475569';
+    const dispInv=Math.max(0,r._saldo-r._empenho-r._reserva);
 
-    return`<div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden">
-      <!-- cabeçalho -->
-      <div style="background:${famCol}0f;border-bottom:1px solid var(--brd);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-.3px">${r.codigo}</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:1px;line-height:1.3">${trunc(r.descricao,52)}</div>
+    return`<div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:1rem 1.125rem;position:relative">
+      <span style="position:absolute;top:.875rem;right:.875rem;font-size:9px;font-weight:700;color:${famCol};background:${famCol}14;padding:2px 6px;border-radius:4px">${fam}</span>
+      <div style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;margin-bottom:2px;padding-right:55px">${r.codigo}</div>
+      <div style="font-size:10px;color:var(--txtm);margin-bottom:.875rem;line-height:1.4;padding-right:55px">${trunc(r.descricao,55)}</div>
+      <div style="margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--brd)">
+        <div style="font-size:10px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px">Disponível</div>
+        <div style="font-size:32px;font-weight:700;color:${dispInv>20?'var(--grn-d)':dispInv>=5?'var(--amb-d)':'var(--red)'};font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1">${fmt(dispInv)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:.375rem">
+        <span style="font-size:12px;color:var(--txt2)">Saldo</span>
+        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace">${fmt(r._saldo)}</span>
+      </div>
+      ${whRows}
+      <div style="margin-top:.625rem;padding-top:.625rem;border-top:1px solid var(--brd)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+          <span style="font-size:12px;color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">Reserva</span>
+          <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">${fmt(r._reserva)}</span>
         </div>
-        <span style="font-size:10px;font-weight:700;color:${famCol};background:${famCol}18;padding:2px 7px;border-radius:5px;flex-shrink:0;margin-left:6px">${fam}</span>
-      </div>
-      <!-- saldo principal — soma TODOS os armazéns -->
-      <div style="padding:.875rem 1rem;text-align:center;border-bottom:1px solid var(--brd)">
-        <div style="font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Saldo em Estoque</div>
-        <div style="font-size:36px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1">${fmt(r._saldo)}</div>
-      </div>
-      <!-- por armazém -->
-      <div style="padding:.625rem 1rem;border-bottom:1px solid var(--brd)">
-        ${whRows||'<div style="font-size:11px;color:var(--txtm);text-align:center;padding:4px 0">—</div>'}
-      </div>
-      <!-- rodapé: reserva + separação — soma todos armazéns -->
-      <div style="padding:.5rem 1rem;display:flex;justify-content:space-between;background:var(--surf2)">
-        ${(()=>{const totalRes=r._reserva;
-                const totalEmp=r._empenho;
-          return`<span style="font-size:11px;color:${totalRes>0?'var(--pur)':'var(--txtm)'}">
-            ${totalRes>0?`<strong style="color:var(--pur)">Reservas: ${fmt(totalRes)}</strong>`:'Sem reservas'}
-          </span>
-          <span style="font-size:11px;color:${totalEmp>0?'var(--amb-d)':'var(--txtm)'}">
-            ${totalEmp>0?`<strong>Em Sep.: ${fmt(totalEmp)}</strong>`:'Sem separação'}
-          </span>`;})()}
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:12px;color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">Em Sep.</span>
+          <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">${fmt(r._empenho)}</span>
+        </div>
       </div>
     </div>`;
   }).join('')||'<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum inversor encontrado.</div>';
@@ -1324,33 +1319,41 @@ function buildCatCards(cat, pillFams, pillColors, containerId, kpiId, cntId, qId
       const s=ST.filter(x=>x.codigo===r.codigo&&x.wh===w).reduce((a,x)=>a+x.saldo,0);
       if(!s) return '';
       const c=WHC_L[w];
-      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--brd)">
-        <span style="font-size:11px;font-weight:700;color:${c}">${w}</span>
-        <span style="font-size:13px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
+      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
+        <span style="font-size:12px;font-weight:600;color:${c}">${w}</span>
+        <span style="font-size:13px;font-weight:600;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
       </div>`;
     }).join('');
-    return`<div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden">
-      <div style="background:${famCol}0f;border-bottom:1px solid var(--brd);padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between">
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-.3px">${r.codigo}</div>
-          <div style="font-size:11px;color:var(--txt2);margin-top:1px;line-height:1.3">${trunc(r.descricao,52)}</div>
+    const dispR=Math.max(0,totalSaldoR-totalEmpR-totalResR);
+    return`<div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:1rem 1.125rem;position:relative">
+      <!-- família tag -->
+      <span style="position:absolute;top:.875rem;right:.875rem;font-size:9px;font-weight:700;color:${famCol};background:${famCol}14;padding:2px 6px;border-radius:4px">${fam}</span>
+      <!-- código -->
+      <div style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;margin-bottom:2px;padding-right:60px">${r.codigo}</div>
+      <!-- descrição -->
+      <div style="font-size:10px;color:var(--txtm);margin-bottom:.875rem;line-height:1.4;padding-right:60px">${trunc(r.descricao,55)}</div>
+      <!-- DISPONÍVEL destaque -->
+      <div style="margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--brd)">
+        <div style="font-size:10px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px">Disponível</div>
+        <div style="font-size:32px;font-weight:700;color:${dispR>20?'var(--grn-d)':dispR>=5?'var(--amb-d)':'var(--red)'};font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1">${fmt(dispR)}</div>
+      </div>
+      <!-- Saldo -->
+      <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
+        <span style="font-size:12px;color:var(--txt2)">Saldo</span>
+        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace">${fmt(totalSaldoR)}</span>
+      </div>
+      <!-- Por armazém -->
+      ${whRows}
+      <!-- Reserva + Em Sep. -->
+      <div style="margin-top:.625rem;padding-top:.625rem;border-top:1px solid var(--brd)">
+        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+          <span style="font-size:12px;color:${totalResR>0?'var(--pur)':'var(--txtm)'}">Reserva</span>
+          <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${totalResR>0?'var(--pur)':'var(--txtm)'}">${fmt(totalResR)}</span>
         </div>
-        <span style="font-size:10px;font-weight:700;color:${famCol};background:${famCol}18;padding:2px 7px;border-radius:5px;flex-shrink:0;margin-left:6px;text-align:center;max-width:70px;line-height:1.3">${fam}</span>
-      </div>
-      <div style="padding:.875rem 1rem;text-align:center;border-bottom:1px solid var(--brd)">
-        <div style="font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Saldo em Estoque</div>
-        <div style="font-size:36px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1">${fmt(totalSaldoR)}</div>
-      </div>
-      <div style="padding:.625rem 1rem;border-bottom:1px solid var(--brd)">
-        ${whRows||'<div style="font-size:11px;color:var(--txtm);text-align:center;padding:4px 0">—</div>'}
-      </div>
-      <div style="padding:.5rem 1rem;display:flex;justify-content:space-between;background:var(--surf2)">
-        <span style="font-size:11px;color:${totalResR>0?'var(--pur)':'var(--txtm)'}">
-          ${totalResR>0?`<strong style="color:var(--pur)">Reservas: ${fmt(totalResR)}</strong>`:'Sem reservas'}
-        </span>
-        <span style="font-size:11px;color:${totalEmpR>0?'var(--amb-d)':'var(--txtm)'}">
-          ${totalEmpR>0?`<strong>Em Sep.: ${fmt(totalEmpR)}</strong>`:'Sem separação'}
-        </span>
+        <div style="display:flex;justify-content:space-between">
+          <span style="font-size:12px;color:${totalEmpR>0?'var(--amb-d)':'var(--txtm)'}">Em Sep.</span>
+          <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${totalEmpR>0?'var(--amb-d)':'var(--txtm)'}">${fmt(totalEmpR)}</span>
+        </div>
       </div>
     </div>`;
   }).join('')||`<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum produto encontrado.</div>`;
