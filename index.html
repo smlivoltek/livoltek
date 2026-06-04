@@ -503,31 +503,46 @@ const FAM_SKU=[
   ['LHE34','kit','Medidor Hexing'],['LHE12','kit','Medidor Hexing'],
 ];
 const FAM_DESC=[
+  // ── MATÉRIA-PRIMA — deve ser identificada PRIMEIRO, antes de qualquer categoria
+  ['MATÉRIA-PRIMA','outro','Matéria-Prima'],['MATERIA-PRIMA','outro','Matéria-Prima'],
+  ['MATERIA PRIMA','outro','Matéria-Prima'],
+  // ── COMPONENTES/ACESSÓRIOS que podem ter nomes de famílias na descrição — VÊM ANTES
   ['PARTE DO CARREGADOR','acessorio','Componente EV'],
+  ['CAIXA DE ALUMINIO FUNDIDO','acessorio','Caixa'],
   ['CAIXA DE ALUMINIO','acessorio','Caixa'],['CAIXA ALUMINIO','acessorio','Caixa'],
   ['CHASSIS','acessorio','Estrutura'],['CAPACITOR','acessorio','Componente'],
   ['VENTOINHA','acessorio','Ventilação'],['PCB ','acessorio','Componente'],
   ['PLACA DE CIRCUITO','acessorio','Componente'],
+  ['CARREGADOR PARA BATERIA','bess','Carregador Bateria'],
+  ['CONTROLADOR BMS','bess','BMS'],
+  // ── INVERSORES
   ['INVERSOR SOLAR','inversor','Inversor'],['INVERSOR HIBRIDO','inversor','Inversor Híbrido'],
+  ['INVERSOR ON-GRID','inversor','Inversor'],['INVERSOR TRIFASICO','inversor','Inversor'],
+  ['INVERSOR MONOFASICO','inversor','Inversor'],
+  ['INVERSORES PARA SISTEMAS','inversor','Inversor'],
   ['INVERSOR','inversor','Inversor'],['MICROINVERSOR','inversor','Microinversor'],
   ['GT1 ','inversor','Inversor GT1'],['GT3 ','inversor','Inversor GT3'],
   ['GT1-','inversor','Inversor GT1'],['GT3-','inversor','Inversor GT3'],
   ['HP1-','inversor','Inversor HP1'],['HP3-','inversor','Inversor HP3'],
+  // ── BESS
   ['BATERIA DE LI','bess','Bateria'],['BATERIA BHF','bess','BESS BHF'],
   ['BATERIA BLF','bess','Bateria BLF'],['BATERIA','bess','Bateria'],
   ['BESS','bess','BESS'],['ACUMULADOR DE ENERGIA','bess','Acumulador'],
   ['ARMAZENAMENTO DE ENERGIA','bess','BESS'],['BMS ','bess','BMS'],
   ['BHF ','bess','BESS BHF'],['BLF ','bess','Bateria BLF'],
+  // ── EV
   ['CARREGADOR VE LIVOLTEK','ev','Carregador EV'],['CARREGADOR VEICULAR','ev','Carregador EV'],
   ['CARREGADOR VE ','ev','Carregador EV'],['ATOM CA 7','ev','Carregador EV CA 7kW'],
   ['ATOM CA 22','ev','Carregador EV CA 22kW'],['ATOM ','ev','Carregador EV CA'],
   ['MOTION FAST','ev','Carregador EV CC'],['MOTION COMPACT','ev','Carregador EV CC'],
+  // ── KIT SOLAR
   ['CABO FOTOVOLTAICO','kit','Cabo Fotovoltaico'],
   ['MODULO FOTOVOLTAICO','kit','Módulo Solar'],['MODULO SOLAR','kit','Módulo Solar'],
   ['PAINEL SOLAR','kit','Painel Solar'],['STRING BOX','kit','String Box'],
   ['HXCB','kit','String Box'],['ESTRUTURA METALICA','kit','Estrutura'],
   ['KIT TELHADO','kit','Kit Telhado'],['KIT SOLO','kit','Kit Solo'],
   ['MEDIDOR INTELIGENTE','kit','Medidor'],
+  // ── ACESSÓRIOS
   ['CABO SOLAR','acessorio','Cabo'],['CABO FLEX','acessorio','Cabo'],
   ['CABO DE ALUMINIO','acessorio','Cabo'],['CABO DE COBRE','acessorio','Cabo'],
   ['CABO PP ','acessorio','Cabo'],['CABO COBRE','acessorio','Cabo'],['CABO ','acessorio','Cabo'],
@@ -922,8 +937,10 @@ function buildDonut(){
 }
 
 function isMateriaP(r){
-  return r.descricao.toLowerCase().includes('matéria-prima')||
-         r.descricao.toLowerCase().includes('materia-prima');
+  const d=r.descricao.toUpperCase();
+  return d.includes('MATÉRIA-PRIMA')||d.includes('MATERIA-PRIMA')||
+         d.includes('MATERIA PRIMA')||d.startsWith('MATÉRIA')||
+         r.cat==='outro'&&(d.includes('BATERIA DE ALTA')&&!d.includes('INVERSOR'));
 }
 
 
@@ -1004,11 +1021,15 @@ const INV_FAM_ORDER=['GT1','GT3','HP1','HP3','GF1','GF3'];
 let invFamFilter=''; // família ativa (toggle)
 
 function invFamKey(r){
+  // Matéria-prima nunca é inversor
+  if(isMateriaP(r)) return 'Outros';
+  // Carregadores e BESS nunca são inversores
+  if(r.cat==='ev'||r.cat==='bess'||r.cat==='acessorio') return 'Outros';
   const c=r.codigo.toUpperCase();
   const d=r.descricao.toUpperCase();
-  // Primeiro tenta pelo código (GT1-, GT3-, HP1- etc.)
+  // Primeiro tenta pelo código
   for(const f of INV_FAM_ORDER) if(c.startsWith(f+'-')||c.startsWith(f+' ')) return f;
-  // Para códigos numéricos (MAO-LIV ex: 106171), tenta pela descrição
+  // Para códigos numéricos (MAO-LIV), tenta pela descrição
   for(const f of INV_FAM_ORDER) if(d.includes(f+' ')||d.includes(f+'-')) return f;
   return 'Outros';
 }
