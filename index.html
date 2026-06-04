@@ -176,6 +176,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .leg-d{width:9px;height:9px;border-radius:2px;flex-shrink:0}
 .wt{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px}
 
+.inv-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px)}
 @media(max-width:1300px){.kg-5{grid-template-columns:repeat(3,1fr)}.cg2{grid-template-columns:1fr}.whg{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:900px){.main{padding:.875rem}.kg-5,.kg-4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.whg{grid-template-columns:repeat(2,1fr)}.res-sum{grid-template-columns:repeat(2,1fr)}}
 </style>
@@ -305,17 +306,71 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <!-- INVERSORES -->
 <div id="tab-inv" class="tab">
-  <div class="banner bn-blu"><i class="ti ti-info-circle" style="font-size:15px"></i> Inversores on-grid e híbridos GT1, GT3, HP. Excluídos: String Box, Módulos, Estruturas.</div>
+  <div class="banner bn-blu"><i class="ti ti-info-circle" style="font-size:15px"></i> Inversores on-grid e híbridos GT1, GT3, HP. Clique num card para ver detalhes completos.</div>
   <div class="kg kg-4" id="inv-kpis"></div>
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Código ou produto..." oninput="rCat('inv')"></div>
-    <select class="sel" id="inv-wh" onchange="rCat('inv')"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
+    <div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Modelo ou código..." oninput="rInv()"></div>
+    <select class="sel" id="inv-wh" onchange="rInv()"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
+    <div style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--txt2)">
+      <span style="width:10px;height:10px;border-radius:50%;background:#22C55E;display:inline-block"></span>≥20
+      <span style="width:10px;height:10px;border-radius:50%;background:#F59E0B;display:inline-block;margin-left:6px"></span>5–19
+      <span style="width:10px;height:10px;border-radius:50%;background:#EF4444;display:inline-block;margin-left:6px"></span>&lt;5
+    </div>
   </div>
-  <div class="card">
-    <div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Família</th><th>WH</th><th class="r">Saldo</th><th class="r">Em Separação</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead><tbody id="inv-tbl"></tbody></table></div>
-    <div class="cf">Exibindo <span id="inv-cnt">0</span> SKUs</div>
+  <div id="inv-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:1.5rem"></div>
+  <div class="cf" style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:8px 14px">Exibindo <span id="inv-cnt">0</span> modelos</div>
+</div>
+
+<!-- PAINEL LATERAL INVERSOR -->
+<div id="inv-panel" style="display:none;position:fixed;top:0;right:0;width:420px;height:100vh;background:var(--surf);border-left:1px solid var(--brd);z-index:500;overflow-y:auto;box-shadow:-4px 0 20px rgba(0,0,0,.1)">
+  <div style="position:sticky;top:0;background:var(--pri);padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;z-index:2">
+    <div>
+      <div id="panel-titulo" style="color:#fff;font-size:14px;font-weight:600"></div>
+      <div id="panel-codigo" style="color:rgba(255,255,255,.5);font-size:11px;margin-top:2px"></div>
+    </div>
+    <button onclick="closePanel()" style="width:30px;height:30px;border:1px solid rgba(255,255,255,.2);border-radius:7px;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center"><i class="ti ti-x"></i></button>
+  </div>
+  <div style="padding:1.25rem">
+    <!-- Semáforo grande -->
+    <div id="panel-disp-box" style="border-radius:var(--rl);padding:1.25rem;margin-bottom:1.25rem;text-align:center">
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;opacity:.7;margin-bottom:4px">Disponível para Venda</div>
+      <div id="panel-disp" style="font-size:42px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-2px"></div>
+      <div style="font-size:11px;opacity:.6;margin-top:4px">saldo − em separação − reservas</div>
+    </div>
+    <!-- Resumo 3 colunas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.25rem">
+      <div style="background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r);padding:.75rem;text-align:center">
+        <div style="font-size:10px;color:var(--txtm);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Saldo</div>
+        <div id="panel-saldo" style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace"></div>
+      </div>
+      <div style="background:var(--amb-pale);border:1px solid #fcd34d;border-radius:var(--r);padding:.75rem;text-align:center">
+        <div style="font-size:10px;color:var(--amb-d);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Em Sep.</div>
+        <div id="panel-emp" style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--amb-d)"></div>
+      </div>
+      <div style="background:var(--pur-pale);border:1px solid #c4b5fd;border-radius:var(--r);padding:.75rem;text-align:center">
+        <div style="font-size:10px;color:var(--pur);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Reserva</div>
+        <div id="panel-res" style="font-size:18px;font-weight:700;font-family:'DM Mono',monospace;color:var(--pur)"></div>
+      </div>
+    </div>
+    <!-- Por armazém -->
+    <div style="margin-bottom:1.25rem">
+      <div style="font-size:11px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem">Estoque por Armazém</div>
+      <div id="panel-warehouses"></div>
+    </div>
+    <!-- Reservas do produto -->
+    <div id="panel-res-section" style="margin-bottom:1.25rem;display:none">
+      <div style="font-size:11px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem">Reservas Comerciais</div>
+      <div id="panel-res-list"></div>
+    </div>
+    <!-- Matéria-prima relacionada -->
+    <div id="panel-mp-section" style="display:none">
+      <div style="font-size:11px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.75rem">Matéria-Prima Relacionada (MAO-LIV)</div>
+      <div id="panel-mp-list"></div>
+    </div>
   </div>
 </div>
+<!-- overlay -->
+<div id="inv-overlay" onclick="closePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:499"></div>
 
 <!-- BESS -->
 <div id="tab-bess" class="tab">
@@ -796,7 +851,7 @@ function catKPIs(cat,el){
 
 // ══ RENDER ALL
 function renderAll(){
-  rDash(); rAll(); rCat('inv'); rCat('bess'); rCat('ev'); rCat('kit');
+  rDash(); rAll(); rInv(); rCat('bess'); rCat('ev'); rCat('kit');
   rAcc(); rResKPIs(); rRes(); renderWH(); rAlrt();
 }
 
@@ -968,14 +1023,168 @@ function rAll(){
 
 // ── ABAS POR CATEGORIA
 function rCat(id){
+  if(id==='inv'){ rInv(); return; }
   const el=document.getElementById(id+'-kpis');
-  const cat=id==='inv'?'inversor':id==='bess'?'bess':id==='ev'?'ev':'kit';
+  const cat=id==='bess'?'bess':id==='ev'?'ev':'kit';
   if(el) catKPIs(cat,el);
   const q=(document.getElementById(id+'-q')?.value||'').toLowerCase();
   const wh=document.getElementById(id+'-wh')?.value||'';
   const rows=filtered(q,wh,cat);
   const tbl=document.getElementById(id+'-tbl'); if(tbl) tbl.innerHTML=rows.map(r=>stdRow(r,false,true)).join('');
   const cnt=document.getElementById(id+'-cnt'); if(cnt) cnt.textContent=rows.length;
+}
+
+// ── INVERSORES — layout de cards
+function semColor(v){return v>=20?'#22C55E':v>=5?'#F59E0B':'#EF4444';}
+function semBg(v){return v>=20?'var(--grn-pale)':v>=5?'var(--amb-pale)':'var(--red-pale)';}
+function semTxt(v){return v>=20?'var(--grn-d)':v>=5?'var(--amb-d)':'#dc2626';}
+
+function rInv(){
+  const el=document.getElementById('inv-kpis');
+  if(el) catKPIs('inversor',el);
+  const q=(document.getElementById('inv-q')?.value||'').toLowerCase();
+  const wh=document.getElementById('inv-wh')?.value||'';
+  // Agrupar por codigo — cada SKU é um card
+  const rows=filtered(q,wh,'inversor').filter(r=>!isCabo(r)&&!isMateriaP(r));
+  const cnt=document.getElementById('inv-cnt'); if(cnt) cnt.textContent=rows.length;
+
+  const WH_LIST=['CWB','FOR','MAO-LIV','MAO-ELE'];
+  const WHC_LOCAL={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
+
+  document.getElementById('inv-cards').innerHTML=rows.map(r=>{
+    const col=semColor(r.disp);
+    const bg=semBg(r.disp);
+    const tc=semTxt(r.disp);
+    // Mini barras por armazém — só SKUs iguais a este
+    const whBars=WH_LIST.map(w=>{
+      const match=ST.filter(x=>x.codigo===r.codigo&&x.wh===w);
+      const d=match.reduce((a,x)=>a+x.disp,0);
+      const s=match.reduce((a,x)=>a+x.saldo,0);
+      if(!s) return '';
+      const c=WHC_LOCAL[w];
+      return`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:5px">
+        <span style="font-size:10px;font-weight:700;color:${c};background:${c}1a;padding:1px 5px;border-radius:3px;min-width:60px">${w}</span>
+        <span style="font-size:11px;font-weight:600;color:${semTxt(d)};font-family:'DM Mono',monospace">${fmt(d)}</span>
+      </div>`;
+    }).join('');
+
+    return`<div class="inv-card" onclick="openPanel('${r.codigo.replace(/'/g,"\\'")}')"
+      style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:1.125rem;cursor:pointer;transition:all .2s;border-top:4px solid ${col}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.75rem">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--txt);line-height:1.3">${trunc(r.descricao,48)}</div>
+          <div style="font-size:10px;color:var(--txtm);margin-top:2px;font-family:'DM Mono',monospace">${r.codigo}</div>
+        </div>
+        <div style="width:36px;height:36px;border-radius:50%;background:${bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:8px">
+          <span style="width:14px;height:14px;border-radius:50%;background:${col}"></span>
+        </div>
+      </div>
+      <div style="background:${bg};border-radius:8px;padding:.75rem;margin-bottom:.75rem;text-align:center">
+        <div style="font-size:10px;font-weight:600;color:${tc};text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Disponível para Venda</div>
+        <div style="font-size:28px;font-weight:700;color:${tc};font-family:'DM Mono',monospace;letter-spacing:-1px">${fmt(r.disp)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:.75rem">
+        <div style="text-align:center;background:var(--surf2);border-radius:6px;padding:5px">
+          <div style="font-size:9px;color:var(--txtm);text-transform:uppercase;letter-spacing:.3px">Saldo</div>
+          <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace">${fmt(r.saldo)}</div>
+        </div>
+        <div style="text-align:center;background:var(--amb-pale);border-radius:6px;padding:5px">
+          <div style="font-size:9px;color:var(--amb-d);text-transform:uppercase;letter-spacing:.3px">Em Sep.</div>
+          <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--amb-d)">${r.empenho>0?fmt(r.empenho):'—'}</div>
+        </div>
+        <div style="text-align:center;background:var(--pur-pale);border-radius:6px;padding:5px">
+          <div style="font-size:9px;color:var(--pur);text-transform:uppercase;letter-spacing:.3px">Reserva</div>
+          <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--pur)">${r.reserva>0?fmt(r.reserva):'—'}</div>
+        </div>
+      </div>
+      ${whBars?`<div style="border-top:1px solid var(--brd);padding-top:.625rem">${whBars}</div>`:''}
+      <div style="margin-top:.625rem;font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:4px"><i class="ti ti-info-circle" style="font-size:12px"></i>clique para detalhes</div>
+    </div>`;
+  }).join('') || '<div style="padding:2rem;text-align:center;color:var(--txtm);grid-column:1/-1">Nenhum inversor encontrado.</div>';
+}
+
+// ── PAINEL LATERAL
+function openPanel(codigo){
+  const items=ST.filter(r=>r.codigo===codigo);
+  if(!items.length) return;
+  const r0=items[0];
+  const totalSaldo=items.reduce((a,r)=>a+r.saldo,0);
+  const totalEmp=items.reduce((a,r)=>a+r.empenho,0);
+  const totalRes=items.reduce((a,r)=>a+r.reserva,0);
+  const totalDisp=items.reduce((a,r)=>a+r.disp,0);
+
+  document.getElementById('panel-titulo').textContent=trunc(r0.descricao,50);
+  document.getElementById('panel-codigo').textContent=codigo;
+  document.getElementById('panel-saldo').textContent=fmt(totalSaldo);
+  document.getElementById('panel-emp').textContent=totalEmp>0?fmt(totalEmp):'0';
+  document.getElementById('panel-res').textContent=totalRes>0?fmt(totalRes):'0';
+  document.getElementById('panel-disp').textContent=fmt(totalDisp);
+
+  const box=document.getElementById('panel-disp-box');
+  box.style.background=semBg(totalDisp);
+  document.getElementById('panel-disp').style.color=semTxt(totalDisp);
+
+  // Por armazém
+  const WH_LIST=['CWB','FOR','MAO-LIV','MAO-ELE'];
+  const WHC_LOCAL={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
+  document.getElementById('panel-warehouses').innerHTML=WH_LIST.map(w=>{
+    const match=items.filter(r=>r.wh===w);
+    if(!match.length) return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;background:var(--surf2);margin-bottom:6px;opacity:.4">
+      <span style="font-size:12px;font-weight:600;color:${WHC_LOCAL[w]}">${WHL[w]||w}</span>
+      <span style="font-size:12px;color:var(--txtm)">sem estoque</span>
+    </div>`;
+    const s=match.reduce((a,r)=>a+r.saldo,0);
+    const e=match.reduce((a,r)=>a+r.empenho,0);
+    const rv=match.reduce((a,r)=>a+r.reserva,0);
+    const d=match.reduce((a,r)=>a+r.disp,0);
+    const col=WHC_LOCAL[w];
+    return`<div style="border:1px solid ${col}33;border-radius:8px;padding:10px 12px;margin-bottom:6px;border-left:3px solid ${col}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12px;font-weight:700;color:${col}">${WHL[w]||w}</span>
+        <span style="font-size:16px;font-weight:700;color:${semTxt(d)};font-family:'DM Mono',monospace">${fmt(d)} <span style="font-size:10px;font-weight:400;color:var(--txtm)">disp.</span></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px">
+        <div style="color:var(--txt2)">Saldo: <strong>${fmt(s)}</strong></div>
+        <div style="color:var(--amb-d)">Em Sep.: <strong>${e>0?fmt(e):'—'}</strong></div>
+        <div style="color:var(--pur)">Reserva: <strong>${rv>0?fmt(rv):'—'}</strong></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Reservas do produto
+  const resItems=RES.filter(r=>r.codigo===codigo);
+  const resSec=document.getElementById('panel-res-section');
+  if(resItems.length){
+    resSec.style.display='block';
+    document.getElementById('panel-res-list').innerHTML=resItems.map(r=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--pur-pale);border-radius:7px;margin-bottom:5px">
+        <div><div style="font-size:12px;font-weight:500">${r.cliente}</div><div style="font-size:10px;color:var(--txtm)">${r.responsavel}${r.diretoria?' · '+r.diretoria:''}</div></div>
+        <div style="text-align:right"><div style="font-size:14px;font-weight:700;color:var(--pur)">${fmt(r.qtd)}</div><div style="font-size:10px;color:var(--txtm)">${r.solicitado||'—'}</div></div>
+      </div>`).join('');
+  } else { resSec.style.display='none'; }
+
+  // Matéria-prima relacionada (MAO-LIV, mesmo HEXING/descrição similar)
+  const descKey=r0.descricao.toLowerCase().split(' ').slice(0,3).join(' ');
+  const mpItems=ST.filter(r=>isMateriaP(r)&&r.descricao.toLowerCase().includes(descKey.split(' ')[1]||''));
+  const mpSec=document.getElementById('panel-mp-section');
+  if(mpItems.length){
+    mpSec.style.display='block';
+    document.getElementById('panel-mp-list').innerHTML=mpItems.map(r=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--surf2);border:1px solid var(--brd);border-radius:7px;margin-bottom:5px">
+        <div><div style="font-size:11px;font-weight:500">${trunc(r.descricao,40)}</div><div style="font-size:10px;color:var(--txtm)">${r.codigo} · ${r.wh}</div></div>
+        <div style="font-size:14px;font-weight:700;color:var(--txt2)">${fmt(r.saldo)}</div>
+      </div>`).join('');
+  } else { mpSec.style.display='none'; }
+
+  document.getElementById('inv-panel').style.display='block';
+  document.getElementById('inv-overlay').style.display='block';
+  document.body.style.overflow='hidden';
+}
+
+function closePanel(){
+  document.getElementById('inv-panel').style.display='none';
+  document.getElementById('inv-overlay').style.display='none';
+  document.body.style.overflow='';
 }
 
 // ── ACESSÓRIOS (accordion)
