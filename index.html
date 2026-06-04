@@ -1001,7 +1001,11 @@ let invFamFilter=''; // família ativa (toggle)
 
 function invFamKey(r){
   const c=r.codigo.toUpperCase();
-  for(const f of INV_FAM_ORDER) if(c.startsWith(f+'-')||c.startsWith(f)) return f;
+  const d=r.descricao.toUpperCase();
+  // Primeiro tenta pelo código (GT1-, GT3-, HP1- etc.)
+  for(const f of INV_FAM_ORDER) if(c.startsWith(f+'-')||c.startsWith(f+' ')) return f;
+  // Para códigos numéricos (MAO-LIV ex: 106171), tenta pela descrição
+  for(const f of INV_FAM_ORDER) if(d.includes(f+' ')||d.includes(f+'-')) return f;
   return 'Outros';
 }
 
