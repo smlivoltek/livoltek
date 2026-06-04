@@ -194,7 +194,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   <div class="hdr-r">
     <div class="sbadge"><span class="dot dot-a" id="sdot"></span><span id="stxt">Carregando...</span></div>
     <span class="sync-t" id="sync-t"></span>
-    <button class="hico" title="Recarregar" onclick="boot()"><i class="ti ti-refresh"></i></button>
+    <button class="hico" title="Recarregar dados" onclick="boot()" id="btn-reload"><i class="ti ti-refresh"></i></button>
     <button class="hbtn" id="btn-csv" onclick="exportCSV()" disabled><i class="ti ti-table-export" style="font-size:12px"></i> Excel</button>
     <button class="hbtn" onclick="window.print()"><i class="ti ti-file-type-pdf" style="font-size:12px"></i> PDF</button>
   </div>
@@ -660,6 +660,8 @@ async function boot(){
   document.getElementById('err-area').style.display='none';
   document.getElementById('mc').style.display='none';
   document.getElementById('btn-csv').disabled=true;
+  const reloadBtn=document.getElementById('btn-reload');
+  if(reloadBtn) reloadBtn.style.animation='spin .75s linear infinite';
   ST=[]; RES=[];
 
   const raw={};
@@ -696,9 +698,10 @@ async function boot(){
 
   const now = new Date();
   document.getElementById('sync-t').textContent =
-    now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+
-    ' · CWB:'+cwb.length+' FOR:'+fr.length+' MAO-LIV:'+ml.length+' MAO-ELE:'+me.length+' · Res:'+RES.length;
+    now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 
+  const rb=document.getElementById('btn-reload');
+  if(rb) rb.style.animation='';
   setStatus('ok');
   renderAll();
 }
