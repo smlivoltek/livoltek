@@ -252,19 +252,35 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
       </div>
     </div>
   </div>
-  <div class="g2">
-    <div class="card">
-      <div class="ch"><span class="ct"><i class="ti ti-sun"></i> Top 10 Inversores — Disponível para Venda</span></div>
+  <div class="g2" style="margin-bottom:1.25rem">
+    <div class="card" style="margin-bottom:0">
+      <div class="ch"><span class="ct"><i class="ti ti-sun"></i> Top 10 Inversores</span></div>
       <div class="tw"><table class="tbl">
-        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. para Venda</th><th class="r" style="width:100px">Proporção</th></tr></thead>
+        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. Venda</th><th class="r" style="width:90px">Proporção</th></tr></thead>
         <tbody id="top-inv"></tbody>
       </table></div>
     </div>
-    <div class="card">
-      <div class="ch"><span class="ct"><i class="ti ti-bolt"></i> Top 10 Carregadores EV — Disponível para Venda</span></div>
+    <div class="card" style="margin-bottom:0">
+      <div class="ch"><span class="ct"><i class="ti ti-bolt"></i> Top 10 Carregadores EV</span></div>
       <div class="tw"><table class="tbl">
-        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. para Venda</th><th class="r" style="width:100px">Proporção</th></tr></thead>
+        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. Venda</th><th class="r" style="width:90px">Proporção</th></tr></thead>
         <tbody id="top-ev"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card" style="margin-bottom:0">
+      <div class="ch"><span class="ct"><i class="ti ti-tool"></i> Top 10 Matéria-Prima (MAO-LIV)</span></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. Venda</th><th class="r" style="width:90px">Proporção</th></tr></thead>
+        <tbody id="top-mp"></tbody>
+      </table></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="ch"><span class="ct"><i class="ti ti-tool"></i> Top 10 Acessórios &amp; Pedestais</span></div>
+      <div class="tw"><table class="tbl">
+        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. Venda</th><th class="r" style="width:90px">Proporção</th></tr></thead>
+        <tbody id="top-acc"></tbody>
       </table></div>
     </div>
   </div>
@@ -811,14 +827,14 @@ function getWHd(wh){
 }
 
 function buildBar(wh){
-  const whs=['CWB','FOR','MAO-LIV','MAO-ELE'];
+  const cats=['inversor','bess','ev','kit','acessorio','outro'];
+  const cl={inversor:'Inversores',bess:'BESS',ev:'Carregadores EV',kit:'Kit Solar',acessorio:'Acessórios',outro:'Outros'};
   let labels,sals,disps;
   if(wh==='TODOS'){
-    labels=whs.map(w=>w.replace('MAO-LIV','MAO Liv.').replace('MAO-ELE','MAO Ele.'));
-    sals=whs.map(w=>getWHd(w).sal); disps=whs.map(w=>getWHd(w).disp);
+    labels=cats.map(c=>cl[c]);
+    sals=cats.map(c=>ST.filter(r=>r.cat===c).reduce((a,r)=>a+r.saldo,0));
+    disps=cats.map(c=>ST.filter(r=>r.cat===c).reduce((a,r)=>a+r.disp,0));
   }else{
-    const cats=['inversor','bess','ev','kit','acessorio','outro'];
-    const cl={inversor:'Inversores',bess:'BESS',ev:'EV',kit:'Kit Solar',acessorio:'Acessórios',outro:'Outros'};
     labels=cats.map(c=>cl[c]);
     sals=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c).reduce((a,r)=>a+r.saldo,0));
     disps=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c).reduce((a,r)=>a+r.disp,0));
@@ -877,10 +893,24 @@ function buildDonut(){
   }).join('');
 }
 
+function isMateriaP(r){
+  return r.descricao.toLowerCase().includes('matéria-prima')||
+         r.descricao.toLowerCase().includes('materia-prima');
+}
+
 function buildTopTables(){
-  const invRows=[...ST].filter(r=>r.cat==='inversor').sort((a,b)=>b.disp-a.disp).slice(0,10);
-  const evRows=[...ST].filter(r=>r.cat==='ev').sort((a,b)=>b.disp-a.disp).slice(0,10);
+  // Inversores — sem matéria-prima
+  const invRows=[...ST].filter(r=>r.cat==='inversor'&&!isMateriaP(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
+  // Carregadores EV — sem matéria-prima, sem acessórios
+  const evRows=[...ST].filter(r=>r.cat==='ev'&&!isMateriaP(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
+  // Matéria-Prima — todos os SKUs com "matéria-prima" na descrição
+  const mpRows=[...ST].filter(r=>isMateriaP(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
+  // Acessórios — sem matéria-prima
+  const accRows=[...ST].filter(r=>r.cat==='acessorio'&&!isMateriaP(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
+
   const mI=invRows[0]?.disp||1, mE=evRows[0]?.disp||1;
+  const mMP=mpRows[0]?.disp||1, mAcc=accRows[0]?.disp||1;
+
   const tRow=(r,i,max)=>`<tr>
     <td style="color:var(--txtm);font-size:10px">${i+1}</td>
     <td class="pname" title="${r.descricao}" style="font-size:11px">${trunc(r.descricao,44)}</td>
@@ -888,8 +918,11 @@ function buildTopTables(){
     <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':'#dc2626'}">${fmt(r.disp)}</td>
     <td>${spark(r.disp,max)}</td>
   </tr>`;
+
   document.getElementById('top-inv').innerHTML=invRows.map((r,i)=>tRow(r,i,mI)).join('');
   document.getElementById('top-ev').innerHTML=evRows.map((r,i)=>tRow(r,i,mE)).join('');
+  document.getElementById('top-mp').innerHTML=mpRows.map((r,i)=>tRow(r,i,mMP)).join('');
+  document.getElementById('top-acc').innerHTML=accRows.map((r,i)=>tRow(r,i,mAcc)).join('');
 }
 
 // ── TODOS OS PRODUTOS
