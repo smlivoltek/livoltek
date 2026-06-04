@@ -1114,6 +1114,16 @@ function rInv(){
   // Aplicar filtro de família
   if(invFamFilter) allInv=allInv.filter(r=>invFamKey(r)===invFamFilter);
 
+  // DEDUPLICAR por código
+  const invByCode={};
+  allInv.forEach(r=>{
+    if(!invByCode[r.codigo]){invByCode[r.codigo]={...r,_saldo:0,_empenho:0,_reserva:0};}
+    invByCode[r.codigo]._saldo   += r.saldo;
+    invByCode[r.codigo]._empenho += r.empenho;
+    invByCode[r.codigo]._reserva += r.reserva;
+  });
+  allInv=Object.values(invByCode);
+
   // Ordenar: família → potência crescente
   allInv.sort((a,b)=>{
     const fa=INV_FAM_ORDER.indexOf(invFamKey(a)), fb=INV_FAM_ORDER.indexOf(invFamKey(b));
@@ -1152,7 +1162,7 @@ function rInv(){
       <!-- saldo principal — soma TODOS os armazéns -->
       <div style="padding:.875rem 1rem;text-align:center;border-bottom:1px solid var(--brd)">
         <div style="font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Saldo em Estoque</div>
-        <div style="font-size:36px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1">${fmt(ST.filter(x=>x.codigo===r.codigo&&!isMateriaP(x)).reduce((a,x)=>a+x.saldo,0))}</div>
+        <div style="font-size:36px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1">${fmt(r._saldo)}</div>
       </div>
       <!-- por armazém -->
       <div style="padding:.625rem 1rem;border-bottom:1px solid var(--brd)">
@@ -1160,8 +1170,8 @@ function rInv(){
       </div>
       <!-- rodapé: reserva + separação — soma todos armazéns -->
       <div style="padding:.5rem 1rem;display:flex;justify-content:space-between;background:var(--surf2)">
-        ${(()=>{const totalRes=ST.filter(x=>x.codigo===r.codigo).reduce((a,x)=>a+x.reserva,0);
-                const totalEmp=ST.filter(x=>x.codigo===r.codigo).reduce((a,x)=>a+x.empenho,0);
+        ${(()=>{const totalRes=r._reserva;
+                const totalEmp=r._empenho;
           return`<span style="font-size:11px;color:${totalRes>0?'var(--pur)':'var(--txtm)'}">
             ${totalRes>0?`<strong style="color:var(--pur)">Reservas: ${fmt(totalRes)}</strong>`:'Sem reservas'}
           </span>
@@ -1278,22 +1288,38 @@ function buildCatCards(cat, pillFams, pillColors, containerId, kpiId, cntId, qId
   // Aplicar filtro de família
   if(curFam) allItems=allItems.filter(r=>famKey(r)===curFam);
 
-  // Ordenar por família depois por código
-  allItems.sort((a,b)=>{
+  // DEDUPLICAR por código — agregar todos os armazéns num único objeto por código
+  const byCode={};
+  allItems.forEach(r=>{
+    if(!byCode[r.codigo]){
+      byCode[r.codigo]={...r, _saldo:0, _empenho:0, _reserva:0};
+    }
+    byCode[r.codigo]._saldo   += r.saldo;
+    byCode[r.codigo]._empenho += r.empenho;
+    byCode[r.codigo]._reserva += r.reserva;
+  });
+  let dedupItems=Object.values(byCode);
+
+  // Ordenar por família depois por potência/código
+  dedupItems.sort((a,b)=>{
     const fa=famKey(a), fb=famKey(b);
-    if(fa!==fb) return fa.localeCompare(fb);
+    if(fa!==fb){
+      const fi=pillFams.findIndex(([p,l])=>l===fa);
+      const fj=pillFams.findIndex(([p,l])=>l===fb);
+      return (fi===-1?999:fi)-(fj===-1?999:fj);
+    }
     return a.codigo.localeCompare(b.codigo);
   });
 
-  document.getElementById(cntId).textContent=allItems.length;
+  document.getElementById(cntId).textContent=dedupItems.length;
 
   // Render cards
-  document.getElementById(containerId).innerHTML=allItems.map(r=>{
+  document.getElementById(containerId).innerHTML=dedupItems.map(r=>{
     const fam=famKey(r);
     const famCol=pillColors[fam]||'#475569';
-    const totalSaldoR=ST.filter(x=>x.codigo===r.codigo&&!isMateriaP(x)).reduce((a,x)=>a+x.saldo,0);
-    const totalResR=ST.filter(x=>x.codigo===r.codigo).reduce((a,x)=>a+x.reserva,0);
-    const totalEmpR=ST.filter(x=>x.codigo===r.codigo).reduce((a,x)=>a+x.empenho,0);
+    const totalSaldoR=r._saldo;
+    const totalResR=r._reserva;
+    const totalEmpR=r._empenho;
     const whRows=WH_LIST.map(w=>{
       const s=ST.filter(x=>x.codigo===r.codigo&&x.wh===w).reduce((a,x)=>a+x.saldo,0);
       if(!s) return '';
@@ -1353,8 +1379,8 @@ function rBess(){
 // ── CARREGADORES EV
 window.evFilter='';
 const EV_FAMS=[
-  ['A007','CA 7kW'],['A0220','CA 22kW'],
-  ['C030','CC 30kW'],['C040','CC 40kW'],['C050','CC 50kW'],['C060','CC 60kW'],
+  ['A0220','CA 22kW'],['A007','CA 7kW'],
+  ['C030','CC 30kW Compact'],['C040','CC 40kW'],['C050','CC 50kW'],['C060','CC 60kW'],
   ['M060','CC 60kW Mob'],['M1201000','CC 120kW'],['M12010','CC 120kW'],['M120','CC 120kW'],
   ['M160','CC 160kW'],['M180','CC 180kW'],['M240','CC 240kW'],
   ['D030','CC 30kW Wall'],['2160','CA 250W'],
@@ -1374,15 +1400,14 @@ function rEV(){
   const WHC_L={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
   const WH_LIST=['CWB','FOR','MAO-LIV','MAO-ELE'];
   // Inclui matéria-prima E acessórios que são componentes de carregadores
+  const evKeywords=['CARREGADOR','PEDESTAL','CABO DE CARGA','CONECTOR CCS','CHADEMO','CABO EV',
+    'MOTION','ATOM','LIVOLTEK EV','ELETROPOSTO','TOMADA','PLUG'];
   const mpItems=ST.filter(r=>{
     const match=(!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q))&&(!wh||r.wh===wh);
-    const isEvComp=isMateriaP(r)||(r.cat==='acessorio'&&(
-      r.descricao.toUpperCase().includes('CARREGADOR')||
-      r.descricao.toUpperCase().includes('PEDESTAL')||
-      r.descricao.toUpperCase().includes('CABO DE CARGA')||
-      r.descricao.toUpperCase().includes('CONECTOR CCS')||
-      r.descricao.toUpperCase().includes('CONECTOR CHAdeMO')||
-      r.descricao.toUpperCase().includes('CABO EV')));
+    const du=r.descricao.toUpperCase();
+    // Excluir matéria-prima de inversores (GT1/GT3/HP)
+    const isInvMP=isMateriaP(r)&&(du.includes('GT1')||du.includes('GT3')||du.includes('HP1')||du.includes('HP3')||du.includes('INVERSOR'));
+    const isEvComp=!isInvMP&&(isMateriaP(r)||(r.cat==='acessorio'&&evKeywords.some(k=>du.includes(k))));
     return match && isEvComp;
   });
   const mpSec=document.getElementById('ev-mp-sec');
