@@ -578,6 +578,7 @@ function parseTOTVS(csv, wh){
     return (armz==='7'||armz==='07') && dArm.includes('VENDAS');
   }).map(r=>{
     const o={wh, codigo:String(r[0]).trim(), descricao:String(r[3]).trim(),
+             um:String(r[4]||'').trim().toUpperCase(),
              saldo:pn(r[7]), empenho:pn(r[8]), reserva:0, disp:0};
     const cl=classify(o.codigo,o.descricao); o.cat=cl.cat; o.familia=cl.familia;
     return o;
@@ -602,6 +603,7 @@ function parseEletra(csv, wh){
       const o={wh,
         codigo:   String(r[0]).trim(),
         descricao:String(r[2]||r[1]||'').trim(),
+        um:       'UN',
         saldo:    pn(r[3]),
         empenho:  0, reserva:0, disp:0};
       const cl=classify(String(r[1]||r[0]).trim(), o.descricao);
@@ -830,14 +832,16 @@ function buildBar(wh){
   const cats=['inversor','bess','ev','kit','acessorio','outro'];
   const cl={inversor:'Inversores',bess:'BESS',ev:'Carregadores EV',kit:'Kit Solar',acessorio:'Acessórios',outro:'Outros'};
   let labels,sals,disps;
+  // Filtro: apenas produtos contados em unidades (UN/PC) para não distorcer com metros/kg
+  const isUnit=r=>!r.um||['UN','PC','KIT'].includes(r.um);
   if(wh==='TODOS'){
     labels=cats.map(c=>cl[c]);
-    sals=cats.map(c=>ST.filter(r=>r.cat===c).reduce((a,r)=>a+r.saldo,0));
-    disps=cats.map(c=>ST.filter(r=>r.cat===c).reduce((a,r)=>a+r.disp,0));
+    sals=cats.map(c=>ST.filter(r=>r.cat===c&&isUnit(r)).reduce((a,r)=>a+r.saldo,0));
+    disps=cats.map(c=>ST.filter(r=>r.cat===c&&isUnit(r)).reduce((a,r)=>a+r.disp,0));
   }else{
     labels=cats.map(c=>cl[c]);
-    sals=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c).reduce((a,r)=>a+r.saldo,0));
-    disps=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c).reduce((a,r)=>a+r.disp,0));
+    sals=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c&&isUnit(r)).reduce((a,r)=>a+r.saldo,0));
+    disps=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c&&isUnit(r)).reduce((a,r)=>a+r.disp,0));
   }
   if(barInst) barInst.destroy();
   barInst=new Chart(document.getElementById('barChart').getContext('2d'),{
@@ -853,7 +857,8 @@ function buildBar(wh){
   });
   document.getElementById('bar-leg').innerHTML=
     `<div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:2px;background:#93c5fd"></span>Saldo em Estoque</div>
-     <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:2px;background:#1E3A5F"></span>Disponível para Venda</div>`;
+     <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:2px;background:#1E3A5F"></span>Disponível para Venda</div>
+     <div style="font-size:10px;color:var(--txtm);margin-left:8px">* apenas produtos em UN/PC — cabos e itens em metro/kg nas abas de detalhe</div>`;
 }
 
 function setCW(wh,btn){
