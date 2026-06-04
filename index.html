@@ -774,16 +774,19 @@ function stdRow(r,showCat,showFam){
     <td>${sbadge(r.disp)}</td>
   </tr>`;
 }
-function filtered(q,wh,cat){
+function filtered(q,wh,cat,includeCabos){
   return ST.filter(r=>{
     const mq=!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q);
     const mw=!wh||r.wh===wh;
     const mc=!cat||r.cat===cat;
-    return mq&&mw&&mc;
+    // Cabos só aparecem na aba Acessórios — excluir de todas as outras
+    const cab=includeCabos||r.cat==='acessorio'?true:!isCabo(r);
+    return mq&&mw&&mc&&cab;
   }).sort((a,b)=>a.codigo.localeCompare(b.codigo));
 }
 function catKPIs(cat,el){
-  const rows=ST.filter(r=>r.cat===cat);
+  // Acessórios inclui cabos; outras categorias não
+  const rows=ST.filter(r=>r.cat===cat&&(cat==='acessorio'||!isCabo(r)));
   el.innerHTML=`
     <div class="kpi c-b"><div class="ki"><i class="ti ti-database"></i></div><div class="kl">SKUs</div><div class="kv">${rows.length}</div><div class="ks">produtos ativos</div></div>
     <div class="kpi c-b"><div class="ki"><i class="ti ti-packages"></i></div><div class="kl">Saldo em Estoque</div><div class="kv">${fmt(rows.reduce((a,r)=>a+r.saldo,0))}</div><div class="ks">físico TOTVS</div></div>
@@ -815,11 +818,12 @@ const _dlp={id:'dl',afterDatasetsDraw(chart){
 }};
 
 function rDash(){
-  document.getElementById('k-skus').textContent=ST.length;
-  document.getElementById('k-sal').textContent=fmt(ST.reduce((a,r)=>a+r.saldo,0));
-  document.getElementById('k-emp').textContent=fmt(ST.reduce((a,r)=>a+r.empenho,0));
-  document.getElementById('k-res').textContent=fmt(ST.reduce((a,r)=>a+r.reserva,0));
-  document.getElementById('k-disp').textContent=fmt(ST.reduce((a,r)=>a+r.disp,0));
+  const STnc=ST.filter(r=>!isCabo(r)); // sem cabos para KPIs
+  document.getElementById('k-skus').textContent=STnc.length;
+  document.getElementById('k-sal').textContent=fmt(STnc.reduce((a,r)=>a+r.saldo,0));
+  document.getElementById('k-emp').textContent=fmt(STnc.reduce((a,r)=>a+r.empenho,0));
+  document.getElementById('k-res').textContent=fmt(STnc.reduce((a,r)=>a+r.reserva,0));
+  document.getElementById('k-disp').textContent=fmt(STnc.reduce((a,r)=>a+r.disp,0));
   buildBar('TODOS'); buildDonut(); buildTopTables();
 }
 
@@ -833,7 +837,7 @@ function buildBar(wh){
   const cl={inversor:'Inversores',bess:'BESS',ev:'Carregadores EV',kit:'Kit Solar',acessorio:'Acessórios',outro:'Outros'};
   let labels,sals,disps;
   // Filtro: apenas produtos contados em unidades (UN/PC) para não distorcer com metros/kg
-  const isUnit=r=>!r.um||['UN','PC','KIT'].includes(r.um);
+  const isUnit=r=>(!r.um||['UN','PC','KIT'].includes(r.um))&&!isCabo(r);
   if(wh==='TODOS'){
     labels=cats.map(c=>cl[c]);
     sals=cats.map(c=>ST.filter(r=>r.cat===c&&isUnit(r)).reduce((a,r)=>a+r.saldo,0));
@@ -903,15 +907,26 @@ function isMateriaP(r){
          r.descricao.toLowerCase().includes('materia-prima');
 }
 
+
+// Identifica cabos, fios e itens medidos em metros — só aparecem em Acessórios
+function isCabo(r){
+  const um=(r.um||'').toUpperCase();
+  const du=r.descricao.toUpperCase();
+  return um==='MT'||um==='RL'||
+    du.includes('CABO ')||du.includes('FIO ')||
+    du.includes('CABO FOTOVOLTAICO')||du.includes('CABO SOLAR')||
+    du.includes('CABO DE ')||du.includes('CABO FLEX');
+}
+
 function buildTopTables(){
   // Inversores — sem matéria-prima
-  const invRows=[...ST].filter(r=>r.cat==='inversor'&&!isMateriaP(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
+  const invRows=[...ST].filter(r=>r.cat==='inversor'&&!isMateriaP(r)&&!isCabo(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
   // Carregadores EV — sem matéria-prima, sem acessórios
-  const evRows=[...ST].filter(r=>r.cat==='ev'&&!isMateriaP(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
+  const evRows=[...ST].filter(r=>r.cat==='ev'&&!isMateriaP(r)&&!isCabo(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
   // Matéria-Prima — todos os SKUs com "matéria-prima" na descrição
   const mpRows=[...ST].filter(r=>isMateriaP(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
   // Acessórios — sem matéria-prima
-  const accRows=[...ST].filter(r=>r.cat==='acessorio'&&!isMateriaP(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
+  const accRows=[...ST].filter(r=>r.cat==='acessorio'&&!isMateriaP(r)&&!isCabo(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
 
   const mI=invRows[0]?.disp||1, mE=evRows[0]?.disp||1;
   const mMP=mpRows[0]?.disp||1, mAcc=accRows[0]?.disp||1;
@@ -936,7 +951,7 @@ function rAll(){
   const wh=document.getElementById('all-wh')?.value||'';
   const cat=document.getElementById('all-cat')?.value||'';
   const dsp=document.getElementById('all-dsp')?.value||'';
-  let rows=filtered(q,wh,cat);
+  let rows=filtered(q,wh,cat,false);
   if(dsp==='1') rows=rows.filter(r=>r.disp>0);
   else if(dsp==='0') rows=rows.filter(r=>r.disp===0);
   document.getElementById('all-tbl').innerHTML=rows.map(r=>`<tr style="${r.disp===0&&r.saldo>0?'background:#fff9f9':''}">
