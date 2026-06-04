@@ -1261,8 +1261,10 @@ function buildCatCards(cat, pillFams, pillColors, containerId, kpiId, cntId, qId
       </div>`:''}
     </button>`];
 
+    const seenLabels=new Set();
     pillFams.forEach(([pfx,lbl])=>{
-      if(!famCounts[lbl]) return;
+      if(!famCounts[lbl]||seenLabels.has(lbl)) return;
+      seenLabels.add(lbl);
       const active=curFam===lbl;
       const col=pillColors[lbl]||'#475569';
       const salF=allItems.filter(r=>famKey(r)===lbl).reduce((a,r)=>a+r.saldo,0);
@@ -1386,11 +1388,22 @@ function rBess(){
 // ── CARREGADORES EV
 window.evFilter='';
 const EV_FAMS=[
-  ['A0220','CA 22kW'],['A007','CA 7kW'],
-  ['C030','CC 30kW Compact'],['C040','CC 40kW'],['C050','CC 50kW'],['C060','CC 60kW'],
-  ['M060','CC 60kW Mob'],['M1201000','CC 120kW'],['M12010','CC 120kW'],['M120','CC 120kW'],
-  ['M160','CC 160kW'],['M180','CC 180kW'],['M240','CC 240kW'],
-  ['D030','CC 30kW Wall'],['2160','CA 250W'],
+  // CA — corrente alternada, ordem por potência
+  ['A007','CA 7kW'],
+  ['A0220','CA 22kW'],
+  // CC — corrente contínua, ordem por potência
+  ['C030','CC 30kW'],
+  ['C040','CC 40kW'],
+  ['C050','CC 50kW'],
+  ['C060','CC 60kW'],
+  ['M060','CC 60kW Mob'],
+  // CC 120kW — todos os prefixos M1201000, M12010, M120 mapeiam para o mesmo label
+  ['M1201000','CC 120kW'],['M12010','CC 120kW'],['M120','CC 120kW'],
+  ['M160','CC 160kW'],
+  ['M180','CC 180kW'],
+  ['M240','CC 240kW'],
+  ['D030','CC 30kW Wall'],
+  ['2160','CA 250W'],
 ];
 const EV_COLORS={'CA 7kW':'#15803d','CA 22kW':'#166534',
   'CC 30kW':'#1E3A5F','CC 40kW':'#1d4ed8','CC 50kW':'#2563eb',
