@@ -951,14 +951,18 @@ function isMateriaP(r){
 }
 
 
-// Identifica cabos, fios e itens medidos em metros — só aparecem em Acessórios
+// Identifica cabos/fios medidos em metros — SÓ aparecem em Acessórios
+// REGRA: é cabo se a UM é MT/RL OU a descrição COMEÇA com CABO/FIO
+// NÃO excluir produtos que apenas mencionam "cabo" no meio da descrição
 function isCabo(r){
   const um=(r.um||'').toUpperCase();
-  const du=r.descricao.toUpperCase();
-  return um==='MT'||um==='RL'||
-    du.includes('CABO ')||du.includes('FIO ')||
-    du.includes('CABO FOTOVOLTAICO')||du.includes('CABO SOLAR')||
-    du.includes('CABO DE ')||du.includes('CABO FLEX');
+  const du=r.descricao.toUpperCase().trimStart();
+  // Unidade de medida em metros ou rolo = definitivamente cabo
+  if(um==='MT'||um==='RL') return true;
+  // Descrição começa com CABO ou FIO = produto principal é um cabo
+  if(du.startsWith('CABO ')||du.startsWith('FIO ')||
+     du.startsWith('CABO FOTOVOLTAICO')||du.startsWith('CABO SOLAR')) return true;
+  return false;
 }
 
 function buildTopTables(){
