@@ -2,90 +2,98 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LIVOLTEK | Estoque Comercial Brasil</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LIVOLTEK | Estoque Comercial</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
 :root{
-  --pri:#1E3A5F;--pri-pale:#e8eef6;
+  --pri:#1E3A5F;--pri-l:#2a4f7c;--pri-pale:#e8eef6;
   --grn:#22C55E;--grn-d:#15803d;--grn-pale:#dcfce7;
   --amb:#F59E0B;--amb-d:#b45309;--amb-pale:#fef3c7;
   --red:#EF4444;--red-pale:#fee2e2;
   --pur:#7c3aed;--pur-pale:#ede9fe;
-  --org:#f97316;--org-pale:#ffedd5;
   --bg:#f0f4f8;--surf:#fff;--surf2:#f8fafc;
   --brd:#e2e8f0;--txt:#0f172a;--txt2:#475569;--txtm:#94a3b8;
-  --r:10px;--rl:14px;
+  --r:10px;--rl:12px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;min-height:100vh}
-
+.app{display:flex;flex-direction:column;min-height:100vh}
 /* HDR */
-.hdr{background:var(--pri);padding:0 1.75rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200;gap:12px}
-.hdr-l{display:flex;align-items:center;gap:.875rem;flex-shrink:0}
-.logo{width:30px;height:30px;background:linear-gradient(135deg,#22C55E,#16a34a);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px}
+.hdr{background:var(--pri);padding:0 1.75rem;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:200;gap:12px}
+.hdr-l{display:flex;align-items:center;gap:.875rem}
+.logo{width:28px;height:28px;background:linear-gradient(135deg,#22C55E,#16a34a);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
 .hdr-t{color:#fff;font-size:14px;font-weight:600}
-.hdr-s{color:rgba(255,255,255,.45);font-size:11px}
-.hdr-r{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.hdr-s{color:rgba(255,255,255,.4);font-size:11px}
+.hdr-r{display:flex;align-items:center;gap:7px}
 .sbadge{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:4px 10px;color:rgba(255,255,255,.88);font-size:11px;white-space:nowrap}
-.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot{width:6px;height:6px;border-radius:50%}
 .dot-g{background:#22C55E;animation:blink 2s infinite}.dot-r{background:#EF4444}.dot-a{background:#F59E0B;animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
-.sync-t{color:rgba(255,255,255,.42);font-size:11px;white-space:nowrap}
-.hbtn{display:flex;align-items:center;gap:5px;height:32px;padding:0 11px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.82);cursor:pointer;font-size:12px;font-family:inherit;font-weight:500;transition:all .15s}
+.sync-t{color:rgba(255,255,255,.4);font-size:11px;white-space:nowrap}
+.hbtn{display:flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.82);cursor:pointer;font-size:12px;font-family:inherit;font-weight:500;transition:all .15s}
 .hbtn:hover{background:rgba(255,255,255,.14);color:#fff}
-.hbtn:disabled{opacity:.35;cursor:not-allowed}
-.hico{width:32px;height:32px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s}
+.hico{width:30px;height:30px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s}
 .hico:hover{background:rgba(255,255,255,.14);color:#fff}
-
 /* NAV */
 .nav{background:var(--surf);border-bottom:1px solid var(--brd);padding:0 1.75rem;display:flex;overflow-x:auto;scrollbar-width:none}
 .nav::-webkit-scrollbar{display:none}
-.tbtn{display:flex;align-items:center;gap:5px;padding:0 13px;height:44px;border:none;background:none;color:var(--txt2);font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
-.tbtn i{font-size:14px}
+.tbtn{display:flex;align-items:center;gap:5px;padding:0 13px;height:42px;border:none;background:none;color:var(--txt2);font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.tbtn i{font-size:13px}
 .tbtn:hover{color:var(--pri)}
 .tbtn.active{color:var(--pri);border-bottom-color:var(--pri)}
-
 /* MAIN */
 .main{flex:1;padding:1.25rem 1.75rem;max-width:1680px;width:100%;margin:0 auto}
 .tab{display:none}.tab.active{display:block}
-
 /* LOADING */
 .ld{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;gap:.875rem;color:var(--txt2);min-height:400px}
-.spin{width:34px;height:34px;border:3px solid var(--brd);border-top-color:var(--pri);border-radius:50%;animation:spin .75s linear infinite}
+.spin{width:32px;height:32px;border:3px solid var(--brd);border-top-color:var(--pri);border-radius:50%;animation:spin .75s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.ld-lbl{font-size:14px;font-weight:500}
-.ld-sub{font-size:12px;color:var(--txtm)}
+.ld-lbl{font-size:14px;font-weight:500}.ld-sub{font-size:12px;color:var(--txtm)}
 .ebox{background:#fff1f2;border:1px solid #fecdd3;border-radius:var(--r);padding:.875rem 1.125rem;color:#be123c;font-size:13px;display:flex;gap:8px;align-items:flex-start;margin:1rem 0}
-
-/* KPIs */
-.kg{display:grid;gap:12px;margin-bottom:1.5rem}
-.kg-5{grid-template-columns:repeat(5,1fr)}.kg-4{grid-template-columns:repeat(4,1fr)}.kg-3{grid-template-columns:repeat(3,1fr)}
-.kpi{background:var(--surf);border-radius:var(--rl);padding:1rem 1.125rem;border:1px solid var(--brd);position:relative;overflow:hidden}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.kpi.c-b::before{background:var(--pri)}.kpi.c-g::before{background:var(--grn)}.kpi.c-a::before{background:var(--amb)}
-.kpi.c-p::before{background:var(--pur)}.kpi.c-o::before{background:var(--org)}.kpi.c-t::before{background:#0891b2}
-.ki{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:9px}
-.kpi.c-b .ki{background:var(--pri-pale);color:var(--pri)}.kpi.c-g .ki{background:var(--grn-pale);color:var(--grn-d)}
-.kpi.c-a .ki{background:var(--amb-pale);color:var(--amb-d)}.kpi.c-p .ki{background:var(--pur-pale);color:var(--pur)}
-.kpi.c-o .ki{background:var(--org-pale);color:var(--org)}.kpi.c-t .ki{background:#e0f7fa;color:#0891b2}
-.kl{font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.55px;margin-bottom:3px}
-.kv{font-size:25px;font-weight:700;color:var(--txt);line-height:1.1;font-family:'DM Mono',monospace;letter-spacing:-1px}
-.ks{font-size:10px;color:var(--txtm);margin-top:4px}
-
-/* CARD */
-.card{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem}
-.ch{padding:.75rem 1.125rem;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px;min-height:46px}
-.ct{font-size:13px;font-weight:600;color:var(--txt);display:flex;align-items:center;gap:6px}
-.ct i{color:var(--pri);font-size:15px}
-.cb{padding:1.125rem}
-.cf{padding:7px 14px;border-top:1px solid var(--brd);font-size:11px;color:var(--txtm)}
-
+/* PILLS */
+.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem}
+.pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;border-radius:10px;cursor:pointer;border:2px solid var(--brd);background:var(--surf);transition:all .15s;min-width:100px}
+.pill:hover{border-color:var(--pri)}
+.pill.active{background:var(--pri);border-color:var(--pri)}
+.pill-lbl{font-size:11px;font-weight:700;color:var(--txt2)}
+.pill.active .pill-lbl{color:#fff}
+.pill-val{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;color:var(--pri)}
+.pill.active .pill-val{color:#fff}
+.pill-sub{font-size:10px;color:var(--txtm)}
+.pill.active .pill-sub{color:rgba(255,255,255,.6)}
+.pill-meta{font-size:9px;margin-top:2px;display:flex;gap:5px}
+/* FILTERS */
+.fb{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.sbar{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--brd);border-radius:7px;padding:0 10px;height:32px}
+.sbar i{color:var(--txtm);font-size:13px}
+.sbar input{border:none;background:none;outline:none;font-size:12px;color:var(--txt);font-family:inherit;width:180px}
+.sbar input::placeholder{color:var(--txtm)}
+.sel{height:32px;padding:0 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;font-family:inherit;background:var(--surf);color:var(--txt)}
+/* CARDS GRID */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:1.25rem}
+/* PRODUCT CARD */
+.pcard{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:.875rem 1rem;position:relative}
+.pcard.mp{border-left:3px solid var(--red)}
+.pcard-fam{position:absolute;top:.75rem;right:.75rem;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px}
+.pcard-cod{font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;margin-bottom:2px;padding-right:70px}
+.pcard-desc{font-size:10px;color:var(--txtm);margin-bottom:.75rem;line-height:1.4;padding-right:70px}
+.pcard-disp-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txtm);margin-bottom:1px}
+.pcard-disp{font-size:30px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1;margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--brd)}
+.pcard-row{display:flex;justify-content:space-between;align-items:center;padding:2px 0}
+.pcard-row-lbl{font-size:12px}
+.pcard-row-val{font-size:13px;font-weight:600;font-family:'DM Mono',monospace}
+.pcard-divider{height:1px;background:var(--brd);margin:.5rem 0}
+.mp-badge{font-size:9px;font-weight:700;color:var(--red);background:var(--red-pale);padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:.5rem}
 /* TABLE */
-.tw{overflow-x:auto;max-height:520px;overflow-y:auto}
+.card{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem}
+.ch{padding:.75rem 1.125rem;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px}
+.ct{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
+.ct i{color:var(--pri)}
+.tw{overflow-x:auto;max-height:500px;overflow-y:auto}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 .tbl th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txtm);padding:7px 11px;border-bottom:1px solid var(--brd);white-space:nowrap;background:var(--surf2);position:sticky;top:0;z-index:2}
 .tbl th.r{text-align:right}
@@ -93,66 +101,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .tbl td.r{text-align:right;font-family:'DM Mono',monospace;font-size:12px}
 .tbl tr:hover td{background:#fafbfc}
 .tbl tr:last-child td{border-bottom:none}
-.cod{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)}
-.pname{font-weight:500;font-size:12px}
-
-/* BADGES */
-.sb{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px}
-.sb.hi{background:#dcfce7;color:#15803d}.sb.mid{background:#fef3c7;color:#b45309}
-.sb.lo{background:#fee2e2;color:#dc2626}.sb.zr{background:#f1f5f9;color:#64748b}
-
-/* SPARK */
-.spw{display:flex;align-items:center;gap:5px}
-.spb{height:5px;border-radius:3px;background:var(--pri-pale);flex:1;position:relative;overflow:hidden;min-width:50px}
-.spf{position:absolute;left:0;top:0;bottom:0;border-radius:3px}
-
-/* CHIPS / FILTER */
-.chips{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
-.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--brd);border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;background:var(--surf);color:var(--txt2);font-family:inherit;transition:all .15s}
-.chip:hover{border-color:var(--pri);color:var(--pri)}
-.chip.active{background:var(--pri);border-color:var(--pri);color:#fff}
-.fb{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
-.sbar{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--brd);border-radius:7px;padding:0 10px;height:32px}
-.sbar i{color:var(--txtm);font-size:13px}
-.sbar input{border:none;background:none;outline:none;font-size:12px;color:var(--txt);font-family:inherit;width:160px}
-.sbar input::placeholder{color:var(--txtm)}
-.sel{height:32px;padding:0 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;font-family:inherit;background:var(--surf);color:var(--txt)}
-
-/* CHARTS */
-.cg2{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:1.25rem}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.g2 .card{margin-bottom:0}
-
-/* WH CARDS */
-.whg{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:1.25rem}
-.whc{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:.875rem 1rem;cursor:pointer;transition:all .2s;border-left:4px solid transparent}
-.whc:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.whc.sel{box-shadow:0 0 0 2px var(--pri-pale)}
-.wn{font-size:11px;font-weight:700;margin-bottom:1px}
-.wloc{font-size:10px;color:var(--txtm);margin-bottom:8px}
-.wv{font-size:20px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px}
-.ws{font-size:10px;margin-top:1px}
-.winfo{font-size:10px;color:var(--txtm);margin-top:4px}
-.wh-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.25rem}
-.whs-c{background:var(--surf2);border:1px solid var(--brd);border-radius:var(--r);padding:.75rem 1rem}
-.whs-l{font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
-.whs-v{font-size:18px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px}
-.crit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
-
-/* ACCORDION */
-.acc-group{border:1px solid var(--brd);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
-.acc-hdr{display:flex;align-items:center;justify-content:space-between;padding:.625rem 1rem;background:var(--surf2);cursor:pointer;user-select:none;font-weight:600;font-size:12px}
-.acc-hdr:hover{background:#f1f5f9}
-.acc-hdr .cnt{font-size:11px;color:var(--txtm);font-weight:400;margin-left:8px}
-.acc-hdr .ico{font-size:14px;transition:transform .2s;color:var(--txtm)}
-.acc-hdr.open .ico{transform:rotate(180deg)}
-.acc-body{display:none}
-.acc-hdr.open+.acc-body{display:block}
-
-/* RESERVAS */
-.res-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem}
-
-/* ALERTAS */
+.cf{padding:7px 14px;border-top:1px solid var(--brd);font-size:11px;color:var(--txtm)}
+/* SECTION */
+.sec-sep{display:flex;align-items:center;gap:8px;margin:.75rem 0}
+.sec-sep-line{height:1px;flex:1;background:var(--brd)}
+.sec-sep-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;padding:3px 10px;border-radius:20px}
+/* ALERTA */
 .alrt-block{border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem}
 .alrt-hdr{padding:.75rem 1.125rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px}
 .alrt-hdr.red{background:#fff1f2;border:1px solid #fecdd3;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
@@ -161,56 +115,61 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .alrt-hdr.pur{background:var(--pur-pale);border:1px solid #c4b5fd;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
 .alrt-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
 .alrt-body{background:var(--surf);border:1px solid var(--brd);border-radius:0 0 var(--rl) var(--rl)}
-
-.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:.875rem;flex-wrap:wrap;gap:7px}
-.st{font-size:13px;font-weight:600;display:flex;align-items:center;gap:7px}
-.st i{color:var(--pri);font-size:16px}
+/* KPI */
+.kg{display:grid;gap:12px;margin-bottom:1.5rem}
+.kg-5{grid-template-columns:repeat(5,1fr)}.kg-4{grid-template-columns:repeat(4,1fr)}.kg-3{grid-template-columns:repeat(3,1fr)}
+.kpi{background:var(--surf);border-radius:var(--rl);padding:1rem 1.125rem;border:1px solid var(--brd);position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.c-b::before{background:var(--pri)}.kpi.c-g::before{background:var(--grn)}.kpi.c-a::before{background:var(--amb)}.kpi.c-p::before{background:var(--pur)}
+.ki{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px}
+.kpi.c-b .ki{background:var(--pri-pale);color:var(--pri)}.kpi.c-g .ki{background:var(--grn-pale);color:var(--grn-d)}.kpi.c-a .ki{background:var(--amb-pale);color:var(--amb-d)}.kpi.c-p .ki{background:var(--pur-pale);color:var(--pur)}
+.kl{font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.kv{font-size:24px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-1px}
+.ks{font-size:10px;color:var(--txtm);margin-top:3px}
+.cg2{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:1.25rem}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.25rem}
+.leg{display:flex;flex-direction:column;gap:5px}
+.leg-r{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f8f8f8}
+.leg-r:last-child{border-bottom:none}
+.leg-d{width:8px;height:8px;border-radius:2px}
 .banner{border-radius:var(--r);padding:8px 13px;margin-bottom:1rem;font-size:12px;display:flex;align-items:center;gap:7px}
 .bn-pur{background:var(--pur-pale);border:1px solid #c4b5fd;color:#5b21b6}
-.bn-grn{background:var(--grn-pale);border:1px solid #bbf7d0;color:#15803d}
-.bn-blu{background:var(--pri-pale);border:1px solid #bfdbfe;color:var(--pri)}
-.bn-amb{background:var(--amb-pale);border:1px solid #fcd34d;color:var(--amb-d)}
-.leg{display:flex;flex-direction:column;gap:6px}
-.leg-r{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #f8f8f8}
-.leg-r:last-child{border-bottom:none}
-.leg-d{width:9px;height:9px;border-radius:2px;flex-shrink:0}
-.wt{font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px}
-
-.inv-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);transform:translateY(-2px)}
-@media(max-width:1300px){.kg-5{grid-template-columns:repeat(3,1fr)}.cg2{grid-template-columns:1fr}.whg{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:900px){.main{padding:.875rem}.kg-5,.kg-4{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}.whg{grid-template-columns:repeat(2,1fr)}.res-sum{grid-template-columns:repeat(2,1fr)}}
+/* WH tag */
+.wt{font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px}
+@media(max-width:1300px){.kg-5{grid-template-columns:repeat(3,1fr)}.cg2{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
+@media(max-width:900px){.main{padding:.875rem}.kg-5,.kg-4{grid-template-columns:repeat(2,1fr)}.cards-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div style="display:flex;flex-direction:column;min-height:100vh">
+<div class="app">
 
 <header class="hdr">
   <div class="hdr-l">
     <div class="logo">LV</div>
     <div>
-      <div class="hdr-t">LIVOLTEK | Estoque Comercial Brasil</div>
+      <div class="hdr-t">LIVOLTEK | Estoque Comercial</div>
       <div class="hdr-s">Armazém 07 · Saldo − Em Separação − Reserva = Disponível para Venda</div>
     </div>
   </div>
   <div class="hdr-r">
     <div class="sbadge"><span class="dot dot-a" id="sdot"></span><span id="stxt">Carregando...</span></div>
     <span class="sync-t" id="sync-t"></span>
-    <button class="hico" title="Recarregar dados" onclick="boot()" id="btn-reload"><i class="ti ti-refresh"></i></button>
+    <button class="hico" onclick="boot()"><i class="ti ti-refresh"></i></button>
     <button class="hbtn" id="btn-csv" onclick="exportCSV()" disabled><i class="ti ti-table-export" style="font-size:12px"></i> Excel</button>
     <button class="hbtn" onclick="window.print()"><i class="ti ti-file-type-pdf" style="font-size:12px"></i> PDF</button>
   </div>
 </header>
 
-<nav class="nav" role="tablist">
+<nav class="nav">
   <button class="tbtn active" onclick="go('dash',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-  <button class="tbtn" onclick="go('todos',this)"><i class="ti ti-packages"></i> Todos os Produtos</button>
   <button class="tbtn" onclick="go('inv',this)"><i class="ti ti-sun"></i> Inversores</button>
   <button class="tbtn" onclick="go('bess',this)"><i class="ti ti-battery-charging"></i> BESS</button>
-  <button class="tbtn" onclick="go('ev',this)"><i class="ti ti-bolt"></i> Carregadores EV &amp; Acessórios</button>
+  <button class="tbtn" onclick="go('ev',this)"><i class="ti ti-bolt"></i> Carregadores EV</button>
+  <button class="tbtn" onclick="go('kit',this)"><i class="ti ti-solar-panel"></i> Kit Solar</button>
   <button class="tbtn" onclick="go('acc',this)"><i class="ti ti-tool"></i> Acessórios</button>
-  <button class="tbtn" onclick="go('kit',this)"><i class="ti ti-solar-panel"></i> Kit Solar &amp; Apoio</button>
+  <button class="tbtn" onclick="go('mp',this)"><i class="ti ti-box"></i> Matéria-Prima</button>
   <button class="tbtn" onclick="go('res',this)"><i class="ti ti-bookmark"></i> Reservas</button>
-  <button class="tbtn" onclick="go('arm',this)"><i class="ti ti-building-warehouse"></i> Armazéns</button>
+  <button class="tbtn" onclick="go('todos',this)"><i class="ti ti-packages"></i> Todos</button>
   <button class="tbtn" onclick="go('alrt',this)"><i class="ti ti-bell"></i> Alertas</button>
 </nav>
 
@@ -221,262 +180,174 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <!-- DASHBOARD -->
 <div id="tab-dash" class="tab active">
-  <div class="kg kg-5">
-    <div class="kpi c-o"><div class="ki"><i class="ti ti-database"></i></div><div class="kl">SKUs Armazém 07</div><div class="kv" id="k-skus">—</div><div class="ks">produtos ativos</div></div>
-    <div class="kpi c-b"><div class="ki"><i class="ti ti-packages"></i></div><div class="kl">Saldo em Estoque</div><div class="kv" id="k-sal">—</div><div class="ks">total físico TOTVS col. H</div></div>
-    <div class="kpi c-a"><div class="ki"><i class="ti ti-lock"></i></div><div class="kl">Em Separação no Estoque</div><div class="kv" id="k-emp">—</div><div class="ks">pedidos lançados no ERP</div></div>
-    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Reservas Comerciais</div><div class="kv" id="k-res">—</div><div class="ks">comprometido por vendedores</div></div>
-    <div class="kpi c-g"><div class="ki"><i class="ti ti-circle-check"></i></div><div class="kl">Disponível para Venda</div><div class="kv" id="k-disp">—</div><div class="ks">saldo − em separação − reservas</div></div>
+  <div class="kg kg-4">
+    <div class="kpi c-b"><div class="ki"><i class="ti ti-database"></i></div><div class="kl">SKUs Ativos</div><div class="kv" id="k-skus">—</div><div class="ks">produtos cadastrados</div></div>
+    <div class="kpi c-b"><div class="ki"><i class="ti ti-packages"></i></div><div class="kl">Saldo em Estoque</div><div class="kv" id="k-sal">—</div><div class="ks">total físico</div></div>
+    <div class="kpi c-g"><div class="ki"><i class="ti ti-circle-check"></i></div><div class="kl">Disponível para Venda</div><div class="kv" id="k-disp">—</div><div class="ks">saldo − sep. − reservas</div></div>
+    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Reservas Comerciais</div><div class="kv" id="k-res">—</div><div class="ks">comprometido</div></div>
   </div>
   <div class="cg2">
     <div class="card" style="margin-bottom:0">
       <div class="ch">
-        <span class="ct"><i class="ti ti-chart-bar"></i> Saldo em Estoque vs Disponível para Venda</span>
-        <div class="chips" id="dash-chips">
-          <button class="chip active" onclick="setCW('TODOS',this)">Todos</button>
-          <button class="chip" onclick="setCW('CWB',this)">CWB</button>
-          <button class="chip" onclick="setCW('FOR',this)">FOR</button>
-          <button class="chip" onclick="setCW('MAO-LIV',this)">MAO Livoltek</button>
-          <button class="chip" onclick="setCW('MAO-ELE',this)">MAO Eletra</button>
-        </div>
+        <span class="ct"><i class="ti ti-chart-bar"></i> Disponível por Categoria</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="dash-wh-chips"></div>
       </div>
-      <div class="cb">
-        <div style="position:relative;height:280px"><canvas id="barChart"></canvas></div>
-        <div id="bar-leg" style="display:flex;gap:18px;margin-top:10px;font-size:12px;color:var(--txt2)"></div>
+      <div style="padding:1.125rem"><div style="position:relative;height:260px"><canvas id="barChart"></canvas></div>
+        <div id="bar-leg" style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--txt2)"></div>
       </div>
     </div>
     <div class="card" style="margin-bottom:0">
       <div class="ch"><span class="ct"><i class="ti ti-building-warehouse"></i> Disponível por Armazém</span></div>
-      <div class="cb">
-        <div style="position:relative;height:185px;margin-bottom:.875rem"><canvas id="donutChart"></canvas></div>
+      <div style="padding:1.125rem">
+        <div style="position:relative;height:175px;margin-bottom:.875rem"><canvas id="donutChart"></canvas></div>
         <div class="leg" id="donut-leg"></div>
       </div>
     </div>
   </div>
-  <div class="g2" style="margin-bottom:1.25rem">
+  <div class="g2">
     <div class="card" style="margin-bottom:0">
-      <div class="ch"><span class="ct"><i class="ti ti-sun"></i> Top 10 Inversores</span></div>
+      <div class="ch"><span class="ct"><i class="ti ti-sun"></i> Top 10 Inversores — Disponível</span></div>
       <div class="tw"><table class="tbl">
-        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. Venda</th><th class="r" style="width:90px">Proporção</th></tr></thead>
+        <thead><tr><th>#</th><th>Nome Comercial</th><th>Armazém</th><th class="r">Disponível</th></tr></thead>
         <tbody id="top-inv"></tbody>
       </table></div>
     </div>
     <div class="card" style="margin-bottom:0">
-      <div class="ch"><span class="ct"><i class="ti ti-bolt"></i> Top 10 Carregadores EV</span></div>
+      <div class="ch"><span class="ct"><i class="ti ti-bolt"></i> Top 10 Carregadores EV — Disponível</span></div>
       <div class="tw"><table class="tbl">
-        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. Venda</th><th class="r" style="width:90px">Proporção</th></tr></thead>
+        <thead><tr><th>#</th><th>Nome Comercial</th><th>Armazém</th><th class="r">Disponível</th></tr></thead>
         <tbody id="top-ev"></tbody>
       </table></div>
     </div>
-  </div>
-  <div class="g2">
-    <div class="card" style="margin-bottom:0">
-      <div class="ch"><span class="ct"><i class="ti ti-tool"></i> Top 10 Matéria-Prima (MAO-LIV)</span></div>
-      <div class="tw"><table class="tbl">
-        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. Venda</th><th class="r" style="width:90px">Proporção</th></tr></thead>
-        <tbody id="top-mp"></tbody>
-      </table></div>
-    </div>
-    <div class="card" style="margin-bottom:0">
-      <div class="ch"><span class="ct"><i class="ti ti-tool"></i> Top 10 Acessórios &amp; Pedestais</span></div>
-      <div class="tw"><table class="tbl">
-        <thead><tr><th>#</th><th>Produto</th><th>WH</th><th class="r">Disp. Venda</th><th class="r" style="width:90px">Proporção</th></tr></thead>
-        <tbody id="top-acc"></tbody>
-      </table></div>
-    </div>
-  </div>
-</div>
-
-<!-- TODOS OS PRODUTOS -->
-<div id="tab-todos" class="tab">
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="all-q" placeholder="Código ou produto..." oninput="rAll()"></div>
-    <select class="sel" id="all-wh" onchange="rAll()"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
-    <select class="sel" id="all-cat" onchange="rAll()"><option value="">Todas as categorias</option><option value="inversor">Inversores</option><option value="bess">BESS</option><option value="ev">Carregadores EV</option><option value="kit">Kit Solar</option><option value="acessorio">Acessórios</option><option value="outro">Outros</option></select>
-    <select class="sel" id="all-dsp" onchange="rAll()"><option value="">Qualquer disponibilidade</option><option value="1">Disponível &gt; 0</option><option value="0">Zerado</option></select>
-  </div>
-  <div class="card">
-    <div class="tw"><table class="tbl">
-      <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>WH</th><th class="r">Saldo</th><th class="r">Em Separação</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead>
-      <tbody id="all-tbl"></tbody>
-    </table></div>
-    <div class="cf">Exibindo <span id="all-cnt">0</span> SKUs</div>
   </div>
 </div>
 
 <!-- INVERSORES -->
 <div id="tab-inv" class="tab">
-  <!-- KPI pills: SKUs totais + filtros GT1/GT3/HP -->
-  <div id="inv-kpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center"></div>
-  <!-- Filtros -->
+  <div class="pills" id="inv-pills"></div>
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Código ou descrição..." oninput="rInv()"></div>
-    <select class="sel" id="inv-wh" onchange="rInv()">
-      <option value="">Todos os armazéns</option>
-      <option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option>
-    </select>
+    <div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Código ou nome..." oninput="renderCat('inv')"></div>
+    <select class="sel" id="inv-wh" onchange="renderCat('inv')"><option value="">Todos os armazéns</option></select>
   </div>
-  <!-- Cards produtos acabados -->
-  <div id="inv-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:1.5rem"></div>
-  <!-- Seção matéria-prima -->
-  <div id="inv-mp-sec" style="display:none;margin-top:.5rem">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:.875rem">
-      <div style="height:1px;flex:1;background:var(--brd)"></div>
-      <span style="font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.6px;padding:3px 10px;border:1px solid var(--red);border-radius:20px">Matéria-Prima</span>
-      <div style="height:1px;flex:1;background:var(--brd)"></div>
-    </div>
-    <div id="inv-mp-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px"></div>
+  <div class="cards-grid" id="inv-cards"></div>
+  <div id="inv-mp-sec" style="display:none">
+    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Matéria-Prima</span><div class="sec-sep-line"></div></div>
+    <div class="cards-grid" id="inv-mp-cards"></div>
   </div>
-  <div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:7px 14px;font-size:11px;color:var(--txtm)">
-    <span id="inv-cnt">0</span> produtos acabados · <span id="inv-mp-cnt">0</span> matéria-prima
-  </div>
+  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="inv-cnt">0</span> SKUs · <span id="inv-mp-cnt">0</span> matéria-prima</div>
 </div>
 
 <!-- BESS -->
 <div id="tab-bess" class="tab">
-  <div id="bess-kpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center"></div>
+  <div class="pills" id="bess-pills"></div>
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="bess-q" placeholder="Código ou descrição..." oninput="rBess()"></div>
-    <select class="sel" id="bess-wh" onchange="rBess()"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
+    <div class="sbar"><i class="ti ti-search"></i><input id="bess-q" placeholder="Código ou nome..." oninput="renderCat('bess')"></div>
+    <select class="sel" id="bess-wh" onchange="renderCat('bess')"><option value="">Todos os armazéns</option></select>
   </div>
-  <div id="bess-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:1.5rem"></div>
-  <div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:7px 14px;font-size:11px;color:var(--txtm)">
-    <span id="bess-cnt">0</span> produtos
-  </div>
+  <div class="cards-grid" id="bess-cards"></div>
+  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="bess-cnt">0</span> SKUs</div>
 </div>
 
-<!-- CARREGADORES EV & ACESSÓRIOS -->
+<!-- CARREGADORES EV -->
 <div id="tab-ev" class="tab">
-  <div id="ev-kpis" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem;align-items:center"></div>
+  <div class="pills" id="ev-pills"></div>
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Código ou descrição..." oninput="rEV()"></div>
-    <select class="sel" id="ev-wh" onchange="rEV()"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
+    <div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Código ou nome..." oninput="renderCat('ev')"></div>
+    <select class="sel" id="ev-wh" onchange="renderCat('ev')"><option value="">Todos os armazéns</option></select>
   </div>
-  <div id="ev-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:1.5rem"></div>
-  <!-- Matéria-prima EV -->
-  <div id="ev-mp-sec" style="display:none;margin-top:.5rem">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:.875rem">
-      <div style="height:1px;flex:1;background:var(--brd)"></div>
-      <span style="font-size:11px;font-weight:600;color:var(--red);text-transform:uppercase;letter-spacing:.6px;padding:3px 10px;border:1px solid var(--red);border-radius:20px">Matéria-Prima / Acessórios EV</span>
-      <div style="height:1px;flex:1;background:var(--brd)"></div>
-    </div>
-    <div id="ev-mp-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px"></div>
+  <div class="cards-grid" id="ev-cards"></div>
+  <div id="ev-mp-sec" style="display:none">
+    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Acessórios / Componentes EV</span><div class="sec-sep-line"></div></div>
+    <div class="cards-grid" id="ev-mp-cards"></div>
   </div>
-  <div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--r);padding:7px 14px;font-size:11px;color:var(--txtm)">
-    <span id="ev-cnt">0</span> produtos · <span id="ev-mp-cnt">0</span> matéria-prima/acessórios
-  </div>
-</div>
-
-<!-- ACESSÓRIOS -->
-<div id="tab-acc" class="tab">
-  <div class="banner bn-pur"><i class="ti ti-info-circle" style="font-size:15px"></i> Cabos, conectores, terminais, fixação e demais acessórios. Clique para expandir cada grupo.</div>
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="acc-q" placeholder="Filtrar acessório..." oninput="rAcc()"></div>
-    <select class="sel" id="acc-wh" onchange="rAcc()"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
-  </div>
-  <div id="acc-groups"></div>
+  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="ev-cnt">0</span> SKUs</div>
 </div>
 
 <!-- KIT SOLAR -->
 <div id="tab-kit" class="tab">
-  <div class="banner bn-grn"><i class="ti ti-info-circle" style="font-size:15px"></i> Módulos fotovoltaicos, String Box, Medidores, PCS, Cabos fotovoltaicos e kits de instalação.</div>
-  <div class="kg kg-3" id="kit-kpis"></div>
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="kit-q" placeholder="Código ou produto..." oninput="rCat('kit')"></div>
-    <select class="sel" id="kit-wh" onchange="rCat('kit')"><option value="">Todos os armazéns</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
+    <div class="sbar"><i class="ti ti-search"></i><input id="kit-q" placeholder="Código ou nome..." oninput="renderCat('kit')"></div>
+    <select class="sel" id="kit-wh" onchange="renderCat('kit')"><option value="">Todos os armazéns</option></select>
   </div>
-  <div class="card">
-    <div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Família</th><th>WH</th><th class="r">Saldo</th><th class="r">Em Separação</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead><tbody id="kit-tbl"></tbody></table></div>
-    <div class="cf">Exibindo <span id="kit-cnt">0</span> SKUs</div>
+  <div class="cards-grid" id="kit-cards"></div>
+  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="kit-cnt">0</span> SKUs</div>
+</div>
+
+<!-- ACESSÓRIOS -->
+<div id="tab-acc" class="tab">
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="acc-q" placeholder="Código ou nome..." oninput="renderCat('acc')"></div>
+    <select class="sel" id="acc-wh" onchange="renderCat('acc')"><option value="">Todos os armazéns</option></select>
   </div>
+  <div class="cards-grid" id="acc-cards"></div>
+  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="acc-cnt">0</span> SKUs</div>
+</div>
+
+<!-- MATÉRIA-PRIMA -->
+<div id="tab-mp" class="tab">
+  <div class="banner bn-pur"><i class="ti ti-info-circle" style="font-size:14px"></i> Matéria-prima identificada pelo cadastro (Categoria = MATÉRIA-PRIMA). Nunca exibida em outras abas.</div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="mp-q" placeholder="Código ou nome..." oninput="renderCat('mp')"></div>
+    <select class="sel" id="mp-wh" onchange="renderCat('mp')"><option value="">Todos os armazéns</option></select>
+  </div>
+  <div class="cards-grid" id="mp-cards"></div>
+  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="mp-cnt">0</span> SKUs de matéria-prima</div>
 </div>
 
 <!-- RESERVAS -->
 <div id="tab-res" class="tab">
-  <div class="res-sum" id="res-sum-dir"></div>
   <div class="kg kg-4">
-    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Total Reservado</div><div class="kv" id="r-tot">—</div><div class="ks">unidades</div></div>
-    <div class="kpi c-b"><div class="ki"><i class="ti ti-list"></i></div><div class="kl">Linhas de Reserva</div><div class="kv" id="r-lin">—</div><div class="ks">registros</div></div>
-    <div class="kpi c-g"><div class="ki"><i class="ti ti-trophy"></i></div><div class="kl">Produto mais Reservado</div><div id="r-tp" style="font-size:12px;font-weight:600;margin-top:5px;line-height:1.4">—</div><div id="r-tpq" style="font-size:10px;color:var(--txtm);margin-top:3px">—</div></div>
-    <div class="kpi c-a"><div class="ki"><i class="ti ti-user"></i></div><div class="kl">Vendedor mais Ativo</div><div id="r-tv" style="font-size:12px;font-weight:600;margin-top:5px;line-height:1.4">—</div><div id="r-tvq" style="font-size:10px;color:var(--txtm);margin-top:3px">—</div></div>
+    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Total Reservado</div><div class="kv" id="r-tot">—</div></div>
+    <div class="kpi c-b"><div class="ki"><i class="ti ti-list"></i></div><div class="kl">Linhas de Reserva</div><div class="kv" id="r-lin">—</div></div>
+    <div class="kpi c-g"><div class="ki"><i class="ti ti-trophy"></i></div><div class="kl">Mais Reservado</div><div id="r-tp" style="font-size:12px;font-weight:600;margin-top:5px">—</div></div>
+    <div class="kpi c-a"><div class="ki"><i class="ti ti-user"></i></div><div class="kl">Vendedor Ativo</div><div id="r-tv" style="font-size:12px;font-weight:600;margin-top:5px">—</div></div>
   </div>
-  <div class="banner bn-pur"><i class="ti ti-info-circle" style="font-size:15px"></i> Reservas = compromissos comerciais <strong>não lançados no TOTVS</strong>. Em Separação = pedidos formalizados no ERP. Ambos descontados do saldo.</div>
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código, responsável..." oninput="rRes()"></div>
+    <div class="sbar"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código..." oninput="rRes()"></div>
     <select class="sel" id="res-dir" onchange="rRes()"><option value="">Todas as diretorias</option><option>Mobility</option><option>Distribution</option><option>Projects E-mobility</option><option>Eletra</option></select>
     <select class="sel" id="res-arm" onchange="rRes()"><option value="">Todos os armazéns</option><option value="Curitiba">Curitiba</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option></select>
   </div>
-  <div class="card">
-    <div class="tw"><table class="tbl">
-      <thead><tr><th>Cliente</th><th>Responsável</th><th>Diretoria</th><th>Código</th><th>WH</th><th class="r">Qtd</th><th>Solicitado</th><th>Observação</th></tr></thead>
-      <tbody id="res-tbl"></tbody>
-    </table></div>
-    <div class="cf">Exibindo <span id="res-cnt">0</span> registros · Fonte: RESERVAS.csv</div>
-  </div>
+  <div class="card"><div class="tw"><table class="tbl">
+    <thead><tr><th>Cliente</th><th>Responsável</th><th>Diretoria</th><th>Código</th><th>Armazém</th><th class="r">Qtd</th><th>Solicitado</th></tr></thead>
+    <tbody id="res-tbl"></tbody>
+  </table></div><div class="cf"><span id="res-cnt">0</span> registros</div></div>
 </div>
 
-<!-- ARMAZÉNS -->
-<div id="tab-arm" class="tab">
-  <div class="whg" id="wh-cards"></div>
-  <div class="wh-sum" id="wh-sum"></div>
-  <div class="sh">
-    <span class="st" id="wh-tit"><i class="ti ti-building-warehouse"></i> Selecione um armazém</span>
-    <div class="sbar"><i class="ti ti-search"></i><input id="wh-q" placeholder="Filtrar produto..." oninput="rWH()"></div>
+<!-- TODOS -->
+<div id="tab-todos" class="tab">
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="all-q" placeholder="Código, nome..." oninput="rAll()"></div>
+    <select class="sel" id="all-wh" onchange="rAll()"><option value="">Todos os armazéns</option></select>
+    <select class="sel" id="all-cat" onchange="rAll()"><option value="">Todas as categorias</option><option value="INVERSOR">Inversores</option><option value="BESS">BESS</option><option value="CARREGADOR">Carregadores EV</option><option value="KIT">Kit Solar</option><option value="ACESSÓRIO">Acessórios</option><option value="MATÉRIA-PRIMA">Matéria-Prima</option></select>
   </div>
-  <div class="crit-grid" id="wh-crit"></div>
-  <div class="card">
-    <div class="tw"><table class="tbl">
-      <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th class="r">Saldo</th><th class="r">Em Separação</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead>
-      <tbody id="wh-tbl"></tbody>
-    </table></div>
-    <div class="cf">Exibindo <span id="wh-cnt">0</span> SKUs · <span id="wh-sub"></span></div>
-  </div>
+  <div class="card"><div class="tw"><table class="tbl">
+    <thead><tr><th>Código</th><th>Nome Comercial</th><th>Família</th><th>Armazém</th><th class="r">Saldo</th><th class="r">Em Sep.</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disponível</th></tr></thead>
+    <tbody id="all-tbl"></tbody>
+  </table></div><div class="cf"><span id="all-cnt">0</span> SKUs</div></div>
 </div>
 
 <!-- ALERTAS -->
 <div id="tab-alrt" class="tab">
-  <div class="banner bn-amb"><i class="ti ti-bell" style="font-size:15px"></i> Central de risco comercial. Filtros independentes por bloco.</div>
   <div class="alrt-block">
     <div class="alrt-hdr red">
-      <span class="alrt-title" style="color:#be123c"><i class="ti ti-alert-triangle"></i> Reservas acima do Saldo — <span id="a1-cnt">0 itens</span></span>
-      <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <div class="sbar"><i class="ti ti-search"></i><input id="a1-q" placeholder="Filtrar..." oninput="rAlrt()"></div>
-        <select class="sel" id="a1-wh" onchange="rAlrt()"><option value="">Todos WH</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
-      </div>
+      <span class="alrt-title" style="color:#be123c"><i class="ti ti-alert-triangle"></i> Reservas acima do Saldo — <span id="a1-cnt">0</span></span>
+      <div style="display:flex;gap:7px"><div class="sbar"><i class="ti ti-search"></i><input id="a1-q" placeholder="Filtrar..." oninput="rAlrt()"></div><select class="sel" id="a1-wh" onchange="rAlrt()"><option value="">Todos WH</option></select></div>
     </div>
-    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r">Em Separação</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:#dc2626">Saldo Neg.</th></tr></thead><tbody id="a1-tbl"></tbody></table></div></div>
+    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Nome</th><th>Armazém</th><th class="r">Saldo</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:#dc2626">Neg.</th></tr></thead><tbody id="a1-tbl"></tbody></table></div></div>
   </div>
   <div class="alrt-block">
     <div class="alrt-hdr amb">
-      <span class="alrt-title" style="color:#92400e"><i class="ti ti-alert-circle"></i> Ruptura Iminente (1 a 5 unidades) — <span id="a2-cnt">0 itens</span></span>
-      <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <div class="sbar"><i class="ti ti-search"></i><input id="a2-q" placeholder="Filtrar..." oninput="rAlrt()"></div>
-        <select class="sel" id="a2-wh" onchange="rAlrt()"><option value="">Todos WH</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
-        <select class="sel" id="a2-cat" onchange="rAlrt()"><option value="">Todas cats</option><option value="inversor">Inversores</option><option value="bess">BESS</option><option value="ev">EV</option><option value="kit">Kit Solar</option></select>
-      </div>
+      <span class="alrt-title" style="color:#92400e"><i class="ti ti-alert-circle"></i> Ruptura Iminente (1–5 unid.) — <span id="a2-cnt">0</span></span>
+      <div style="display:flex;gap:7px"><div class="sbar"><i class="ti ti-search"></i><input id="a2-q" placeholder="Filtrar..." oninput="rAlrt()"></div><select class="sel" id="a2-wh" onchange="rAlrt()"><option value="">Todos WH</option></select></div>
     </div>
-    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>WH</th><th class="r">Saldo</th><th class="r" style="color:#b45309">Disp. Venda</th></tr></thead><tbody id="a2-tbl"></tbody></table></div></div>
+    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Nome</th><th>Armazém</th><th class="r">Saldo</th><th class="r">Disponível</th></tr></thead><tbody id="a2-tbl"></tbody></table></div></div>
   </div>
   <div class="alrt-block">
     <div class="alrt-hdr gry">
-      <span class="alrt-title" style="color:#475569"><i class="ti ti-minus-circle"></i> Disponível Zero (totalmente comprometido) — <span id="a3-cnt">0 itens</span></span>
-      <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <div class="sbar"><i class="ti ti-search"></i><input id="a3-q" placeholder="Filtrar..." oninput="rAlrt()"></div>
-        <select class="sel" id="a3-wh" onchange="rAlrt()"><option value="">Todos WH</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
-        <select class="sel" id="a3-cat" onchange="rAlrt()"><option value="">Todas cats</option><option value="inversor">Inversores</option><option value="bess">BESS</option><option value="ev">EV</option></select>
-      </div>
+      <span class="alrt-title" style="color:#475569"><i class="ti ti-minus-circle"></i> Disponível Zero — <span id="a3-cnt">0</span></span>
+      <div style="display:flex;gap:7px"><div class="sbar"><i class="ti ti-search"></i><input id="a3-q" placeholder="Filtrar..." oninput="rAlrt()"></div><select class="sel" id="a3-wh" onchange="rAlrt()"><option value="">Todos WH</option></select></div>
     </div>
-    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>WH</th><th class="r">Saldo</th><th class="r">Em Separação</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r">Disp.</th></tr></thead><tbody id="a3-tbl"></tbody></table></div></div>
-  </div>
-  <div class="alrt-block">
-    <div class="alrt-hdr pur">
-      <span class="alrt-title" style="color:#5b21b6"><i class="ti ti-trending-up"></i> Excesso de Estoque (Disp. &gt; 200) — <span id="a4-cnt">0 itens</span></span>
-      <div style="display:flex;gap:7px;flex-wrap:wrap">
-        <div class="sbar"><i class="ti ti-search"></i><input id="a4-q" placeholder="Filtrar..." oninput="rAlrt()"></div>
-        <select class="sel" id="a4-wh" onchange="rAlrt()"><option value="">Todos WH</option><option>CWB</option><option>FOR</option><option>MAO-LIV</option><option>MAO-ELE</option></select>
-      </div>
-    </div>
-    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>WH</th><th class="r">Saldo</th><th class="r" style="color:#5b21b6">Disp. Venda</th></tr></thead><tbody id="a4-tbl"></tbody></table></div></div>
+    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Nome</th><th>Armazém</th><th class="r">Saldo</th><th class="r" style="color:var(--pur)">Reserva</th></tr></thead><tbody id="a3-tbl"></tbody></table></div></div>
   </div>
 </div>
 
@@ -485,173 +356,88 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 </div>
 
 <script>
-// ══ CONSTANTES
-const WHL={'CWB':'CWB — Curitiba','FOR':'FOR — Fortaleza','MAO-LIV':'MAO — Livoltek','MAO-ELE':'MAO — Eletra'};
-const WHC={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
-const ACC_GROUPS=['Cabo','Conector MC4','Conector','Terminal','Borne','Fixação','DPS','Disjuntor','Fusível','Suporte','Comunicação','Fonte','Quadro Elétrico','Caixa','Eletroduto','Barramento','Fita','Logística','Outros'];
+// ══ FONTES DE DADOS
+const CSV = {
+  ESTOQUE:  'data/ESTOQUE.csv',
+  CADASTRO: 'data/CADASTRO.csv',
+  RESERVAS: 'data/RESERVAS.csv',
+};
 
-// ══ CLASSIFICAÇÃO COMERCIAL
-const FAM_SKU=[
-  ['GT1-','inversor','Inversor GT1'],['GT3-','inversor','Inversor GT3'],
-  ['HP1-','inversor','Inversor Híbrido HP1'],['HP3-','inversor','Inversor Híbrido HP3'],
-  ['GF1-','inversor','Inversor GF1'],['GF3-','inversor','Inversor GF3'],
-  ['BHF-','bess','BESS BHF'],['BLF-','bess','Bateria BLF'],
-  ['BLF51','bess','Bateria BLF51'],['SMI-48','bess','Bateria SMI'],['PCS-','bess','PCS'],
-  ['A007','ev','Carregador EV CA 7kW'],['A0220','ev','Carregador EV CA 22kW'],
-  ['C0301','ev','Carregador EV CC 30kW'],['C0401','ev','Carregador EV CC 40kW'],
-  ['C0501','ev','Carregador EV CC 50kW'],['C0601','ev','Carregador EV CC 60kW'],
-  ['M0601','ev','Carregador EV CC 60kW Mob'],['M1601','ev','Carregador EV CC 160kW'],
-  ['M1801','ev','Carregador EV CC 180kW'],['M2401','ev','Carregador EV CC 240kW'],
-  ['M1201000','ev','Carregador EV CC 120kW'],['M12010','ev','Carregador EV CC 120kW Mob'],
-  ['M06010','ev','Carregador EV CC 60kW Mob'],['D030038','ev','Carregador EV CC 30kW'],
-  ['2160100','ev','Carregador EV CA 250W'],
-  ['JKM','kit','Módulo Solar'],['QNM','kit','Módulo Solar'],['RS6','kit','Módulo Solar'],
-  ['HJT','kit','Módulo Solar'],['HXCB','kit','String Box'],
-  ['LHE34','kit','Medidor Hexing'],['LHE12','kit','Medidor Hexing'],
-];
-const FAM_DESC=[
-  // ── MATÉRIA-PRIMA — deve ser identificada PRIMEIRO, antes de qualquer categoria
-  ['MATÉRIA-PRIMA','outro','Matéria-Prima'],['MATERIA-PRIMA','outro','Matéria-Prima'],
-  ['MATERIA PRIMA','outro','Matéria-Prima'],
-  // ── COMPONENTES/ACESSÓRIOS que podem ter nomes de famílias na descrição — VÊM ANTES
-  ['PARTE DO CARREGADOR','acessorio','Componente EV'],
-  ['CAIXA DE ALUMINIO FUNDIDO','acessorio','Caixa'],
-  ['CAIXA DE ALUMINIO','acessorio','Caixa'],['CAIXA ALUMINIO','acessorio','Caixa'],
-  ['CHASSIS','acessorio','Estrutura'],['CAPACITOR','acessorio','Componente'],
-  ['VENTOINHA','acessorio','Ventilação'],['PCB ','acessorio','Componente'],
-  ['PLACA DE CIRCUITO','acessorio','Componente'],
-  ['CARREGADOR PARA BATERIA','bess','Carregador Bateria'],
-  ['CONTROLADOR BMS','bess','BMS'],
-  // ── INVERSORES
-  ['INVERSOR SOLAR','inversor','Inversor'],['INVERSOR HIBRIDO','inversor','Inversor Híbrido'],
-  ['INVERSOR ON-GRID','inversor','Inversor'],['INVERSOR TRIFASICO','inversor','Inversor'],
-  ['INVERSOR MONOFASICO','inversor','Inversor'],
-  ['INVERSORES PARA SISTEMAS','inversor','Inversor'],
-  ['INVERSOR','inversor','Inversor'],['MICROINVERSOR','inversor','Microinversor'],
-  ['GT1 ','inversor','Inversor GT1'],['GT3 ','inversor','Inversor GT3'],
-  ['GT1-','inversor','Inversor GT1'],['GT3-','inversor','Inversor GT3'],
-  ['HP1-','inversor','Inversor HP1'],['HP3-','inversor','Inversor HP3'],
-  // ── BESS
-  ['BATERIA DE LI','bess','Bateria'],['BATERIA BHF','bess','BESS BHF'],
-  ['BATERIA BLF','bess','Bateria BLF'],['BATERIA','bess','Bateria'],
-  ['BESS','bess','BESS'],['ACUMULADOR DE ENERGIA','bess','Acumulador'],
-  ['ARMAZENAMENTO DE ENERGIA','bess','BESS'],['BMS ','bess','BMS'],
-  ['BHF ','bess','BESS BHF'],['BLF ','bess','Bateria BLF'],
-  // ── EV
-  ['CARREGADOR VE LIVOLTEK','ev','Carregador EV'],['CARREGADOR VEICULAR','ev','Carregador EV'],
-  ['CARREGADOR VE ','ev','Carregador EV'],['ATOM CA 7','ev','Carregador EV CA 7kW'],
-  ['ATOM CA 22','ev','Carregador EV CA 22kW'],['ATOM ','ev','Carregador EV CA'],
-  ['MOTION FAST','ev','Carregador EV CC'],['MOTION COMPACT','ev','Carregador EV CC'],
-  // ── KIT SOLAR
-  ['CABO FOTOVOLTAICO','kit','Cabo Fotovoltaico'],
-  ['MODULO FOTOVOLTAICO','kit','Módulo Solar'],['MODULO SOLAR','kit','Módulo Solar'],
-  ['PAINEL SOLAR','kit','Painel Solar'],['STRING BOX','kit','String Box'],
-  ['HXCB','kit','String Box'],['ESTRUTURA METALICA','kit','Estrutura'],
-  ['KIT TELHADO','kit','Kit Telhado'],['KIT SOLO','kit','Kit Solo'],
-  ['MEDIDOR INTELIGENTE','kit','Medidor'],
-  // ── ACESSÓRIOS
-  ['CABO SOLAR','acessorio','Cabo'],['CABO FLEX','acessorio','Cabo'],
-  ['CABO DE ALUMINIO','acessorio','Cabo'],['CABO DE COBRE','acessorio','Cabo'],
-  ['CABO PP ','acessorio','Cabo'],['CABO COBRE','acessorio','Cabo'],['CABO ','acessorio','Cabo'],
-  ['FIO DE ESPINAR','acessorio','Cabo'],['MC4','acessorio','Conector MC4'],
-  ['CONECTOR','acessorio','Conector'],['TERMINAL ','acessorio','Terminal'],
-  ['BORNE ','acessorio','Borne'],['HASTE ','acessorio','Haste'],
-  ['PARAFUSO','acessorio','Fixação'],['PORCA ','acessorio','Fixação'],
-  ['ARRUELA','acessorio','Fixação'],['GRAMPO','acessorio','Fixação'],
-  ['ABRACADEIRA','acessorio','Fixação'],['BUCHA ','acessorio','Fixação'],
-  ['TRILHO DIN','acessorio','Fixação'],['SUPORTE ','acessorio','Suporte'],
-  ['DPS ','acessorio','DPS'],['PROTETOR SURTO','acessorio','DPS'],
-  ['DISJUNTOR','acessorio','Disjuntor'],['MINIDISJUNTOR','acessorio','Disjuntor'],
-  ['FUSIVEL','acessorio','Fusível'],['RELE ','acessorio','Relé'],
-  ['VENTILADOR','acessorio','Ventilação'],
-  ['ANTENA ','acessorio','Comunicação'],['MODULO WLA','acessorio','Comunicação'],
-  ['MODULO DE COMUNICACAO','acessorio','Comunicação'],['FONTE CHAVEADA','acessorio','Fonte'],
-  ['QUADRO DE DISTRIB','acessorio','Quadro Elétrico'],
-  ['CAIXA PVC','acessorio','Caixa'],['CAIXA ','acessorio','Caixa'],
-  ['ELETRODUTO','acessorio','Eletroduto'],['BARRAMENTO','acessorio','Barramento'],
-  ['LACRE ','acessorio','Fixação'],['FITA ','acessorio','Fita'],
-  ['PALETE','acessorio','Logística'],['CARRINHO','acessorio','Logística'],
-];
-
-function classify(cod,desc){
-  const cu=cod.toUpperCase(), du=desc.toUpperCase();
-  for(const[p,c,f]of FAM_SKU) if(cu.startsWith(p)) return{cat:c,familia:f};
-  for(const[k,c,f]of FAM_DESC) if(du.includes(k)) return{cat:c,familia:f};
-  return{cat:'outro',familia:'Outros'};
-}
-function accGroup(familia){
-  for(const g of ACC_GROUPS) if(familia.includes(g)) return g;
-  return 'Outros';
-}
+// ══ ARMAZÉNS
+// Coluna "Armazém Dashboard" da planilha já traz o nome formatado
+// Fallback por FL code
+const WH_NAMES = {
+  '10108': 'Curitiba (Eletra)',
+  '10102': 'Fortaleza (Eletra)',
+  '10106': 'Manaus (Eletra)',
+  'MAO-LIV': 'Fábrica Livoltek',
+};
+const WH_COLORS = {
+  'Curitiba (Eletra)':  '#1E3A5F',
+  'Fortaleza (Eletra)': '#22C55E',
+  'Manaus (Eletra)':    '#F59E0B',
+  'Fábrica Livoltek':   '#7c3aed',
+};
+const WH_LIST = ['Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','Fábrica Livoltek'];
 
 // ══ ESTADO
-let ST=[], RES=[];
+let ST = [];   // [{codigo, nome, categoria, familia, wh, saldo, empenho, reserva, disp, isMP}]
+let CAD = {};  // {sku → {nome, categoria, familia}}
+let RES = [];
 
-// ══ PARSE CSV — PapaParse
-function pn(v){
-  if(!v||v==='-'||v==='') return 0;
-  let s=String(v).trim();
-  // Remove espaços e caracteres não numéricos exceto . , -
-  s=s.replace(/[^0-9.,\-]/g,'');
-  if(!s) return 0;
-  // Formato BR: "1.234,56" → tem vírgula como decimal
-  if(s.includes(',')&&s.includes('.')){
-    // Thousands dot + decimal comma: "1.234,56"
-    s=s.replace(/\./g,'').replace(',','.');
-  } else if(s.includes(',')&&!s.includes('.')){
-    // Só vírgula: "1234,56" → decimal comma
-    s=s.replace(',','.');
-  }
-  // Senão é formato US normal: "1234.56"
-  return parseFloat(s)||0;
+// ══ PARSE
+function pn(v){ if(!v||v==='-')return 0; return parseFloat(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''))||0; }
+const fmt = n => Math.round(n).toLocaleString('pt-BR');
+const trunc = (s,n=55) => s && s.length>n ? s.slice(0,n)+'…' : (s||'');
+
+function parseCadastro(csv){
+  const rows = Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
+  const cad = {};
+  rows.forEach(r=>{
+    const sku = String(r.SKU||r.sku||'').trim();
+    if(!sku) return;
+    cad[sku] = {
+      nome:      String(r['Nome Comercial']||r.nome||'').trim(),
+      categoria: String(r.Categoria||r.categoria||'').trim().toUpperCase(),
+      familia:   String(r['Família']||r.familia||r.Familia||'').trim(),
+    };
+  });
+  return cad;
 }
 
-function parseTOTVS(csv, wh){
-  const rows = Papa.parse(csv,{skipEmptyLines:true}).data;
-  // Encontra linha de header (contém "CODIGO")
-  let hIdx = rows.findIndex(r => String(r[0]||'').toUpperCase().trim()==='CODIGO');
-  if(hIdx<0) hIdx=1; // fallback
-  const data = rows.slice(hIdx+1);
-  return data.filter(r=>{
-    if(r.length<10) return false;
-    const armz = String(r[6]||'').trim();
-    const dArm = String(r[12]||'').toUpperCase();
-    return (armz==='7'||armz==='07') && dArm.includes('VENDAS');
-  }).map(r=>{
-    const o={wh, codigo:String(r[0]).trim(), descricao:String(r[3]).trim(),
-             um:String(r[4]||'').trim().toUpperCase(),
-             saldo:pn(r[7]), empenho:pn(r[8]), reserva:0, disp:0};
-    const cl=classify(o.codigo,o.descricao); o.cat=cl.cat; o.familia=cl.familia;
-    return o;
-  }).filter(o=>o.codigo && o.saldo>=0);
-}
+function parseEstoque(csv, cad){
+  const rows = Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
+  const items = [];
+  rows.forEach(r=>{
+    const codigo = String(r.CODIGO||r.codigo||'').trim();
+    if(!codigo) return;
 
-function parseEletra(csv, wh){
-  // Formato MAO-LIV: TOP(id único), HEXING, Descricao, Saldo Estoque
-  // Regra: cada linha é um SKU independente identificado pelo TOP (col 0)
-  // NUNCA agrupar por HEXING — o mesmo HEXING (ex: "7-10KW") pode ter
-  // múltiplas linhas TOP diferentes (produto final + matéria-prima)
-  const rows = Papa.parse(csv,{skipEmptyLines:true}).data;
-  const hIdx = rows.findIndex(r=>
-    String(r[0]||'').toUpperCase()==='TOP' ||
-    String(r[1]||'').toUpperCase()==='HEXING'
-  );
-  const data = rows.slice(hIdx>=0 ? hIdx+1 : 1);
-  return data
-    .filter(r=>r.length>=4 && String(r[0]||'').trim() && pn(r[3])>0)
-    .map(r=>{
-      // Código = TOP (col 0) — sempre único por linha
-      const o={wh,
-        codigo:   String(r[0]).trim(),
-        descricao:String(r[2]||r[1]||'').trim(),
-        um:       'UN',
-        saldo:    pn(r[3]),
-        empenho:  0, reserva:0, disp:0};
-      const cl=classify(String(r[1]||r[0]).trim(), o.descricao);
-      o.cat=cl.cat; o.familia=cl.familia;
-      return o;
-    })
-    .filter(o=>o.codigo && o.saldo>0);
+    // Armazém — usar coluna "Armazém Dashboard" ou derivar de FL
+    const armLabel = String(r['Armazém Dashboard']||r['Armazem Dashboard']||'').trim();
+    const fl  = String(r.FL||'').trim();
+    const armz= String(r.ARMZ||'').trim();
+
+    let wh = armLabel || WH_NAMES[fl] || fl;
+
+    // Filtro ARMZ=7 para Eletra (FL 10108/10102/10106)
+    // MAO-LIV usa todos os registros (sem filtro de ARMZ)
+    const isEletra = ['10108','10102','10106'].includes(fl);
+    if(isEletra && armz !== '7') return;
+
+    // Cadastro do produto
+    const info = cad[codigo] || {};
+    const nome = info.nome || String(r.DESCRICAO||r.descricao||'').trim();
+    const cat  = info.categoria || '';
+    const fam  = info.familia || '';
+
+    const saldo  = pn(r['SALDO EM ESTOQUE']);
+    const empenho= pn(r['NO PARA REQ/PV/RE']||r['EMPENHO']||0);
+
+    items.push({codigo, nome, categoria:cat, familia:fam, wh,
+                saldo, empenho, reserva:0, disp:0,
+                isMP: cat === 'MATÉRIA-PRIMA'});
+  });
+  return items;
 }
 
 function parseReservas(csv){
@@ -660,1003 +446,448 @@ function parseReservas(csv){
   if(hIdx<0) hIdx=0;
   const result=[];
   for(const r of rows.slice(hIdx+1)){
-    const codigo = String(r[3]||'').trim().toUpperCase();
-    const qtd    = pn(r[6]);
-    const cancel = String(r[7]||'').trim();
-    if(!codigo || qtd<=0 || cancel) continue;
+    const codigo=String(r[3]||'').trim().toUpperCase();
+    const qtd=pn(r[6]);
+    const cancelado=String(r[7]||'').trim();
+    if(!codigo||qtd<=0||cancelado) continue;
     result.push({
-      cliente:     String(r[0]||'').trim(),
-      responsavel: String(r[1]||'').trim(),
-      diretoria:   String(r[2]||'').trim(),
-      codigo, descricao: String(r[4]||'').trim(),
-      obs:         String(r[5]||'').trim(),
-      qtd,
-      solicitado:  String(r[8]||'').trim(),
+      cliente:    String(r[0]||'').trim(),
+      responsavel:String(r[1]||'').trim(),
+      diretoria:  String(r[2]||'').trim(),
+      codigo, descricao:String(r[4]||'').trim(),
+      obs:        String(r[5]||'').trim(),
+      qtd, solicitado:String(r[8]||'').trim(),
     });
   }
   return result;
 }
 
 function obsToWH(o){
-  const l=o.toLowerCase().trim();
-  // formato direto: "CWB", "FOR", "MAO"
-  if(l==='cwb') return 'CWB';
-  if(l==='for') return 'FOR';
-  if(l==='mao'||l==='mao-liv') return 'MAO-LIV';
-  if(l==='mao-ele') return 'MAO-ELE';
-  // formato antigo: "Reservado ( Curitiba)"
-  if(l.includes('curitiba')) return 'CWB';
-  if(l.includes('fortaleza')) return 'FOR';
-  if(l.includes('manaus')) return 'MAO-LIV';
+  const l=o.toLowerCase();
+  if(l.includes('curitiba')) return 'Curitiba (Eletra)';
+  if(l.includes('fortaleza')) return 'Fortaleza (Eletra)';
+  if(l.includes('manaus')) return 'Manaus (Eletra)';
+  // format "CWB","FOR","MAO"
+  if(l==='cwb') return 'Curitiba (Eletra)';
+  if(l==='for') return 'Fortaleza (Eletra)';
+  if(l==='mao'||l==='mao-liv') return 'Fábrica Livoltek';
   return null;
 }
 
 function applyReservas(){
   const lkp={};
   RES.forEach(r=>{
-    const w=obsToWH(r.obs); if(!w) return;
+    const w=obsToWH(r.obs);
+    if(!w) return;
     const k=w+'|'+r.codigo;
     lkp[k]=(lkp[k]||0)+r.qtd;
   });
   ST.forEach(s=>{
-    s.reserva = lkp[s.wh+'|'+s.codigo.toUpperCase()]||0;
-    s.disp    = Math.max(0, s.saldo - s.empenho - s.reserva);
+    s.reserva=lkp[s.wh+'|'+s.codigo.toUpperCase()]||0;
+    s.disp=Math.max(0,s.saldo-s.empenho-s.reserva);
   });
 }
 
-// ══ BOOT — lê os CSVs locais via PapaParse
-const CSV_FILES={
-  CWB:      'data/CWB.csv',
-  FOR:      'data/FOR.csv',
-  'MAO-LIV':'data/MAO-LIV.csv',
-  'MAO-ELE':'data/MAO-ELE.csv',
-  RESERVAS: 'data/RESERVAS.csv',
-};
-
+// ══ BOOT
 async function boot(){
   setStatus('loading');
   document.getElementById('ld-area').style.display='flex';
   document.getElementById('err-area').style.display='none';
   document.getElementById('mc').style.display='none';
   document.getElementById('btn-csv').disabled=true;
-  const reloadBtn=document.getElementById('btn-reload');
-  if(reloadBtn) reloadBtn.style.animation='spin .75s linear infinite';
-  ST=[]; RES=[];
+  ST=[]; CAD={}; RES=[];
 
   const raw={};
-  for(const[k,path] of Object.entries(CSV_FILES)){
-    document.getElementById('lprog').textContent = 'Carregando '+path+'...';
+  for(const[k,path] of Object.entries(CSV)){
+    document.getElementById('lprog').textContent='Carregando '+path+'...';
     try{
-      const r = await fetch(path,{cache:'no-store'});
+      const r=await fetch(path,{cache:'no-store'});
       if(!r.ok) throw new Error('HTTP '+r.status);
-      raw[k] = await r.text();
+      raw[k]=await r.text();
     }catch(e){
-      if(k!=='RESERVAS'){
-        showErr(`Arquivo <b>${path}</b> não encontrado.<br>Verifique se a pasta <b>data/</b> existe no repositório com os 5 arquivos CSV.`);
-        return;
-      }
+      if(k!=='RESERVAS'){showErr(`Arquivo <b>${path}</b> não encontrado.`);return;}
       raw[k]='';
     }
   }
 
-  document.getElementById('lprog').textContent='Processando e classificando...';
-
-  const cwb = parseTOTVS(raw.CWB||'',          'CWB');
-  const fr  = parseTOTVS(raw.FOR||'',          'FOR');
-  const ml  = parseEletra(raw['MAO-LIV']||'',  'MAO-LIV');  // formato: TOP,HEXING,Desc,Saldo
-  const me  = parseTOTVS(raw['MAO-ELE']||'',   'MAO-ELE');  // formato TOTVS
-  ST = [...cwb, ...fr, ...ml, ...me];
+  document.getElementById('lprog').textContent='Processando cadastro e estoque...';
+  CAD = parseCadastro(raw.CADASTRO||'');
+  ST  = parseEstoque(raw.ESTOQUE||'', CAD);
   RES = parseReservas(raw.RESERVAS||'');
   applyReservas();
 
-  if(ST.length===0){ showErr('Nenhum produto carregado. Verifique os arquivos CSV.'); return; }
+  if(!ST.length){showErr('Nenhum produto carregado. Verifique data/ESTOQUE.csv');return;}
+
+  // Populate WH selects
+  const whs = [...new Set(ST.map(r=>r.wh))].sort();
+  document.querySelectorAll('select[id$="-wh"], #all-wh, #a1-wh, #a2-wh, #a3-wh').forEach(sel=>{
+    const cur=sel.value;
+    sel.innerHTML='<option value="">Todos os armazéns</option>'+whs.map(w=>`<option value="${w}">${w}</option>`).join('');
+    sel.value=cur;
+  });
 
   document.getElementById('ld-area').style.display='none';
   document.getElementById('mc').style.display='block';
   document.getElementById('btn-csv').disabled=false;
-
-  const now = new Date();
-  document.getElementById('sync-t').textContent =
-    now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-
-  const rb=document.getElementById('btn-reload');
-  if(rb) rb.style.animation='';
+  const now=new Date();
+  document.getElementById('sync-t').textContent=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   setStatus('ok');
   renderAll();
 }
 
 function showErr(m){
   document.getElementById('ld-area').style.display='none';
-  const e=document.getElementById('err-area'); e.style.display='block';
-  e.innerHTML='<div class="ebox"><i class="ti ti-alert-circle" style="font-size:17px;flex-shrink:0"></i><div>'+m+
-    '<br><button onclick="boot()" style="margin-top:8px;padding:5px 12px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Tentar novamente</button></div></div>';
+  const e=document.getElementById('err-area');e.style.display='block';
+  e.innerHTML=`<div class="ebox"><i class="ti ti-alert-circle" style="font-size:17px;flex-shrink:0"></i><div>${m}<br><button onclick="boot()" style="margin-top:8px;padding:5px 12px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Tentar novamente</button></div></div>`;
   setStatus('err');
 }
 function setStatus(s){
-  const d=document.getElementById('sdot'),t=document.getElementById('stxt'); d.className='dot';
+  const d=document.getElementById('sdot'),t=document.getElementById('stxt');d.className='dot';
   if(s==='ok'){d.classList.add('dot-g');t.textContent='Base Atualizada';}
   else if(s==='loading'){d.classList.add('dot-a');t.textContent='Carregando...';}
-  else{d.classList.add('dot-r');t.textContent='Erro ao carregar';}
+  else{d.classList.add('dot-r');t.textContent='Erro';}
 }
 
 // ══ HELPERS
-const fmt=n=>Math.round(n).toLocaleString('pt-BR');
-const trunc=(s,n=58)=>s.length>n?s.slice(0,n)+'…':s;
-function wt(w){const c=WHC[w]||'#888';return`<span class="wt" style="color:${c};background:${c}1a">${w}</span>`;}
-function sbadge(v){
-  if(v>20)return`<span class="sb hi"><i class="ti ti-trending-up"></i>${fmt(v)}</span>`;
-  if(v>=5)return`<span class="sb mid">${fmt(v)}</span>`;
-  if(v>0)return`<span class="sb lo"><i class="ti ti-alert-triangle"></i>${fmt(v)}</span>`;
-  return`<span class="sb zr">0</span>`;
+function wTag(w){const c=WH_COLORS[w]||'#888';return`<span class="wt" style="color:${c};background:${c}1a">${w}</span>`;}
+
+// Deduplica ST por codigo — agrega saldo por armazém
+function dedupByCode(items){
+  const m={};
+  items.forEach(r=>{
+    if(!m[r.codigo]) m[r.codigo]={...r,_byWH:{},_saldo:0,_empenho:0,_reserva:0,_disp:0};
+    m[r.codigo]._byWH[r.wh]=(m[r.codigo]._byWH[r.wh]||0)+r.saldo;
+    m[r.codigo]._saldo  +=r.saldo;
+    m[r.codigo]._empenho+=r.empenho;
+    m[r.codigo]._reserva+=r.reserva;
+    m[r.codigo]._disp   +=r.disp;
+  });
+  return Object.values(m);
 }
-function spark(v,max){
-  const p=max>0?Math.min(100,(v/max)*100):0;
-  const c=v>20?'#22C55E':v>=5?'#F59E0B':v>0?'#EF4444':'#e2e8f0';
-  return`<div class="spw"><div class="spb"><div class="spf" style="width:${p.toFixed(1)}%;background:${c}"></div></div><span style="font-size:10px;color:var(--txtm);min-width:28px;text-align:right">${fmt(v)}</span></div>`;
+
+// Render product card
+function pCard(r){
+  const disp=Math.max(0,r._saldo-r._empenho-r._reserva);
+  const dispCol=disp>20?'var(--grn-d)':disp>=5?'var(--amb-d)':'var(--red)';
+  const famCol=WH_COLORS[r.wh]||'#475569';
+
+  // WH rows
+  const whRows=WH_LIST.map(w=>{
+    const s=r._byWH[w]||0; if(!s) return '';
+    const c=WH_COLORS[w]||'#888';
+    return `<div class="pcard-row"><span class="pcard-row-lbl" style="color:${c}">${w}</span><span class="pcard-row-val">${fmt(s)}</span></div>`;
+  }).join('');
+
+  const famLabel = r.familia || r.categoria || '';
+
+  return `<div class="pcard${r.isMP?' mp':''}">
+    ${famLabel?`<span class="pcard-fam" style="color:${r.isMP?'var(--red)':'var(--pri)'};background:${r.isMP?'var(--red-pale)':'var(--pri-pale)'}">${famLabel}</span>`:''}
+    ${r.isMP?'<div class="mp-badge">MATÉRIA-PRIMA</div>':''}
+    <div class="pcard-cod">${r.codigo}</div>
+    <div class="pcard-desc">${trunc(r.nome||r.descricao||'',58)}</div>
+    <div class="pcard-disp-lbl">Disponível para Venda</div>
+    <div class="pcard-disp" style="color:${dispCol}">${fmt(disp)}</div>
+    <div class="pcard-row"><span class="pcard-row-lbl">Saldo</span><span class="pcard-row-val">${fmt(r._saldo)}</span></div>
+    ${whRows}
+    <div class="pcard-divider"></div>
+    <div class="pcard-row"><span class="pcard-row-lbl" style="color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">Reserva</span><span class="pcard-row-val" style="color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">${fmt(r._reserva)}</span></div>
+    <div class="pcard-row"><span class="pcard-row-lbl" style="color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">Em Separação</span><span class="pcard-row-val" style="color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">${fmt(r._empenho)}</span></div>
+  </div>`;
 }
-function catTag(cat){
-  const m={inversor:['#dbeafe','#1d4ed8','Inversor'],bess:['#fef9c3','#854d0e','BESS'],
-           ev:['#fff7ed','#c2410c','EV'],kit:['#f0fdf4','#15803d','Kit Solar'],
-           acessorio:['#f1f5f9','#475569','Acessório'],outro:['#f8fafc','#64748b','Outro']};
-  const[bg,col,lbl]=m[cat]||m.outro;
-  return`<span style="background:${bg};color:${col};font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px">${lbl}</span>`;
+
+// ══ CATEGORIAS
+// Derivar categoria do cadastro — não inferir
+function getMainCat(r){
+  const cat=r.categoria.toUpperCase();
+  if(cat==='MATÉRIA-PRIMA'||cat==='MATERIA-PRIMA') return 'mp';
+  const fam=r.familia.toUpperCase();
+  if(fam.includes('INVERSOR')||cat.includes('INVERSOR')) return 'inv';
+  if(fam.includes('BESS')||fam.includes('BATERIA')||cat.includes('BESS')||cat.includes('BATERIA')) return 'bess';
+  if(fam.includes('CARREGADOR')||cat.includes('CARREGADOR')) return 'ev';
+  if(fam.includes('KIT')||fam.includes('TELHADO')||fam.includes('SOLO')||fam.includes('STRING')||fam.includes('MEDIDOR')||cat.includes('KIT')) return 'kit';
+  if(cat.includes('ACESSÓRIO')||cat.includes('ACESSORIO')||fam.includes('ACESSÓRIO')) return 'acc';
+  return 'outro';
 }
-function stdRow(r,showCat,showFam){
-  return`<tr style="${r.disp===0&&r.saldo>0?'background:#fff9f9':''}">
-    <td class="cod">${r.codigo}</td>
-    <td class="pname" title="${r.descricao}">${trunc(r.descricao)}</td>
-    ${showFam?`<td style="font-size:11px;color:var(--txt2)">${r.familia||'—'}</td>`:''}
-    ${showCat?`<td>${catTag(r.cat)}</td>`:''}
-    <td>${wt(r.wh)}</td>
-    <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:${r.empenho>0?'#b45309':'var(--txtm)'}">${r.empenho>0?fmt(r.empenho):'—'}</td>
-    <td class="r" style="color:${r.reserva>0?'#7c3aed':'var(--txtm)'}">${r.reserva>0?fmt(r.reserva):'—'}</td>
-    <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':r.disp>0?'#dc2626':'#94a3b8'}">${fmt(r.disp)}</td>
-    <td>${sbadge(r.disp)}</td>
-  </tr>`;
+
+// ══ PILLS genérico
+let catFilters={inv:'',bess:'',ev:'',kit:'',acc:'',mp:''};
+
+function buildPills(tabId, items, famField){
+  const fams={};
+  items.forEach(r=>{
+    const f=r[famField]||'Outros';
+    if(!fams[f]) fams[f]={saldo:0,disp:0};
+    fams[f].saldo+=r._saldo; fams[f].disp+=r._disp;
+  });
+  const cur=catFilters[tabId]||'';
+  const totalSaldo=items.reduce((a,r)=>a+r._saldo,0);
+  const totalDisp=items.reduce((a,r)=>a+r._disp,0);
+  const pills=[];
+  const totalActive=cur==='';
+  pills.push(`<button class="pill${totalActive?' active':''}" onclick="setPillFilter('${tabId}','')">
+    <span class="pill-lbl">Todos</span>
+    <span class="pill-val">${fmt(totalSaldo)}</span>
+    <span class="pill-sub">em estoque</span>
+    <span class="pill-sub" style="color:${totalActive?'rgba(255,255,255,.6)':'var(--grn-d)'}">Disp: ${fmt(totalDisp)}</span>
+  </button>`);
+  Object.entries(fams).sort((a,b)=>b[1].saldo-a[1].saldo).forEach(([f,v])=>{
+    const active=cur===f;
+    pills.push(`<button class="pill${active?' active':''}" onclick="setPillFilter('${tabId}','${f.replace(/'/g,"\\'")}')">
+      <span class="pill-lbl">${f}</span>
+      <span class="pill-val">${fmt(v.saldo)}</span>
+      <span class="pill-sub">em estoque</span>
+      <span class="pill-sub" style="color:${active?'rgba(255,255,255,.6)':'var(--grn-d)'}">Disp: ${fmt(v.disp)}</span>
+    </button>`);
+  });
+  const el=document.getElementById(tabId+'-pills');
+  if(el) el.innerHTML=pills.join('');
 }
-function filtered(q,wh,cat,includeCabos){
-  return ST.filter(r=>{
-    const mq=!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q);
+
+function setPillFilter(tabId, fam){
+  catFilters[tabId]=catFilters[tabId]===fam?'':fam;
+  renderCat(tabId);
+}
+
+// ══ RENDER CATEGORY TABS
+function renderCat(tabId){
+  const q=(document.getElementById(tabId+'-q')?.value||'').toLowerCase();
+  const wh=document.getElementById(tabId+'-wh')?.value||'';
+  const catMap={inv:'inv',bess:'bess',ev:'ev',kit:'kit',acc:'acc',mp:'mp'};
+  const mainCat=catMap[tabId];
+
+  // Filter
+  let items=ST.filter(r=>{
+    const mc=getMainCat(r);
+    if(mc!==mainCat) return false;
+    const mq=!q||r.codigo.toLowerCase().includes(q)||r.nome.toLowerCase().includes(q);
     const mw=!wh||r.wh===wh;
-    const mc=!cat||r.cat===cat;
-    // Cabos só aparecem na aba Acessórios — excluir de todas as outras
-    const cab=includeCabos||r.cat==='acessorio'?true:!isCabo(r);
-    return mq&&mw&&mc&&cab;
-  }).sort((a,b)=>a.codigo.localeCompare(b.codigo));
-}
-function catKPIs(cat,el){
-  // Acessórios inclui cabos; outras categorias não
-  const rows=ST.filter(r=>r.cat===cat&&(cat==='acessorio'||!isCabo(r)));
-  el.innerHTML=`
-    <div class="kpi c-b"><div class="ki"><i class="ti ti-database"></i></div><div class="kl">SKUs</div><div class="kv">${rows.length}</div><div class="ks">produtos ativos</div></div>
-    <div class="kpi c-b"><div class="ki"><i class="ti ti-packages"></i></div><div class="kl">Saldo em Estoque</div><div class="kv">${fmt(rows.reduce((a,r)=>a+r.saldo,0))}</div><div class="ks">físico TOTVS</div></div>
-    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Reservas</div><div class="kv">${fmt(rows.reduce((a,r)=>a+r.reserva,0))}</div><div class="ks">comprometido</div></div>
-    <div class="kpi c-g"><div class="ki"><i class="ti ti-circle-check"></i></div><div class="kl">Disponível para Venda</div><div class="kv">${fmt(rows.reduce((a,r)=>a+r.disp,0))}</div><div class="ks">saldo−em sep.−reserva</div></div>`;
+    return mq&&mw;
+  });
+
+  // Dedup
+  const dedup=dedupByCode(items);
+
+  // Sort by familia then code
+  dedup.sort((a,b)=>(a.familia||'').localeCompare(b.familia||'')||a.codigo.localeCompare(b.codigo));
+
+  // Rebuild pills (only on non-mp tabs)
+  if(tabId!=='mp'){
+    const famField='familia';
+    const allForPills=dedupByCode(ST.filter(r=>getMainCat(r)===mainCat));
+    buildPills(tabId, allForPills, famField);
+  }
+
+  // Apply pill filter
+  const fam=catFilters[tabId]||'';
+  const filtered=fam?dedup.filter(r=>r.familia===fam):dedup;
+
+  // Separate MP from main (for inv and ev tabs)
+  if(tabId==='inv'||tabId==='ev'){
+    const main=filtered.filter(r=>!r.isMP);
+    const mp=filtered.filter(r=>r.isMP);
+    const cntEl=document.getElementById(tabId+'-cnt');
+    const mpCntEl=document.getElementById(tabId+'-mp-cnt');
+    if(cntEl) cntEl.textContent=main.length;
+    if(mpCntEl) mpCntEl.textContent=mp.length;
+    const cardsEl=document.getElementById(tabId+'-cards');
+    const mpCardsEl=document.getElementById(tabId+'-mp-cards');
+    const mpSecEl=document.getElementById(tabId+'-mp-sec');
+    if(cardsEl) cardsEl.innerHTML=main.map(pCard).join('')||`<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum produto encontrado.</div>`;
+    if(mpSecEl) mpSecEl.style.display=mp.length?'block':'none';
+    if(mpCardsEl) mpCardsEl.innerHTML=mp.map(pCard).join('');
+  } else {
+    const cntEl=document.getElementById(tabId+'-cnt');
+    if(cntEl) cntEl.textContent=filtered.length;
+    const cardsEl=document.getElementById(tabId+'-cards');
+    if(cardsEl) cardsEl.innerHTML=filtered.map(pCard).join('')||`<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum produto encontrado.</div>`;
+  }
 }
 
-// ══ RENDER ALL
-function renderAll(){
-  rDash(); rAll(); rInv(); rBess(); rEV(); rCat('kit');
-  rAcc(); rResKPIs(); rRes(); renderWH(); rAlrt();
-}
+// ══ DASHBOARD
+let barInst=null,donutInst=null;
 
-// ── DASHBOARD
-let barInst=null, donutInst=null;
 const _dlp={id:'dl',afterDatasetsDraw(chart){
-  const{ctx,data}=chart; ctx.save();
-  [0,1].forEach(di=>{
-    chart.getDatasetMeta(di).data.forEach((bar,i)=>{
-      const v=data.datasets[di].data[i]; if(!v) return;
-      const lbl=v>=10000?(v/1000).toFixed(0)+'k':v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));
-      ctx.fillStyle=di===0?'#3b82f6':'#15803d';
-      ctx.font='600 10px DM Sans,sans-serif';
-      ctx.textAlign='center'; ctx.textBaseline='bottom';
-      ctx.fillText(lbl,bar.x,bar.y-2);
-    });
+  const{ctx,data}=chart;ctx.save();
+  chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+    const v=data.datasets[0].data[i];if(!v)return;
+    const lbl=v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));
+    ctx.fillStyle='#475569';ctx.font='600 10px DM Sans,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(lbl,bar.x,bar.y-2);
   });
   ctx.restore();
 }};
 
 function rDash(){
-  const STnc=ST.filter(r=>!isCabo(r)); // sem cabos para KPIs
-  document.getElementById('k-skus').textContent=STnc.length;
-  document.getElementById('k-sal').textContent=fmt(STnc.reduce((a,r)=>a+r.saldo,0));
-  document.getElementById('k-emp').textContent=fmt(STnc.reduce((a,r)=>a+r.empenho,0));
-  document.getElementById('k-res').textContent=fmt(STnc.reduce((a,r)=>a+r.reserva,0));
-  document.getElementById('k-disp').textContent=fmt(STnc.reduce((a,r)=>a+r.disp,0));
-  buildBar('TODOS'); buildDonut(); buildTopTables();
-}
+  const prod=ST.filter(r=>!r.isMP);
+  const dedup=dedupByCode(prod);
+  document.getElementById('k-skus').textContent=dedup.length;
+  document.getElementById('k-sal').textContent=fmt(prod.reduce((a,r)=>a+r.saldo,0));
+  document.getElementById('k-disp').textContent=fmt(prod.reduce((a,r)=>a+r.disp,0));
+  document.getElementById('k-res').textContent=fmt(RES.reduce((a,r)=>a+r.qtd,0));
 
-function getWHd(wh){
-  const it=ST.filter(r=>wh==='TODOS'||r.wh===wh);
-  return{sal:it.reduce((a,r)=>a+r.saldo,0),disp:it.reduce((a,r)=>a+r.disp,0)};
-}
+  // Bar chart: disponível por categoria
+  const cats=['inv','bess','ev','kit','acc'];
+  const catNames={inv:'Inversores',bess:'BESS',ev:'Carregadores EV',kit:'Kit Solar',acc:'Acessórios'};
+  const saldos=cats.map(c=>ST.filter(r=>getMainCat(r)===c&&!r.isMP).reduce((a,r)=>a+r.saldo,0));
+  const disps=cats.map(c=>ST.filter(r=>getMainCat(r)===c&&!r.isMP).reduce((a,r)=>a+r.disp,0));
 
-function buildBar(wh){
-  const cats=['inversor','bess','ev','kit','acessorio','outro'];
-  const cl={inversor:'Inversores',bess:'BESS',ev:'Carregadores EV',kit:'Kit Solar',acessorio:'Acessórios',outro:'Outros'};
-  let labels,sals,disps;
-  // Filtro: apenas produtos contados em unidades (UN/PC) para não distorcer com metros/kg
-  const isUnit=r=>(!r.um||['UN','PC','KIT'].includes(r.um))&&!isCabo(r);
-  if(wh==='TODOS'){
-    labels=cats.map(c=>cl[c]);
-    sals=cats.map(c=>ST.filter(r=>r.cat===c&&isUnit(r)).reduce((a,r)=>a+r.saldo,0));
-    disps=cats.map(c=>ST.filter(r=>r.cat===c&&isUnit(r)).reduce((a,r)=>a+r.disp,0));
-  }else{
-    labels=cats.map(c=>cl[c]);
-    sals=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c&&isUnit(r)).reduce((a,r)=>a+r.saldo,0));
-    disps=cats.map(c=>ST.filter(r=>r.wh===wh&&r.cat===c&&isUnit(r)).reduce((a,r)=>a+r.disp,0));
-  }
   if(barInst) barInst.destroy();
   barInst=new Chart(document.getElementById('barChart').getContext('2d'),{
-    type:'bar', plugins:[_dlp],
-    data:{labels,datasets:[
-      {label:'Saldo em Estoque',data:sals,backgroundColor:'#93c5fd',borderRadius:4,borderSkipped:false},
-      {label:'Disponível para Venda',data:disps,backgroundColor:'#1E3A5F',borderRadius:4,borderSkipped:false},
+    type:'bar',plugins:[_dlp],
+    data:{labels:cats.map(c=>catNames[c]),datasets:[
+      {label:'Saldo',data:saldos,backgroundColor:'#93c5fd',borderRadius:4,borderSkipped:false},
+      {label:'Disponível',data:disps,backgroundColor:'#1E3A5F',borderRadius:4,borderSkipped:false},
     ]},
     options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24}},
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} — ${c.dataset.label}`}}},
       scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#64748b'}},
               y:{grid:{color:'#f1f5f9'},ticks:{font:{size:11},color:'#94a3b8',callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}
   });
-  document.getElementById('bar-leg').innerHTML=
-    `<div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:2px;background:#93c5fd"></span>Saldo em Estoque</div>
-     <div style="display:flex;align-items:center;gap:5px"><span style="width:11px;height:11px;border-radius:2px;background:#1E3A5F"></span>Disponível para Venda</div>
-     <div style="font-size:10px;color:var(--txtm);margin-left:8px">* apenas produtos em UN/PC — cabos e itens em metro/kg nas abas de detalhe</div>`;
-}
+  document.getElementById('bar-leg').innerHTML=`
+    <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#93c5fd"></span>Saldo</div>
+    <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#1E3A5F"></span>Disponível</div>`;
 
-function setCW(wh,btn){
-  document.querySelectorAll('#dash-chips .chip').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); buildBar(wh);
-}
-
-function buildDonut(){
-  const whs=['CWB','FOR','MAO-LIV','MAO-ELE'];
-  const disps=whs.map(w=>getWHd(w).disp);
-  const grand=disps.reduce((a,b)=>a+b,0);
+  // Donut: disponível por armazém
+  const whDisps=WH_LIST.map(w=>ST.filter(r=>r.wh===w&&!r.isMP).reduce((a,r)=>a+r.disp,0));
+  const grand=whDisps.reduce((a,b)=>a+b,0);
   const ctrP={id:'ctr',afterDraw(chart){
     const{ctx,chartArea}=chart;
-    const cx=(chartArea.left+chartArea.right)/2, cy=(chartArea.top+chartArea.bottom)/2;
+    const cx=(chartArea.left+chartArea.right)/2,cy=(chartArea.top+chartArea.bottom)/2;
     const ac=chart.getActiveElements();
-    ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
     if(ac.length){
       const i=ac[0].index;
-      const p=grand>0?((disps[i]/grand)*100).toFixed(1):0;
-      ctx.fillStyle=Object.values(WHC)[i]; ctx.font='700 18px DM Mono,monospace'; ctx.fillText(p+'%',cx,cy-7);
-      ctx.fillStyle='#475569'; ctx.font='500 10px DM Sans,sans-serif'; ctx.fillText(whs[i],cx,cy+9);
-    }else{
-      ctx.fillStyle='#94a3b8'; ctx.font='400 10px DM Sans,sans-serif'; ctx.fillText('hover →%',cx,cy);
-    }
+      const p=grand>0?((whDisps[i]/grand)*100).toFixed(1):0;
+      ctx.fillStyle=Object.values(WH_COLORS)[i];ctx.font='700 16px DM Mono,monospace';ctx.fillText(p+'%',cx,cy-7);
+      ctx.fillStyle='#475569';ctx.font='500 10px DM Sans,sans-serif';ctx.fillText(WH_LIST[i].split(' ')[0],cx,cy+8);
+    }else{ctx.fillStyle='#94a3b8';ctx.font='400 10px DM Sans,sans-serif';ctx.fillText('hover →%',cx,cy);}
     ctx.restore();
   }};
   if(donutInst) donutInst.destroy();
   donutInst=new Chart(document.getElementById('donutChart').getContext('2d'),{
-    type:'doughnut', plugins:[ctrP],
-    data:{labels:whs.map(w=>WHL[w]),datasets:[{data:disps,backgroundColor:Object.values(WHC),borderWidth:0,hoverOffset:5}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const p=grand>0?((c.raw/grand)*100).toFixed(1):0;return` ${fmt(c.raw)} unid. (${p}%)`;}}}}},
+    type:'doughnut',plugins:[ctrP],
+    data:{labels:WH_LIST,datasets:[{data:whDisps,backgroundColor:Object.values(WH_COLORS),borderWidth:0,hoverOffset:5}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const p=grand>0?((c.raw/grand)*100).toFixed(1):0;return` ${fmt(c.raw)} (${p}%)`;}}}}},
   });
-  document.getElementById('donut-leg').innerHTML=whs.map((w,i)=>{
-    const p=grand>0?((disps[i]/grand)*100).toFixed(1):0;
-    return`<div class="leg-r"><div style="display:flex;align-items:center;gap:7px"><span class="leg-d" style="background:${WHC[w]}"></span><span style="font-size:12px;color:var(--txt2)">${WHL[w]}</span></div><span style="font-size:12px;font-weight:700">${fmt(disps[i])} <span style="font-size:11px;color:var(--txtm);font-weight:400">(${p}%)</span></span></div>`;
+  document.getElementById('donut-leg').innerHTML=WH_LIST.map((w,i)=>{
+    const p=grand>0?((whDisps[i]/grand)*100).toFixed(1):0;
+    return`<div class="leg-r"><div style="display:flex;align-items:center;gap:6px"><span class="leg-d" style="background:${WH_COLORS[w]}"></span><span style="font-size:11px;color:var(--txt2)">${w}</span></div><span style="font-size:12px;font-weight:700">${fmt(whDisps[i])} <span style="font-size:10px;color:var(--txtm)">(${p}%)</span></span></div>`;
   }).join('');
+
+  // Top 10
+  const invDedup=dedupByCode(ST.filter(r=>getMainCat(r)==='inv'&&!r.isMP)).sort((a,b)=>b._disp-a._disp).slice(0,10);
+  const evDedup=dedupByCode(ST.filter(r=>getMainCat(r)==='ev'&&!r.isMP)).sort((a,b)=>b._disp-a._disp).slice(0,10);
+  const tRow=(r,i)=>`<tr><td style="color:var(--txtm);font-size:10px">${i+1}</td><td style="font-size:11px;font-weight:500">${trunc(r.nome||r.codigo,40)}</td><td style="font-size:10px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh))].map(w=>`<span style="font-size:9px;font-weight:700;color:${WH_COLORS[w]}">${w.split(' ')[0]}</span>`).join(' ')}</td><td class="r" style="font-weight:700;color:${r._disp>20?'var(--grn-d)':r._disp>=5?'var(--amb-d)':'var(--red)'}">${fmt(r._disp)}</td></tr>`;
+  document.getElementById('top-inv').innerHTML=invDedup.map(tRow).join('');
+  document.getElementById('top-ev').innerHTML=evDedup.map(tRow).join('');
 }
 
-function isMateriaP(r){
-  const d=r.descricao.toUpperCase();
-  return d.includes('MATÉRIA-PRIMA')||d.includes('MATERIA-PRIMA')||
-         d.includes('MATERIA PRIMA')||d.startsWith('MATÉRIA')||
-         r.cat==='outro'&&(d.includes('BATERIA DE ALTA')&&!d.includes('INVERSOR'));
-}
-
-
-// Identifica cabos/fios medidos em metros — SÓ aparecem em Acessórios
-// REGRA: é cabo se a UM é MT/RL OU a descrição COMEÇA com CABO/FIO
-// NÃO excluir produtos que apenas mencionam "cabo" no meio da descrição
-function isCabo(r){
-  const um=(r.um||'').toUpperCase();
-  const du=r.descricao.toUpperCase().trimStart();
-  // Unidade de medida em metros ou rolo = definitivamente cabo
-  if(um==='MT'||um==='RL') return true;
-  // Descrição começa com CABO ou FIO = produto principal é um cabo
-  if(du.startsWith('CABO ')||du.startsWith('FIO ')||
-     du.startsWith('CABO FOTOVOLTAICO')||du.startsWith('CABO SOLAR')) return true;
-  return false;
-}
-
-function buildTopTables(){
-  // Inversores — sem matéria-prima
-  const invRows=[...ST].filter(r=>r.cat==='inversor'&&!isMateriaP(r)&&!isCabo(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
-  // Carregadores EV — sem matéria-prima, sem acessórios
-  const evRows=[...ST].filter(r=>r.cat==='ev'&&!isMateriaP(r)&&!isCabo(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
-  // Matéria-Prima — todos os SKUs com "matéria-prima" na descrição
-  const mpRows=[...ST].filter(r=>isMateriaP(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
-  // Acessórios — sem matéria-prima
-  const accRows=[...ST].filter(r=>r.cat==='acessorio'&&!isMateriaP(r)&&!isCabo(r)).sort((a,b)=>b.disp-a.disp).slice(0,10);
-
-  const mI=invRows[0]?.disp||1, mE=evRows[0]?.disp||1;
-  const mMP=mpRows[0]?.disp||1, mAcc=accRows[0]?.disp||1;
-
-  const tRow=(r,i,max)=>`<tr>
-    <td style="color:var(--txtm);font-size:10px">${i+1}</td>
-    <td class="pname" title="${r.descricao}" style="font-size:11px">${trunc(r.descricao,44)}</td>
-    <td>${wt(r.wh)}</td>
-    <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':'#dc2626'}">${fmt(r.disp)}</td>
-    <td>${spark(r.disp,max)}</td>
-  </tr>`;
-
-  document.getElementById('top-inv').innerHTML=invRows.map((r,i)=>tRow(r,i,mI)).join('');
-  document.getElementById('top-ev').innerHTML=evRows.map((r,i)=>tRow(r,i,mE)).join('');
-  document.getElementById('top-mp').innerHTML=mpRows.map((r,i)=>tRow(r,i,mMP)).join('');
-  document.getElementById('top-acc').innerHTML=accRows.map((r,i)=>tRow(r,i,mAcc)).join('');
-}
-
-// ── TODOS OS PRODUTOS
+// ══ TODOS OS PRODUTOS
 function rAll(){
   const q=(document.getElementById('all-q')?.value||'').toLowerCase();
   const wh=document.getElementById('all-wh')?.value||'';
   const cat=document.getElementById('all-cat')?.value||'';
-  const dsp=document.getElementById('all-dsp')?.value||'';
-  let rows=filtered(q,wh,cat,false);
-  if(dsp==='1') rows=rows.filter(r=>r.disp>0);
-  else if(dsp==='0') rows=rows.filter(r=>r.disp===0);
-  document.getElementById('all-tbl').innerHTML=rows.map(r=>`<tr style="${r.disp===0&&r.saldo>0?'background:#fff9f9':''}">
-    <td class="cod">${r.codigo}</td><td class="pname" title="${r.descricao}">${trunc(r.descricao,60)}</td>
-    <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
-    <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:${r.empenho>0?'#b45309':'var(--txtm)'}">${r.empenho>0?fmt(r.empenho):'—'}</td>
-    <td class="r" style="color:${r.reserva>0?'#7c3aed':'var(--txtm)'}">${r.reserva>0?fmt(r.reserva):'—'}</td>
-    <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':r.disp>0?'#dc2626':'#94a3b8'}">${fmt(r.disp)}</td>
-    <td>${sbadge(r.disp)}</td>
+  let items=ST.filter(r=>{
+    const mq=!q||r.codigo.toLowerCase().includes(q)||r.nome.toLowerCase().includes(q);
+    const mw=!wh||r.wh===wh;
+    const mc=!cat||(r.categoria.toUpperCase().includes(cat)||r.familia.toUpperCase().includes(cat));
+    return mq&&mw&&mc;
+  });
+  const dedup=dedupByCode(items).sort((a,b)=>a.codigo.localeCompare(b.codigo));
+  document.getElementById('all-cnt').textContent=dedup.length;
+  document.getElementById('all-tbl').innerHTML=dedup.map(r=>`<tr>
+    <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
+    <td style="font-size:12px;font-weight:500">${trunc(r.nome,50)}</td>
+    <td style="font-size:11px;color:var(--txt2)">${r.familia||'—'}</td>
+    <td style="font-size:11px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh))].map(w=>wTag(w)).join(' ')}</td>
+    <td class="r">${fmt(r._saldo)}</td>
+    <td class="r" style="color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">${r._empenho>0?fmt(r._empenho):'—'}</td>
+    <td class="r" style="color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">${r._reserva>0?fmt(r._reserva):'—'}</td>
+    <td class="r" style="font-weight:700;color:${r._disp>20?'var(--grn-d)':r._disp>=5?'var(--amb-d)':r._disp>0?'var(--red)':'var(--txtm)'}">${fmt(r._disp)}</td>
   </tr>`).join('');
-  document.getElementById('all-cnt').textContent=rows.length;
 }
 
-// ── ABAS POR CATEGORIA
-function rCat(id){
-  if(id==='inv'){ rInv(); return; }
-  if(id==='bess'){ rBess(); return; }
-  if(id==='ev'){ rEV(); return; }
-  const el=document.getElementById(id+'-kpis');
-  const cat=id==='kit'?'kit':'outro';
-  if(el) catKPIs(cat,el);
-  const q=(document.getElementById(id+'-q')?.value||'').toLowerCase();
-  const wh=document.getElementById(id+'-wh')?.value||'';
-  const rows=filtered(q,wh,cat);
-  const tbl=document.getElementById(id+'-tbl'); if(tbl) tbl.innerHTML=rows.map(r=>stdRow(r,false,true)).join('');
-  const cnt=document.getElementById(id+'-cnt'); if(cnt) cnt.textContent=rows.length;
-}
-
-// ── INVERSORES — cards comerciais
-// Famílias para filtro e ordenação
-const INV_FAM_ORDER=['GT1','GT3','HP1','HP3','GF1','GF3'];
-let invFamFilter=''; // família ativa (toggle)
-
-function invFamKey(r){
-  // Matéria-prima nunca é inversor
-  if(isMateriaP(r)) return 'Outros';
-  // Carregadores e BESS nunca são inversores
-  if(r.cat==='ev'||r.cat==='bess'||r.cat==='acessorio') return 'Outros';
-  const c=r.codigo.toUpperCase();
-  const d=r.descricao.toUpperCase();
-  // Primeiro tenta pelo código
-  for(const f of INV_FAM_ORDER) if(c.startsWith(f+'-')||c.startsWith(f+' ')) return f;
-  // Para códigos numéricos (MAO-LIV), tenta pela descrição
-  for(const f of INV_FAM_ORDER) if(d.includes(f+' ')||d.includes(f+'-')) return f;
-  return 'Outros';
-}
-
-// Extrai potência em kW do código/descrição para ordenação
-function invPower(r){
-  // Tenta extrair número do código: GT1-10KT → 10, GT3-125K → 125
-  const m=r.codigo.match(/[-](\d+(?:\.\d+)?)[Kk]/);
-  if(m) return parseFloat(m[1]);
-  // Tenta na descrição
-  const m2=r.descricao.match(/(\d+(?:[,.]?\d+)?)\s*[Kk][Ww]/);
-  if(m2) return parseFloat(m2[1].replace(',','.'));
-  return 9999;
-}
-
-function rInv(){
-  const q=(document.getElementById('inv-q')?.value||'').toLowerCase();
-  const wh=document.getElementById('inv-wh')?.value||'';
-  const WH_LIST=['CWB','FOR','MAO-LIV','MAO-ELE'];
-  const WHC_L={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
-
-  // Todos os inversores (sem matéria-prima, sem cabos)
-  let allInv=filtered(q,wh,'inversor').filter(r=>!isCabo(r)&&!isMateriaP(r));
-  // Matéria-prima de inversores
-  const mpAll=ST.filter(r=>isMateriaP(r)&&(!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q))&&(!wh||r.wh===wh));
-
-  // Família counts para os pills
-  const famCounts={};
-  allInv.forEach(r=>{ const f=invFamKey(r); famCounts[f]=(famCounts[f]||0)+1; });
-  const totalSaldo=allInv.reduce((a,r)=>a+r.saldo,0);
-
-  // Render KPI pills
-  const kpiEl=document.getElementById('inv-kpis');
-  if(kpiEl){
-    const pills=INV_FAM_ORDER.filter(f=>famCounts[f]).map(f=>{
-      const active=invFamFilter===f;
-      const cnt=famCounts[f];
-      const salF=allInv.filter(r=>invFamKey(r)===f).reduce((a,r)=>a+r.saldo,0);
-      const resF=allInv.filter(r=>invFamKey(r)===f).reduce((a,r)=>a+r.reserva,0);
-      const empF=allInv.filter(r=>invFamKey(r)===f).reduce((a,r)=>a+r.empenho,0);
-      return`<button onclick="setInvFam('${f}')" style="
-        display:flex;flex-direction:column;align-items:center;
-        padding:8px 18px;border-radius:10px;cursor:pointer;border:2px solid ${active?'var(--pri)':'var(--brd)'};
-        background:${active?'var(--pri)':'var(--surf)'};transition:all .15s;min-width:90px">
-        <span style="font-size:13px;font-weight:700;color:${active?'#fff':'var(--txt)'}">${f}</span>
-        <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:${active?'#fff':'var(--pri)'};">${salF.toLocaleString('pt-BR')}</span>
-        <span style="font-size:10px;color:${active?'rgba(255,255,255,.7)':'var(--txtm)'}">${cnt} SKUs · em estoque</span>
-        ${resF>0||empF>0?`<div style="margin-top:3px;display:flex;gap:6px">
-          ${resF>0?`<span style="font-size:9px;color:${active?'#c4b5fd':'var(--pur)'};font-weight:600">Res:${resF}</span>`:''}
-          ${empF>0?`<span style="font-size:9px;color:${active?'#fcd34d':'var(--amb-d)'};font-weight:600">Sep:${empF}</span>`:''}
-        </div>`:''}
-      </button>`;
-    });
-    // Total pill
-    const totalActive=invFamFilter==='';
-    const totalRes=allInv.reduce((a,r)=>a+r.reserva,0);
-    const totalEmp=allInv.reduce((a,r)=>a+r.empenho,0);
-    pills.unshift(`<button onclick="setInvFam('')" style="
-      display:flex;flex-direction:column;align-items:center;
-      padding:8px 18px;border-radius:10px;cursor:pointer;border:2px solid ${totalActive?'var(--pri)':'var(--brd)'};
-      background:${totalActive?'var(--pri)':'var(--surf)'};transition:all .15s;min-width:100px">
-      <span style="font-size:13px;font-weight:700;color:${totalActive?'#fff':'var(--txt)'}">Todos</span>
-      <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:${totalActive?'#fff':'var(--pri)'};">${totalSaldo.toLocaleString('pt-BR')}</span>
-      <span style="font-size:10px;color:${totalActive?'rgba(255,255,255,.7)':'var(--txtm)'}">em estoque</span>
-      ${totalRes>0||totalEmp>0?`<div style="margin-top:3px;display:flex;gap:6px">
-        ${totalRes>0?`<span style="font-size:9px;color:${totalActive?'#c4b5fd':'var(--pur)'};font-weight:600">Res:${totalRes}</span>`:''}
-        ${totalEmp>0?`<span style="font-size:9px;color:${totalActive?'#fcd34d':'var(--amb-d)'};font-weight:600">Sep:${totalEmp}</span>`:''}
-      </div>`:''}
-    </button>`);
-    kpiEl.innerHTML=pills.join('');
-  }
-
-  // Aplicar filtro de família
-  if(invFamFilter) allInv=allInv.filter(r=>invFamKey(r)===invFamFilter);
-
-  // DEDUPLICAR por código
-  const invByCode={};
-  allInv.forEach(r=>{
-    if(!invByCode[r.codigo]){invByCode[r.codigo]={...r,_saldo:0,_empenho:0,_reserva:0};}
-    invByCode[r.codigo]._saldo   += r.saldo;
-    invByCode[r.codigo]._empenho += r.empenho;
-    invByCode[r.codigo]._reserva += r.reserva;
-  });
-  allInv=Object.values(invByCode);
-
-  // Ordenar: família → potência crescente
-  allInv.sort((a,b)=>{
-    const fa=INV_FAM_ORDER.indexOf(invFamKey(a)), fb=INV_FAM_ORDER.indexOf(invFamKey(b));
-    if(fa!==fb) return fa-fb;
-    return invPower(a)-invPower(b);
-  });
-
-  document.getElementById('inv-cnt').textContent=allInv.length;
-  document.getElementById('inv-mp-cnt').textContent=mpAll.length;
-
-  // Render cards produtos acabados
-  document.getElementById('inv-cards').innerHTML=allInv.map(r=>{
-    // Estoque por armazém
-    const whRows=WH_LIST.map(w=>{
-      const s=ST.filter(x=>x.codigo===r.codigo&&x.wh===w).reduce((a,x)=>a+x.saldo,0);
-      if(!s) return '';
-      const c=WHC_L[w];
-      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
-        <span style="font-size:12px;font-weight:600;color:${c}">${w}</span>
-        <span style="font-size:13px;font-weight:600;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
-      </div>`;
-    }).join('');
-
-    const fam=invFamKey(r);
-    const famCol=fam==='GT1'?'#1E3A5F':fam==='GT3'?'#0891b2':fam.startsWith('HP')?'#7c3aed':'#475569';
-    const dispInv=Math.max(0,r._saldo-r._empenho-r._reserva);
-
-    return`<div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:1rem 1.125rem;position:relative">
-      <span style="position:absolute;top:.875rem;right:.875rem;font-size:9px;font-weight:700;color:${famCol};background:${famCol}14;padding:2px 6px;border-radius:4px">${fam}</span>
-      <div style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;margin-bottom:2px;padding-right:55px">${r.codigo}</div>
-      <div style="font-size:10px;color:var(--txtm);margin-bottom:.875rem;line-height:1.4;padding-right:55px">${trunc(r.descricao,55)}</div>
-      <div style="margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--brd)">
-        <div style="font-size:10px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px">Disponível</div>
-        <div style="font-size:32px;font-weight:700;color:${dispInv>20?'var(--grn-d)':dispInv>=5?'var(--amb-d)':'var(--red)'};font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1">${fmt(dispInv)}</div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:.375rem">
-        <span style="font-size:12px;color:var(--txt2)">Saldo</span>
-        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace">${fmt(r._saldo)}</span>
-      </div>
-      ${whRows}
-      <div style="margin-top:.625rem;padding-top:.625rem;border-top:1px solid var(--brd)">
-        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-          <span style="font-size:12px;color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">Reserva</span>
-          <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">${fmt(r._reserva)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between">
-          <span style="font-size:12px;color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">Em Sep.</span>
-          <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">${fmt(r._empenho)}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('')||'<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum inversor encontrado.</div>';
-
-  // Render matéria-prima separada
-  const mpSec=document.getElementById('inv-mp-sec');
-  if(mpAll.length){
-    mpSec.style.display='block';
-    document.getElementById('inv-mp-cards').innerHTML=mpAll.map(r=>{
-      const whRows=WH_LIST.map(w=>{
-        const s=ST.filter(x=>x.codigo===r.codigo&&x.wh===w).reduce((a,x)=>a+x.saldo,0);
-        if(!s) return '';
-        const c=WHC_L[w];
-        return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
-          <span style="font-size:11px;font-weight:700;color:${c}">${w}</span>
-          <span style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
-        </div>`;
-      }).join('');
-      return`<div style="background:var(--surf);border:1px solid #fecdd3;border-radius:var(--rl);overflow:hidden;opacity:.9">
-        <div style="background:#fff1f2;border-bottom:1px solid #fecdd3;padding:.625rem 1rem;display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-size:11px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${r.codigo}</div>
-            <div style="font-size:10px;color:var(--txt2);margin-top:1px">${trunc(r.descricao,50)}</div>
-          </div>
-          <span style="font-size:9px;font-weight:700;color:#dc2626;background:#fee2e2;padding:2px 6px;border-radius:4px;flex-shrink:0;margin-left:6px">MAT.PRIMA</span>
-        </div>
-        <div style="padding:.625rem 1rem;text-align:center;border-bottom:1px solid #fecdd3">
-          <div style="font-size:9px;color:var(--txtm);text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px">Saldo</div>
-          <div style="font-size:26px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${fmt(r.saldo)}</div>
-        </div>
-        <div style="padding:.5rem 1rem;background:#fff9f9">${whRows||'—'}</div>
-      </div>`;
-    }).join('');
-  } else { mpSec.style.display='none'; }
-}
-
-function setInvFam(fam){
-  invFamFilter=invFamFilter===fam?'':fam;
-  rInv();
-}
-
-// ── CARD GENÉRICO (reutilizado por BESS e EV)
-function buildCatCards(cat, pillFams, pillColors, containerId, kpiId, cntId, qId, whId, famFilterKey){
-  const q=(document.getElementById(qId)?.value||'').toLowerCase();
-  const wh=document.getElementById(whId)?.value||'';
-  const WH_LIST=['CWB','FOR','MAO-LIV','MAO-ELE'];
-  const WHC_L={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
-
-  // Todos os itens da categoria sem cabos/matéria-prima
-  let allItems=filtered(q,wh,cat).filter(r=>!isCabo(r)&&!isMateriaP(r));
-
-  // Família de cada item
-  const famKey=r=>{
-    const c=r.codigo.toUpperCase(), d=r.descricao.toUpperCase();
-    for(const[pfx,lbl] of pillFams){
-      if(c.startsWith(pfx)||d.includes(pfx)) return lbl;
-    }
-    return 'Outros';
-  };
-
-  // KPI pills
-  const famCounts={};
-  allItems.forEach(r=>{ const f=famKey(r); famCounts[f]=(famCounts[f]||0)+1; });
-  const totalSaldo=allItems.reduce((a,r)=>a+r.saldo,0);
-  const totalRes=allItems.reduce((a,r)=>a+r.reserva,0);
-  const totalEmp=allItems.reduce((a,r)=>a+r.empenho,0);
-
-  const curFam=window[famFilterKey]||'';
-  const kpiEl=document.getElementById(kpiId);
-  if(kpiEl){
-    const totalActive=curFam==='';
-    let pills=[`<button onclick="setCatFam('${famFilterKey}','')" style="
-      display:flex;flex-direction:column;align-items:center;padding:8px 18px;border-radius:10px;
-      cursor:pointer;border:2px solid ${totalActive?'var(--pri)':'var(--brd)'};
-      background:${totalActive?'var(--pri)':'var(--surf)'};transition:all .15s;min-width:100px">
-      <span style="font-size:13px;font-weight:700;color:${totalActive?'#fff':'var(--txt)'}">Todos</span>
-      <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:${totalActive?'#fff':'var(--pri)'};">${totalSaldo.toLocaleString('pt-BR')}</span>
-      <span style="font-size:10px;color:${totalActive?'rgba(255,255,255,.7)':'var(--txtm)'}">em estoque</span>
-      ${totalRes>0||totalEmp>0?`<div style="margin-top:3px;display:flex;gap:6px">
-        ${totalRes>0?`<span style="font-size:9px;color:${totalActive?'#c4b5fd':'var(--pur)'};font-weight:600">Res:${totalRes}</span>`:''}
-        ${totalEmp>0?`<span style="font-size:9px;color:${totalActive?'#fcd34d':'var(--amb-d)'};font-weight:600">Sep:${totalEmp}</span>`:''}
-      </div>`:''}
-    </button>`];
-
-    const seenLabels=new Set();
-    pillFams.forEach(([pfx,lbl])=>{
-      if(!famCounts[lbl]||seenLabels.has(lbl)) return;
-      seenLabels.add(lbl);
-      const active=curFam===lbl;
-      const col=pillColors[lbl]||'#475569';
-      const salF=allItems.filter(r=>famKey(r)===lbl).reduce((a,r)=>a+r.saldo,0);
-      const resF=allItems.filter(r=>famKey(r)===lbl).reduce((a,r)=>a+r.reserva,0);
-      const empF=allItems.filter(r=>famKey(r)===lbl).reduce((a,r)=>a+r.empenho,0);
-      pills.push(`<button onclick="setCatFam('${famFilterKey}','${lbl}')" style="
-        display:flex;flex-direction:column;align-items:center;padding:8px 18px;border-radius:10px;
-        cursor:pointer;border:2px solid ${active?col:'var(--brd)'};
-        background:${active?col:'var(--surf)'};transition:all .15s;min-width:90px">
-        <span style="font-size:11px;font-weight:700;color:${active?'#fff':'var(--txt2)'}">${lbl}</span>
-        <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace;color:${active?'#fff':col};">${salF.toLocaleString('pt-BR')}</span>
-        <span style="font-size:10px;color:${active?'rgba(255,255,255,.7)':'var(--txtm)'}">em estoque</span>
-        ${resF>0||empF>0?`<div style="margin-top:3px;display:flex;gap:6px">
-          ${resF>0?`<span style="font-size:9px;color:${active?'#c4b5fd':'var(--pur)'};font-weight:600">Res:${resF}</span>`:''}
-          ${empF>0?`<span style="font-size:9px;color:${active?'#fcd34d':'var(--amb-d)'};font-weight:600">Sep:${empF}</span>`:''}
-        </div>`:''}
-      </button>`);
-    });
-    kpiEl.innerHTML=pills.join('');
-  }
-
-  // Aplicar filtro de família
-  if(curFam) allItems=allItems.filter(r=>famKey(r)===curFam);
-
-  // DEDUPLICAR por código — agregar todos os armazéns num único objeto por código
-  const byCode={};
-  allItems.forEach(r=>{
-    if(!byCode[r.codigo]){
-      byCode[r.codigo]={...r, _saldo:0, _empenho:0, _reserva:0};
-    }
-    byCode[r.codigo]._saldo   += r.saldo;
-    byCode[r.codigo]._empenho += r.empenho;
-    byCode[r.codigo]._reserva += r.reserva;
-  });
-  let dedupItems=Object.values(byCode);
-
-  // Ordenar por família depois por potência/código
-  dedupItems.sort((a,b)=>{
-    const fa=famKey(a), fb=famKey(b);
-    if(fa!==fb){
-      const fi=pillFams.findIndex(([p,l])=>l===fa);
-      const fj=pillFams.findIndex(([p,l])=>l===fb);
-      return (fi===-1?999:fi)-(fj===-1?999:fj);
-    }
-    return a.codigo.localeCompare(b.codigo);
-  });
-
-  document.getElementById(cntId).textContent=dedupItems.length;
-
-  // Render cards
-  document.getElementById(containerId).innerHTML=dedupItems.map(r=>{
-    const fam=famKey(r);
-    const famCol=pillColors[fam]||'#475569';
-    const totalSaldoR=r._saldo;
-    const totalResR=r._reserva;
-    const totalEmpR=r._empenho;
-    const whRows=WH_LIST.map(w=>{
-      const s=ST.filter(x=>x.codigo===r.codigo&&x.wh===w).reduce((a,x)=>a+x.saldo,0);
-      if(!s) return '';
-      const c=WHC_L[w];
-      return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
-        <span style="font-size:12px;font-weight:600;color:${c}">${w}</span>
-        <span style="font-size:13px;font-weight:600;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
-      </div>`;
-    }).join('');
-    const dispR=Math.max(0,totalSaldoR-totalEmpR-totalResR);
-    return`<div style="background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:1rem 1.125rem;position:relative">
-      <!-- família tag -->
-      <span style="position:absolute;top:.875rem;right:.875rem;font-size:9px;font-weight:700;color:${famCol};background:${famCol}14;padding:2px 6px;border-radius:4px">${fam}</span>
-      <!-- código -->
-      <div style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;margin-bottom:2px;padding-right:60px">${r.codigo}</div>
-      <!-- descrição -->
-      <div style="font-size:10px;color:var(--txtm);margin-bottom:.875rem;line-height:1.4;padding-right:60px">${trunc(r.descricao,55)}</div>
-      <!-- DISPONÍVEL destaque -->
-      <div style="margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--brd)">
-        <div style="font-size:10px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:.6px;margin-bottom:1px">Disponível</div>
-        <div style="font-size:32px;font-weight:700;color:${dispR>20?'var(--grn-d)':dispR>=5?'var(--amb-d)':'var(--red)'};font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1">${fmt(dispR)}</div>
-      </div>
-      <!-- Saldo -->
-      <div style="display:flex;justify-content:space-between;margin-bottom:.5rem">
-        <span style="font-size:12px;color:var(--txt2)">Saldo</span>
-        <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace">${fmt(totalSaldoR)}</span>
-      </div>
-      <!-- Por armazém -->
-      ${whRows}
-      <!-- Reserva + Em Sep. -->
-      <div style="margin-top:.625rem;padding-top:.625rem;border-top:1px solid var(--brd)">
-        <div style="display:flex;justify-content:space-between;margin-bottom:2px">
-          <span style="font-size:12px;color:${totalResR>0?'var(--pur)':'var(--txtm)'}">Reserva</span>
-          <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${totalResR>0?'var(--pur)':'var(--txtm)'}">${fmt(totalResR)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between">
-          <span style="font-size:12px;color:${totalEmpR>0?'var(--amb-d)':'var(--txtm)'}">Em Sep.</span>
-          <span style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:${totalEmpR>0?'var(--amb-d)':'var(--txtm)'}">${fmt(totalEmpR)}</span>
-        </div>
-      </div>
-    </div>`;
-  }).join('')||`<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum produto encontrado.</div>`;
-}
-
-function setCatFam(filterKey, fam){
-  window[filterKey]=window[filterKey]===fam?'':fam;
-  if(filterKey==='bessFilter') rBess();
-  else if(filterKey==='evFilter') rEV();
-}
-
-// ── BESS
-window.bessFilter='';
-const BESS_FAMS=[
-  ['BHF-','BHF'],['BLF-','BLF'],['BLF51','BLF51'],
-  ['SMI-48','SMI'],['PCS-','PCS'],['BMS','BMS'],
-];
-const BESS_COLORS={'BHF':'#0891b2','BLF':'#7c3aed','BLF51':'#5b21b6',
-  'SMI':'#059669','PCS':'#d97706','BMS':'#374151','Outros':'#475569'};
-
-function rBess(){
-  buildCatCards('bess', BESS_FAMS, BESS_COLORS,
-    'bess-cards','bess-kpis','bess-cnt','bess-q','bess-wh','bessFilter');
-}
-
-// ── CARREGADORES EV
-window.evFilter='';
-const EV_FAMS=[
-  // CA — corrente alternada, ordem por potência
-  ['A007','CA 7kW'],
-  ['A0220','CA 22kW'],
-  // CC — corrente contínua, ordem por potência
-  ['C030','CC 30kW'],
-  ['C040','CC 40kW'],
-  ['C050','CC 50kW'],
-  ['C060','CC 60kW'],
-  ['M060','CC 60kW Mob'],
-  // CC 120kW — todos os prefixos M1201000, M12010, M120 mapeiam para o mesmo label
-  ['M1201000','CC 120kW'],['M12010','CC 120kW'],['M120','CC 120kW'],
-  ['M160','CC 160kW'],
-  ['M180','CC 180kW'],
-  ['M240','CC 240kW'],
-  ['D030','CC 30kW Wall'],
-  ['2160','CA 250W'],
-];
-const EV_COLORS={'CA 7kW':'#15803d','CA 22kW':'#166534',
-  'CC 30kW':'#1E3A5F','CC 40kW':'#1d4ed8','CC 50kW':'#2563eb',
-  'CC 60kW':'#3b82f6','CC 60kW Mob':'#60a5fa',
-  'CC 120kW':'#7c3aed','CC 160kW':'#6d28d9','CC 180kW':'#5b21b6',
-  'CC 240kW':'#4c1d95','CC 30kW Wall':'#b45309','Outros':'#475569'};
-
-function rEV(){
-  buildCatCards('ev', EV_FAMS, EV_COLORS,
-    'ev-cards','ev-kpis','ev-cnt','ev-q','ev-wh','evFilter');
-  // Matéria-prima / acessórios EV do MAO-LIV
-  const q=(document.getElementById('ev-q')?.value||'').toLowerCase();
-  const wh=document.getElementById('ev-wh')?.value||'';
-  const WHC_L={'CWB':'#1E3A5F','FOR':'#22C55E','MAO-LIV':'#F59E0B','MAO-ELE':'#7c3aed'};
-  const WH_LIST=['CWB','FOR','MAO-LIV','MAO-ELE'];
-  // Inclui matéria-prima E acessórios que são componentes de carregadores
-  const evKeywords=['CARREGADOR','PEDESTAL','CABO DE CARGA','CONECTOR CCS','CHADEMO','CABO EV',
-    'MOTION','ATOM','LIVOLTEK EV','ELETROPOSTO','TOMADA','PLUG'];
-  const mpItems=ST.filter(r=>{
-    const match=(!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q))&&(!wh||r.wh===wh);
-    const du=r.descricao.toUpperCase();
-    // Excluir matéria-prima de inversores (GT1/GT3/HP)
-    const isInvMP=isMateriaP(r)&&(du.includes('GT1')||du.includes('GT3')||du.includes('HP1')||du.includes('HP3')||du.includes('INVERSOR'));
-    const isEvComp=!isInvMP&&(isMateriaP(r)||(r.cat==='acessorio'&&evKeywords.some(k=>du.includes(k))));
-    return match && isEvComp;
-  });
-  const mpSec=document.getElementById('ev-mp-sec');
-  const mpCnt=document.getElementById('ev-mp-cnt');
-  if(mpCnt) mpCnt.textContent=mpItems.length;
-  if(mpItems.length){
-    mpSec.style.display='block';
-    document.getElementById('ev-mp-cards').innerHTML=mpItems.map(r=>{
-      const whRows=WH_LIST.map(w=>{
-        const s=ST.filter(x=>x.codigo===r.codigo&&x.wh===w).reduce((a,x)=>a+x.saldo,0);
-        if(!s) return '';
-        const c=WHC_L[w];
-        return`<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0">
-          <span style="font-size:11px;font-weight:700;color:${c}">${w}</span>
-          <span style="font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${fmt(s)}</span>
-        </div>`;
-      }).join('');
-      const totalS=ST.filter(x=>x.codigo===r.codigo).reduce((a,x)=>a+x.saldo,0);
-      const label=isMateriaP(r)?'MAT.PRIMA':'ACESS.EV';
-      const borderCol=isMateriaP(r)?'#fecdd3':'#bfdbfe';
-      const bgCol=isMateriaP(r)?'#fff1f2':'#eff6ff';
-      const badgeCol=isMateriaP(r)?'#dc2626':'#1d4ed8';
-      return`<div style="background:var(--surf);border:1px solid ${borderCol};border-radius:var(--rl);overflow:hidden">
-        <div style="background:${bgCol};border-bottom:1px solid ${borderCol};padding:.625rem 1rem;display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-size:11px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${r.codigo}</div>
-            <div style="font-size:10px;color:var(--txt2);margin-top:1px">${trunc(r.descricao,50)}</div>
-          </div>
-          <span style="font-size:9px;font-weight:700;color:${badgeCol};background:${borderCol};padding:2px 6px;border-radius:4px;flex-shrink:0;margin-left:6px">${label}</span>
-        </div>
-        <div style="padding:.625rem 1rem;text-align:center;border-bottom:1px solid ${borderCol}">
-          <div style="font-size:9px;color:var(--txtm);text-transform:uppercase;letter-spacing:.4px;margin-bottom:1px">Saldo</div>
-          <div style="font-size:26px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace">${fmt(totalS)}</div>
-        </div>
-        <div style="padding:.5rem 1rem;background:var(--surf2)">${whRows||'—'}</div>
-      </div>`;
-    }).join('');
-  } else { mpSec.style.display='none'; }
-}
-
-// ── ACESSÓRIOS (accordion)
-function rAcc(){
-  const q=(document.getElementById('acc-q')?.value||'').toLowerCase();
-  const wh=document.getElementById('acc-wh')?.value||'';
-  const rows=filtered(q,wh,'acessorio');
-  const groups={};
-  rows.forEach(r=>{const g=accGroup(r.familia||'Outros');if(!groups[g])groups[g]=[];groups[g].push(r);});
-  const ord=ACC_GROUPS.filter(g=>groups[g]);
-  document.getElementById('acc-groups').innerHTML=ord.length?ord.map(g=>{
-    const items=groups[g];
-    const tot=items.reduce((a,r)=>a+r.disp,0);
-    return`<div class="acc-group">
-      <div class="acc-hdr open" onclick="toggleAcc(this)">
-        <span>${g}<span class="cnt">${items.length} SKUs · ${fmt(tot)} disp.</span></span>
-        <i class="ti ti-chevron-down ico"></i>
-      </div>
-      <div class="acc-body"><table class="tbl">
-        <thead><tr><th>Código</th><th>Produto</th><th>WH</th><th class="r">Saldo</th><th class="r" style="color:var(--grn-d)">Disp. Venda</th><th>Status</th></tr></thead>
-        <tbody>${items.map(r=>`<tr>
-          <td class="cod">${r.codigo}</td>
-          <td class="pname" style="font-size:11px" title="${r.descricao}">${trunc(r.descricao,60)}</td>
-          <td>${wt(r.wh)}</td><td class="r">${fmt(r.saldo)}</td>
-          <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':r.disp>0?'#dc2626':'#94a3b8'}">${fmt(r.disp)}</td>
-          <td>${sbadge(r.disp)}</td>
-        </tr>`).join('')}</tbody>
-      </table></div>
-    </div>`;
-  }).join(''):'<div style="padding:2rem;text-align:center;color:var(--txtm);font-size:13px">Nenhum acessório encontrado.</div>';
-}
-function toggleAcc(h){h.classList.toggle('open');}
-
-// ── RESERVAS
-function rResKPIs(){
-  const tot=RES.reduce((a,r)=>a+r.qtd,0);
-  document.getElementById('r-tot').textContent=fmt(tot);
-  document.getElementById('r-lin').textContent=RES.length;
-  const byP={},byV={};
-  RES.forEach(r=>{byP[r.codigo]=(byP[r.codigo]||0)+r.qtd; byV[r.responsavel]=(byV[r.responsavel]||0)+r.qtd;});
-  const tp=Object.entries(byP).sort((a,b)=>b[1]-a[1])[0];
-  const tv=Object.entries(byV).sort((a,b)=>b[1]-a[1])[0];
-  if(tp){document.getElementById('r-tp').textContent=tp[0];document.getElementById('r-tpq').textContent=fmt(tp[1])+' unidades';}
-  if(tv){document.getElementById('r-tv').textContent=tv[0];document.getElementById('r-tvq').textContent=fmt(tv[1])+' unidades';}
-  const byD={};
-  RES.forEach(r=>{const d=r.diretoria||obsToWH(r.obs)||'Outros';byD[d]=(byD[d]||0)+r.qtd;});
-  const dColors={'Mobility':WHC.CWB,'Distribution':WHC.FOR,'Projects E-mobility':WHC['MAO-LIV'],'Eletra':WHC['MAO-ELE']};
-  document.getElementById('res-sum-dir').innerHTML=Object.entries(byD).sort((a,b)=>b[1]-a[1]).map(([d,v])=>{
-    const col=dColors[d]||'#64748b';
-    return`<div class="whs-c"><div class="whs-l" style="color:${col}">${d}</div><div class="whs-v" style="color:${col}">${fmt(v)}</div><div style="font-size:10px;color:var(--txtm);margin-top:2px">unidades reservadas</div></div>`;
-  }).join('');
-}
-
+// ══ RESERVAS
 function rRes(){
   const q=(document.getElementById('res-q')?.value||'').toLowerCase();
   const arm=document.getElementById('res-arm')?.value||'';
   const dir=document.getElementById('res-dir')?.value||'';
   const rows=RES.filter(r=>{
-    const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||r.responsavel.toLowerCase().includes(q);
+    const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q);
     const ma=!arm||r.obs.includes(arm);
     const md=!dir||r.diretoria===dir;
     return mq&&ma&&md;
   });
+  const tot=RES.reduce((a,r)=>a+r.qtd,0);
+  document.getElementById('r-tot').textContent=fmt(tot);
+  document.getElementById('r-lin').textContent=RES.length;
+  const byP={},byV={};
+  RES.forEach(r=>{byP[r.codigo]=(byP[r.codigo]||0)+r.qtd;byV[r.responsavel]=(byV[r.responsavel]||0)+r.qtd;});
+  const tp=Object.entries(byP).sort((a,b)=>b[1]-a[1])[0];
+  const tv=Object.entries(byV).sort((a,b)=>b[1]-a[1])[0];
+  if(tp) document.getElementById('r-tp').textContent=tp[0]+' ('+fmt(tp[1])+' un.)';
+  if(tv) document.getElementById('r-tv').textContent=tv[0]+' ('+fmt(tv[1])+' un.)';
   document.getElementById('res-tbl').innerHTML=rows.map(r=>{
-    const w=obsToWH(r.obs)||'?'; const c=WHC[w]||'#888';
+    const w=obsToWH(r.obs)||'?';const c=WH_COLORS[w]||'#888';
     return`<tr>
       <td style="font-weight:500;font-size:12px">${r.cliente}</td>
-      <td style="color:var(--txt2);font-size:12px">${r.responsavel}</td>
+      <td style="font-size:12px;color:var(--txt2)">${r.responsavel}</td>
       <td style="font-size:11px;color:var(--txt2)">${r.diretoria||'—'}</td>
-      <td class="cod">${r.codigo}</td>
-      <td><span class="wt" style="color:${c};background:${c}1a">${w}</span></td>
-      <td class="r" style="font-weight:700;font-size:14px;color:var(--pur)">${fmt(r.qtd)}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
+      <td><span class="wt" style="color:${c};background:${c}1a">${w.split(' ')[0]}</span></td>
+      <td class="r" style="font-weight:700;color:var(--pur)">${fmt(r.qtd)}</td>
       <td style="font-size:11px;color:var(--txtm)">${r.solicitado||'—'}</td>
-      <td style="font-size:11px;color:var(--txtm)">${r.descricao||r.obs||'—'}</td>
     </tr>`;
   }).join('');
   document.getElementById('res-cnt').textContent=rows.length;
 }
 
-// ── ARMAZÉNS
-let selWH='CWB';
-function renderWH(){
-  const whs=['CWB','FOR','MAO-LIV','MAO-ELE'];
-  const allDisp=ST.reduce((a,r)=>a+r.disp,0), allSal=ST.reduce((a,r)=>a+r.saldo,0);
-  const cards=[{wh:'ALL',label:'Todos',disp:allDisp,sal:allSal,cnt:ST.length},...whs.map(w=>{
-    const it=ST.filter(r=>r.wh===w);
-    return{wh:w,label:WHL[w],disp:it.reduce((a,r)=>a+r.disp,0),sal:it.reduce((a,r)=>a+r.saldo,0),cnt:it.length};
-  })];
-  const col=x=>x.wh==='ALL'?'#1E3A5F':WHC[x.wh]||'#888';
-  document.getElementById('wh-cards').innerHTML=cards.map(x=>`
-    <div class="whc ${selWH===(x.wh==='ALL'?'ALL':x.wh)?'sel':''}" onclick="selWHFn('${x.wh}')" style="border-left-color:${selWH===(x.wh==='ALL'?'ALL':x.wh)?col(x):'transparent'}">
-      <div class="wn" style="color:${col(x)}">${x.wh==='ALL'?'TODOS':x.wh}</div>
-      <div class="wloc">${x.wh==='ALL'?'Todos os armazéns':(x.label.split('—')[1]?.trim()||'')}</div>
-      <div class="wv" style="color:${col(x)}">${fmt(x.disp)}</div>
-      <div class="ws" style="color:#16a34a;font-weight:600">disponível para venda</div>
-      <div class="winfo">Saldo: ${fmt(x.sal)} · ${x.cnt} SKUs</div>
-    </div>`).join('');
-  rWH();
-}
-function selWHFn(wh){
-  selWH=wh; renderWH();
-  const t=wh==='ALL'?'Todos os Armazéns':(WHL[wh]||wh);
-  document.getElementById('wh-tit').innerHTML=`<i class="ti ti-building-warehouse"></i> ${t}`;
-}
-function rWH(){
-  const q=(document.getElementById('wh-q')?.value||'').toLowerCase();
-  const wh=selWH==='ALL'?'':selWH;
-  const rows=ST.filter(r=>(!wh||r.wh===wh)&&(!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q))).sort((a,b)=>a.codigo.localeCompare(b.codigo));
-  const sal=rows.reduce((a,r)=>a+r.saldo,0),emp=rows.reduce((a,r)=>a+r.empenho,0),res=rows.reduce((a,r)=>a+r.reserva,0),disp=rows.reduce((a,r)=>a+r.disp,0);
-  document.getElementById('wh-sum').innerHTML=`
-    <div class="whs-c"><div class="whs-l">Saldo TOTVS</div><div class="whs-v">${fmt(sal)}</div></div>
-    <div class="whs-c"><div class="whs-l">Em Separação</div><div class="whs-v" style="color:var(--amb-d)">${fmt(emp)}</div></div>
-    <div class="whs-c"><div class="whs-l">Reservas Comerc.</div><div class="whs-v" style="color:var(--pur)">${fmt(res)}</div></div>
-    <div class="whs-c"><div class="whs-l">Disponível para Venda</div><div class="whs-v" style="color:var(--grn-d)">${fmt(disp)}</div></div>`;
-  const crit=rows.filter(r=>r.saldo>0&&r.disp<=5);
-  const zero=rows.filter(r=>r.saldo>0&&r.disp===0);
-  document.getElementById('wh-crit').innerHTML=`
-    <div class="card" style="margin-bottom:0">
-      <div class="ch"><span class="ct" style="color:#b45309"><i class="ti ti-alert-circle"></i> Críticos (Disp. ≤ 5)</span><span style="font-size:12px;color:var(--txtm)">${crit.length} itens</span></div>
-      <div class="tw" style="max-height:180px"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th class="r" style="color:#b45309">Disp.</th></tr></thead>
-      <tbody>${crit.length?crit.map(r=>`<tr><td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,45)}</td><td class="r" style="font-weight:700;color:${r.disp===0?'#94a3b8':'#b45309'}">${fmt(r.disp)}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:var(--txtm);padding:1rem">Nenhum item crítico ✓</td></tr>'}</tbody>
-      </table></div>
-    </div>
-    <div class="card" style="margin-bottom:0">
-      <div class="ch"><span class="ct" style="color:#dc2626"><i class="ti ti-minus-circle"></i> Zerados (saldo existe, disp.=0)</span><span style="font-size:12px;color:var(--txtm)">${zero.length} itens</span></div>
-      <div class="tw" style="max-height:180px"><table class="tbl"><thead><tr><th>Código</th><th>Produto</th><th class="r">Saldo</th><th class="r" style="color:var(--pur)">Reserva</th></tr></thead>
-      <tbody>${zero.length?zero.map(r=>`<tr><td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,40)}</td><td class="r">${fmt(r.saldo)}</td><td class="r" style="color:var(--pur)">${r.reserva>0?fmt(r.reserva):'—'}</td></tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:var(--txtm);padding:1rem">Nenhum item zerado ✓</td></tr>'}</tbody>
-      </table></div>
-    </div>`;
-  document.getElementById('wh-tbl').innerHTML=rows.map(r=>`<tr style="${r.disp===0&&r.saldo>0?'background:#fff9f9':''}">
-    <td class="cod">${r.codigo}</td>
-    <td class="pname" title="${r.descricao}">${trunc(r.descricao,60)}</td>
-    <td>${catTag(r.cat)}</td>
-    <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:${r.empenho>0?'#b45309':'var(--txtm)'}">${r.empenho>0?fmt(r.empenho):'—'}</td>
-    <td class="r" style="color:${r.reserva>0?'#7c3aed':'var(--txtm)'}">${r.reserva>0?fmt(r.reserva):'—'}</td>
-    <td class="r" style="font-weight:700;color:${r.disp>20?'#15803d':r.disp>=5?'#b45309':r.disp>0?'#dc2626':'#94a3b8'}">${fmt(r.disp)}</td>
-    <td>${sbadge(r.disp)}</td>
-  </tr>`).join('');
-  document.getElementById('wh-cnt').textContent=rows.length;
-  document.getElementById('wh-sub').textContent=selWH==='ALL'?'Todos os armazéns':(WHL[selWH]||selWH);
-}
-
-// ── ALERTAS
+// ══ ALERTAS
 function rAlrt(){
-  const filt=(rows,qid,whid,catid)=>{
+  const filt=(base,qid,whid)=>{
     const q=(document.getElementById(qid)?.value||'').toLowerCase();
     const wh=document.getElementById(whid)?.value||'';
-    const cat=catid?document.getElementById(catid)?.value||'':'';
-    return rows.filter(r=>{
-      const mq=!q||r.descricao.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q);
-      return mq&&(!wh||r.wh===wh)&&(!cat||r.cat===cat);
-    });
+    return base.filter(r=>(!q||r.codigo.toLowerCase().includes(q)||r.nome.toLowerCase().includes(q))&&(!wh||r.wh===wh));
   };
-  const a1=filt(ST.filter(r=>r.reserva>r.saldo),'a1-q','a1-wh','');
+  const dedup=dedupByCode(ST.filter(r=>!r.isMP));
+  const a1=filt(dedup.filter(r=>r._reserva>r._saldo),'a1-q','a1-wh');
+  const a2=filt(dedup.filter(r=>r._disp>=1&&r._disp<=5),'a2-q','a2-wh').sort((a,b)=>a._disp-b._disp);
+  const a3=filt(dedup.filter(r=>r._saldo>0&&r._disp===0),'a3-q','a3-wh');
   document.getElementById('a1-cnt').textContent=a1.length+' itens';
   document.getElementById('a1-tbl').innerHTML=a1.map(r=>`<tr>
-    <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,48)}</td>
-    <td>${wt(r.wh)}</td><td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:#b45309">${r.empenho>0?fmt(r.empenho):'—'}</td>
-    <td class="r" style="color:var(--pur);font-weight:700">${fmt(r.reserva)}</td>
-    <td class="r" style="color:#dc2626;font-weight:700">−${fmt(r.reserva-r.saldo)}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
+    <td style="font-size:11px">${trunc(r.nome,40)}</td>
+    <td style="font-size:11px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh.split(' ')[0]))].join(', ')}</td>
+    <td class="r">${fmt(r._saldo)}</td>
+    <td class="r" style="color:var(--pur);font-weight:700">${fmt(r._reserva)}</td>
+    <td class="r" style="color:#dc2626;font-weight:700">−${fmt(r._reserva-r._saldo)}</td>
   </tr>`).join('');
-  const a2=filt(ST.filter(r=>r.disp>=1&&r.disp<=5),'a2-q','a2-wh','a2-cat').sort((a,b)=>a.disp-b.disp);
   document.getElementById('a2-cnt').textContent=a2.length+' itens';
   document.getElementById('a2-tbl').innerHTML=a2.map(r=>`<tr>
-    <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,46)}</td>
-    <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
-    <td class="r">${fmt(r.saldo)}</td><td class="r" style="color:#b45309;font-weight:700">${fmt(r.disp)}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
+    <td style="font-size:11px">${trunc(r.nome,40)}</td>
+    <td style="font-size:11px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh.split(' ')[0]))].join(', ')}</td>
+    <td class="r">${fmt(r._saldo)}</td>
+    <td class="r" style="color:var(--amb-d);font-weight:700">${fmt(r._disp)}</td>
   </tr>`).join('');
-  const a3=filt(ST.filter(r=>r.saldo>0&&r.disp===0),'a3-q','a3-wh','a3-cat').sort((a,b)=>b.saldo-a.saldo);
   document.getElementById('a3-cnt').textContent=a3.length+' itens';
   document.getElementById('a3-tbl').innerHTML=a3.map(r=>`<tr>
-    <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,46)}</td>
-    <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
-    <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:#b45309">${r.empenho>0?fmt(r.empenho):'—'}</td>
-    <td class="r" style="color:var(--pur)">${r.reserva>0?fmt(r.reserva):'—'}</td>
-    <td class="r" style="color:var(--txtm)">0</td>
-  </tr>`).join('');
-  const a4=filt(ST.filter(r=>r.disp>200),'a4-q','a4-wh','').sort((a,b)=>b.disp-a.disp);
-  document.getElementById('a4-cnt').textContent=a4.length+' itens';
-  document.getElementById('a4-tbl').innerHTML=a4.map(r=>`<tr>
-    <td class="cod">${r.codigo}</td><td class="pname" style="font-size:11px">${trunc(r.descricao,48)}</td>
-    <td>${catTag(r.cat)}</td><td>${wt(r.wh)}</td>
-    <td class="r">${fmt(r.saldo)}</td>
-    <td class="r" style="color:#5b21b6;font-weight:700">${fmt(r.disp)}</td>
+    <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
+    <td style="font-size:11px">${trunc(r.nome,40)}</td>
+    <td style="font-size:11px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh.split(' ')[0]))].join(', ')}</td>
+    <td class="r">${fmt(r._saldo)}</td>
+    <td class="r" style="color:var(--pur)">${r._reserva>0?fmt(r._reserva):'—'}</td>
   </tr>`).join('');
 }
 
-// ── TABS
+// ══ RENDER ALL
+function renderAll(){
+  rDash();
+  ['inv','bess','ev','kit','acc','mp'].forEach(t=>renderCat(t));
+  rAll(); rRes(); rAlrt();
+}
+
+// ══ TABS
 function go(id,btn){
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -1664,18 +895,17 @@ function go(id,btn){
   document.getElementById('tab-'+id).classList.add('active');
 }
 
-// ── EXPORT CSV
+// ══ EXPORT
 function exportCSV(){
-  const cols=['Armazem','Codigo','Descricao','Familia','Categoria','Saldo','Em_Separacao','Reserva','Disponivel_Venda'];
-  const rows=[cols];
-  ST.forEach(r=>rows.push([r.wh,r.codigo,'"'+r.descricao.replace(/"/g,"'")+'"','"'+(r.familia||'')+'"',r.cat,r.saldo,r.empenho,r.reserva,r.disp]));
+  const dedup=dedupByCode(ST);
+  const cols=['Codigo','Nome','Categoria','Familia','Saldo','Em_Separacao','Reserva','Disponivel'];
+  const rows=[cols,...dedup.map(r=>[r.codigo,'"'+r.nome.replace(/"/g,"'")+'"',r.categoria,'"'+r.familia+'"',r._saldo,r._empenho,r._reserva,r._disp])];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.join(';')).join('\n')],{type:'text/csv;charset=utf-8'}));
   a.download='Livoltek_Estoque_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.csv';
   a.click();
 }
 
-// ── BOOT
 boot();
 </script>
 </body>
