@@ -1236,7 +1236,25 @@ function rAudit(){
     </tr>`).join('')}
   </table>`;
 
-  el.innerHTML=idxTable+totTable+whTable+sampleTable+hdrTable;
+  // 6. Reservas — debug de matching
+  const resMatchOk=RES.filter(r=>WH_LIST.includes(r.wh));
+  const resMatchFail=RES.filter(r=>!WH_LIST.includes(r.wh));
+  const resDebugTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px;font-size:11px">
+    <tr style="background:#1E3A5F;color:#fff"><th colspan="4" style="padding:6px 10px;text-align:left;font-size:13px">6. RESERVAS — DEBUG DE MATCHING (${resMatchOk.length} ok · ${resMatchFail.length} sem match)</th></tr>
+    <tr style="background:#f8fafc;font-size:9px;font-weight:700;color:#64748b">
+      <td style="padding:3px 8px">CLIENTE</td><td style="padding:3px 8px">CÓDIGO</td>
+      <td style="padding:3px 8px">WH RESOLVIDO</td><td style="padding:3px 8px;text-align:right">QTD</td>
+    </tr>
+    ${resMatchFail.map(r=>`<tr style="background:#fff1f2;border-bottom:1px solid #fecdd3">
+      <td style="padding:3px 8px;color:#dc2626">${r.cliente}</td>
+      <td style="padding:3px 8px;font-size:10px">${r.codigo}</td>
+      <td style="padding:3px 8px;color:#dc2626;font-weight:700">"${r.wh}" ← NÃO RECONHECIDO</td>
+      <td style="padding:3px 8px;text-align:right;font-weight:700">${N(r.qtd)}</td>
+    </tr>`).join('')}
+    ${resMatchFail.length===0?'<tr><td colspan="4" style="padding:8px;text-align:center;color:#15803d;font-weight:700">✅ Todos os armazéns de reservas reconhecidos</td></tr>':''}
+  </table>`;
+
+  el.innerHTML=idxTable+totTable+whTable+sampleTable+resDebugTable+hdrTable;
 }
 
 async function boot(){
