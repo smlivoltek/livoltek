@@ -565,47 +565,30 @@ function parseEstoque(csv){
 }
 
 function parseReservas(csv){
-  // Try header-based parse first
+  // Colunas reais: Cliente, Responsavel, Diretoria, Código, Observações, Armazem, Qtdade, Cancelado, Solicitado
   const parsed = Papa.parse(csv,{header:true,skipEmptyLines:true});
-  if(parsed.data.length && parsed.meta.fields){
-    const f=parsed.meta.fields;
-    // Find columns
-    const cCli  = f.find(x=>/cliente/i.test(x));
-    const cResp = f.find(x=>/respons/i.test(x));
-    const cDir  = f.find(x=>/diretor/i.test(x));
-    const cCod  = f.find(x=>/c[oó]digo|produto|sku/i.test(x)&&!/nome|nomen/i.test(x));
-    const cNom  = f.find(x=>/nome|nomen|descri/i.test(x));
-    const cObs  = f.find(x=>/obs|armaz/i.test(x));
-    const cQtd  = f.find(x=>/qtd|quant|reserv/i.test(x)&&!/total/i.test(x));
-    const result=[];
-    parsed.data.forEach(r=>{
-      const codigo=(cCod?String(r[cCod]||''):'').trim().toUpperCase();
-      const qtd=pn(cQtd?r[cQtd]:0);
-      if(!codigo||qtd<=0) return;
-      result.push({
-        cliente:    (cCli?String(r[cCli]||''):'').trim(),
-        responsavel:(cResp?String(r[cResp]||''):'').trim(),
-        diretoria:  (cDir?String(r[cDir]||''):'').trim(),
-        codigo, nome:(cNom?String(r[cNom]||''):'').trim(),
-        obs:        (cObs?String(r[cObs]||''):'').trim(),
-        qtd,
-      });
-    });
-    return result;
-  }
-  // Fallback: positional
-  const rows = Papa.parse(csv,{skipEmptyLines:false}).data;
-  let hIdx=rows.findIndex(r=>String(r[0]||'').toUpperCase().includes('CLIENTE'));
-  if(hIdx<0) hIdx=0;
   const result=[];
-  for(const r of rows.slice(hIdx+1)){
-    const codigo=String(r[3]||'').trim().toUpperCase();
-    const qtd=pn(r[6]);
-    if(!codigo||qtd<=0) continue;
-    result.push({cliente:String(r[0]||'').trim(),responsavel:String(r[1]||'').trim(),
-      diretoria:String(r[2]||'').trim(),codigo,nome:String(r[4]||'').trim(),
-      obs:String(r[5]||'').trim(),qtd});
-  }
+  parsed.data.forEach(r=>{
+    const codigo = String(
+      r['Código']||r['Codigo']||r['CÓDIGO']||r['CODIGO']||r['codigo']||''
+    ).trim().toUpperCase();
+    const qtd = pn(r['Qtdade']||r['Qtd']||r['QTD']||r['Quantidade']||r['QTDADE']||0);
+    const cancelado = String(r['Cancelado']||r['CANCELADO']||'').trim();
+    if(!codigo || qtd<=0 || cancelado) return;
+    // Armazem = código numérico (10108, 10102, 10106) ou nome
+    const armCod = String(r['Armazem']||r['Armazém']||r['ARMAZEM']||'').trim();
+    const wh = WH_NAMES[armCod] || armCod;
+    result.push({
+      cliente:    String(r['Cliente']||'').trim(),
+      responsavel:String(r['Responsavel']||r['Responsável']||'').trim(),
+      diretoria:  String(r['Diretoria']||'').trim(),
+      codigo,
+      obs:        String(r['Observações']||r['Observacoes']||r['OBS']||'').trim(),
+      wh,
+      qtd,
+      solicitado: String(r['Solicitado']||'').trim(),
+    });
+  });
   return result;
 }
 
@@ -621,14 +604,18 @@ function obsToWH(o){
 function applyReservas(){
   const lkp={};
   RES.forEach(r=>{
-    // Try obs field for WH; if empty, apply to all WH for that code
-    const w=obsToWH(r.obs);
-    if(w){lkp[w+'|'+r.codigo]=(lkp[w+'|'+r.codigo]||0)+r.qtd;}
-    else{lkp['*|'+r.codigo]=(lkp['*|'+r.codigo]||0)+r.qtd;}
+    // r.wh já está resolvido no parseReservas
+    if(r.wh && WH_LIST.includes(r.wh)){
+      const k=r.wh+'|'+r.codigo;
+      lkp[k]=(lkp[k]||0)+r.qtd;
+    } else {
+      // Sem armazém específico: aplica a todos
+      lkp['*|'+r.codigo]=(lkp['*|'+r.codigo]||0)+r.qtd;
+    }
   });
   ST.forEach(s=>{
     const specific=lkp[s.wh+'|'+s.codigo.toUpperCase()]||0;
-    const global=lkp['*|'+s.codigo.toUpperCase()]||0;
+    const global  =lkp['*|'+s.codigo.toUpperCase()]||0;
     s.reserva=specific+global;
     s.disp=Math.max(0,s.saldo-s.empenho-s.reserva);
   });
@@ -962,13 +949,14 @@ function rRes(){
   // Main table
   document.getElementById('res-tbl').innerHTML=rows.map(r=>{
     const st=ST.find(s=>s.codigo===r.codigo);
-    const w=obsToWH(r.obs)||'—';
+    const w=r.wh||'—';
+    const wShort=w.split(' ')[0];
     return`<tr>
       <td style="font-weight:500;font-size:12px">${r.cliente}</td>
-      <td style="font-size:12px">${tr(st?.nomenclatura||r.nome||r.codigo,38)}</td>
+      <td style="font-size:12px">${tr(st?.nomenclatura||st?.descricao||r.codigo,38)}</td>
       <td class="mono">${r.codigo}</td>
       <td class="r" style="font-weight:700;color:var(--pur)">${fmt(r.qtd)}</td>
-      <td style="font-size:10px"><span class="wt" style="color:${WH_COLOR[w]||'#888'};background:${WH_COLOR[w]||'#888'}1a">${w.split(' ')[0]}</span></td>
+      <td style="font-size:10px"><span class="wt" style="color:${WH_COLOR[w]||'#888'};background:${WH_COLOR[w]||'#888'}1a">${wShort}</span></td>
       <td style="font-size:11px;color:var(--txt2)">${r.diretoria||'—'}</td>
       <td style="font-size:11px;color:var(--txt2)">${r.responsavel||'—'}</td>
       <td style="font-size:10px;color:var(--txtm)">${r.obs||'—'}</td>
