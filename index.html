@@ -542,6 +542,10 @@ function parseEstoque(csv){
   const rows = Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
   // Debug: log headers from first row
   const items=[];
+  // DEBUG: show exact values from first ARMZ=7 row
+  const dbg7 = rows.find(r=>String(r['ARMZ']||'').trim()==='7');
+  if(dbg7) console.log('SALDO raw:', JSON.stringify(dbg7['SALDO EM ESTOQUE']), '| ARMZ:', dbg7['ARMZ'], '| CODIGO:', dbg7['CODIGO']);
+  console.log('Total rows:', rows.length, '| Headers:', Object.keys(rows[0]||{}).slice(0,10));
   rows.forEach(r=>{
     const codigo = String(r.CODIGO||r.codigo||'').trim();
     if(!codigo) return;
