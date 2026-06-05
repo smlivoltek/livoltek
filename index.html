@@ -646,9 +646,8 @@ function parseReservas(csv){
     const qtd = pn(r['Qtdade']||r['Qtd']||r['QTD']||r['Quantidade']||r['QTDADE']||0);
     const cancelado = String(r['Cancelado']||r['CANCELADO']||'').trim();
     if(!codigo || qtd<=0 || cancelado) return;
-    // Armazem = código numérico (10108, 10102, 10106) ou nome
-    const armCod = String(r['Armazem']||r['Armazém']||r['ARMAZEM']||'').trim();
-    const wh = WH_NAMES[armCod] || armCod;
+    // Armazem = nome completo direto (ex: "Curitiba (Eletra)")
+    const wh = String(r['Armazem']||r['Armazém']||r['ARMAZEM']||'').trim();
     result.push({
       cliente:    String(r['Cliente']||'').trim(),
       responsavel:String(r['Responsavel']||r['Responsável']||'').trim(),
@@ -673,33 +672,45 @@ function obsToWH(o){
 }
 
 function applyReservas(){
-  // Mapa: wh|codigo → qtd (reservas com armazém específico)
-  // Mapa: *|codigo  → qtd (reservas sem armazém ou armazém não reconhecido)
-  const lkp={};
+  // Construir lookup: codigo → qtd total reservada (sem distinguir armazém)
+  // A planilha de referência não distribui por armazém — é o total do produto
+  const lkpTotal={};  // codigo → total reservado
+  const lkpWH={};     // wh|codigo → reservado com WH específico
+
   RES.forEach(r=>{
     const cod=r.codigo.toUpperCase();
+    // Total por produto (independente de armazém)
+    lkpTotal[cod]=(lkpTotal[cod]||0)+r.qtd;
+    // Por armazém específico
     if(r.wh && WH_LIST.includes(r.wh)){
       const k=r.wh+'|'+cod;
-      lkp[k]=(lkp[k]||0)+r.qtd;
-    } else {
-      // WH inválido ou vazio → reserva global (aplica ao primeiro armazém com saldo)
-      lkp['*|'+cod]=(lkp['*|'+cod]||0)+r.qtd;
+      lkpWH[k]=(lkpWH[k]||0)+r.qtd;
     }
   });
-  // Para reservas globais (*|cod), aplicar ao primeiro registro do produto com saldo>0
-  // Isso evita duplicar a reserva em múltiplos armazéns
-  const globalApplied={};
+
+  // Agrupar ST por codigo para distribuir reserva proporcionalmente
+  // Regra: reserva total do produto distribuída pelo armazém indicado na reserva
+  // Se reserva não tem armazém, aplica no primeiro armazém com saldo
+  const codSeen={};
   ST.forEach(s=>{
     const cod=s.codigo.toUpperCase();
-    const specific=lkp[s.wh+'|'+cod]||0;
-    const globalQty=lkp['*|'+cod]||0;
-    // Aplicar reserva global apenas uma vez (no armazém com maior saldo)
-    let globalShare=0;
-    if(globalQty>0 && !globalApplied[cod]){
-      globalApplied[cod]=true;
-      globalShare=globalQty;
+    const whKey=s.wh+'|'+cod;
+    const resWH=lkpWH[whKey]||0;
+
+    // Reserva sem armazém específico: aplicar uma única vez no primeiro registro
+    let resGlobal=0;
+    const totalRes=lkpTotal[cod]||0;
+    const totalWHRes=Object.entries(lkpWH)
+      .filter(([k])=>k.endsWith('|'+cod))
+      .reduce((a,[,v])=>a+v,0);
+    const globalQty=totalRes-totalWHRes; // reservas sem WH
+
+    if(globalQty>0 && !codSeen[cod]){
+      codSeen[cod]=true;
+      resGlobal=globalQty;
     }
-    s.reserva=specific+globalShare;
+
+    s.reserva=resWH+resGlobal;
     s.disp=Math.max(0,s.saldo-s.empenho-s.reserva);
   });
 }
