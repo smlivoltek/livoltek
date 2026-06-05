@@ -518,18 +518,20 @@ let catOptions={};
 
 // ══ PARSE HELPERS
 const pn = v => {
-  if(!v||v==='-'||v===''||v===null||v===undefined) return 0;
-  let s = String(v).trim();
-  if(!s||s==='-') return 0;
-  // Remove R$, spaces, etc
-  s = s.replace(/[R$\s]/g,'');
-  // BR format: 1.300,00 → has comma as decimal
+  if(v===null||v===undefined||v==='') return 0;
+  let s = String(v).trim().replace(/[R$\s]/g,'');
+  if(!s||s==='-'||s==='—') return 0;
   if(s.includes(',') && s.includes('.')){
+    // 1.300,00 → thousands dot + decimal comma (BR)
     s = s.replace(/\./g,'').replace(',','.');
   } else if(s.includes(',') && !s.includes('.')){
+    // 1300,00 → decimal comma only
     s = s.replace(',','.');
+  } else if(s.includes('.')){
+    // 55.634 → in TOTVS BR exports, dot = thousands separator for integers
+    // Remove dot (treat as thousands), result is integer
+    s = s.replace(/\./g,'');
   }
-  // Remove remaining non-numeric except dot and minus
   s = s.replace(/[^0-9.\-]/g,'');
   return parseFloat(s)||0;
 };
@@ -562,11 +564,11 @@ function parseEstoque(csv){
     // Categoria e Família
     const categoria = String(r['Categoria']||r['CATEGORIA']||r['categoria']||'').trim().toUpperCase();
     const familia   = String(r['Família']||r['Familia']||r['FAMILIA']||r['família']||r['familia']||r['FamÃ­lia']||'').trim();
-    // Saldo: col TOTVS exata = "SALDO EM ESTOQUE"
-    const saldo   = pn(r['SALDO EM ESTOQUE']||r['SALDO']||r['Estoque Total']||r['ESTOQUE DISPONIVEL']||0);
-    // Empenho: col TOTVS exata = "EMPENHO PARA REQ/PV/RESERVA"
-    const empenho = pn(r['EMPENHO PARA REQ/PV/RESERVA']||r['EMPENHO PARA REQ/PV/RE']||
-                       r['NO PARA REQ/PV/RE']||r['EMPENHO']||r['Em Separação']||0);
+    // Saldo: col TOTVS exata = "SALDO EM ESTOQUE" (col índice 7)
+    // Usar também ESTOQUE DISPONIVEL como fallback (col 9)
+    const saldo   = pn(r['SALDO EM ESTOQUE'])||pn(r['SALDO'])||pn(r['Estoque Total'])||0;
+    // Empenho: col TOTVS exata = "EMPENHO PARA REQ/PV/RESERVA" (col índice 8)
+    const empenho = pn(r['EMPENHO PARA REQ/PV/RESERVA'])||pn(r['NO PARA REQ/PV/RE'])||pn(r['EMPENHO'])||0;
     const tp = String(r.TP||'').trim().toUpperCase();
     // isMP: categoria says MATÉRIA-PRIMA, or no categoria and TP=MP (TOTVS code for raw material)
     const isMP = categoria.includes('MATÉR')||categoria.includes('MATER')||
@@ -1081,25 +1083,7 @@ async function boot(){
   }
   if(!ST.length){showErr('Nenhum produto carregado. Verifique data/ESTOQUE.csv');return;}
   // DEBUG: show first item
-  if(ST.length>0){
-    const s=ST[0];
-    console.log('DEBUG item[0]:', JSON.stringify({codigo:s.codigo,saldo:s.saldo,empenho:s.empenho,wh:s.wh}));
-    // Show raw value of SALDO EM ESTOQUE for first ARMZ=7 row
-    const rawCsv=await(await fetch('data/ESTOQUE.csv',{cache:'no-store'})).text();
-    const parsed=Papa.parse(rawCsv,{header:true,skipEmptyLines:true});
-    const armz7=parsed.data.find(r=>String(r.ARMZ||'').trim()==='7');
-    if(armz7) console.log('DEBUG first ARMZ=7 raw:', JSON.stringify({
-      CODIGO:armz7.CODIGO,
-      ARMZ:armz7.ARMZ,
-      FL:armz7.FL,
-      SALDO:armz7['SALDO EM ESTOQUE'],
-      EMPENHO:armz7['EMPENHO PARA REQ/PV/RESERVA'],
-      ARM_DASH:armz7['Armazém Dashboard'],
-      CAT:armz7['Categoria'],
-      FAM:armz7['Família'],
-      NOM:armz7['Nomenclatura']
-    }));
-  }
+
   applyReservas();
   populateSelects();
   document.getElementById('ld-area').style.display='none';
