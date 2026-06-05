@@ -3,584 +3,1039 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>LIVOLTEK | Estoque Comercial</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>LIVOLTEK | Estoque Comercial Brasil</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
 :root{
-  --pri:#1E3A5F;--pri-l:#2a4f7c;--pri-pale:#e8eef6;
+  --pri:#1E3A5F;--pri-pale:#e8eef6;
   --grn:#22C55E;--grn-d:#15803d;--grn-pale:#dcfce7;
   --amb:#F59E0B;--amb-d:#b45309;--amb-pale:#fef3c7;
   --red:#EF4444;--red-pale:#fee2e2;
   --pur:#7c3aed;--pur-pale:#ede9fe;
-  --bg:#f0f4f8;--surf:#fff;--surf2:#f8fafc;
-  --brd:#e2e8f0;--txt:#0f172a;--txt2:#475569;--txtm:#94a3b8;
+  --blu:#2563EB;
+  --bg:#F0F4F8;--surf:#fff;--surf2:#F8FAFC;
+  --brd:#E2E8F0;--txt:#0F172A;--txt2:#334155;--txtm:#64748B;
   --r:10px;--rl:12px;
+  /* armazéns */
+  --cwb:#475569;--for:#475569;--mao-e:#475569;--mao-l:#2563EB;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;min-height:100vh}
-.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
-/* HDR */
-.hdr{background:var(--pri);padding:0 1.25rem;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0;z-index:200;gap:12px}
-.hdr-l{display:flex;align-items:center;gap:.75rem}
-.logo{width:28px;height:28px;background:linear-gradient(135deg,#22C55E,#16a34a);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;flex-shrink:0}
-.hdr-t{color:#fff;font-size:13px;font-weight:600}
-.hdr-s{color:rgba(255,255,255,.4);font-size:10px}
+body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:13px;line-height:1.5;height:100vh;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh}
+
+/* ── HEADER */
+.hdr{background:var(--pri);height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 1.25rem;gap:12px;z-index:100}
+.hdr-l{display:flex;align-items:center;gap:10px}
+.logo{width:26px;height:26px;background:linear-gradient(135deg,#22C55E,#16a34a);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:10px;flex-shrink:0}
+.hdr-title{color:#fff;font-size:13px;font-weight:600}
+.hdr-sub{color:rgba(255,255,255,.4);font-size:10px}
 .hdr-r{display:flex;align-items:center;gap:6px}
-.sbadge{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,.88);font-size:11px;white-space:nowrap}
-.dot{width:6px;height:6px;border-radius:50%}
-.dot-g{background:#22C55E;animation:blink 2s infinite}.dot-r{background:#EF4444}.dot-a{background:#F59E0B;animation:blink 2s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
-.sync-t{color:rgba(255,255,255,.4);font-size:11px;white-space:nowrap}
-.hbtn{display:flex;align-items:center;gap:5px;height:28px;padding:0 9px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.82);cursor:pointer;font-size:11px;font-family:inherit;font-weight:500;transition:all .15s}
+.sbadge{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,.9);font-size:11px}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-g{background:#22C55E;animation:pulse 2s infinite}
+.dot-r{background:#EF4444}
+.dot-a{background:#F59E0B;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sync-lbl{color:rgba(255,255,255,.35);font-size:10px}
+.hbtn{display:flex;align-items:center;gap:4px;height:27px;padding:0 9px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.8);cursor:pointer;font-size:11px;font-family:inherit;font-weight:500;transition:all .15s}
 .hbtn:hover{background:rgba(255,255,255,.14);color:#fff}
-.hbtn:disabled{opacity:.35;cursor:not-allowed}
-.hico{width:28px;height:28px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
-.hico:hover{background:rgba(255,255,255,.14);color:#fff}
+.hbtn:disabled{opacity:.3;cursor:not-allowed}
+.hico{width:27px;height:27px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.hico:hover{background:rgba(255,255,255,.15);color:#fff}
 
-/* BODY LAYOUT: sidebar + content */
-.body-layout{display:flex;flex:1;overflow:hidden}
+/* ── LAYOUT */
+.body{display:flex;flex:1;overflow:hidden}
 
-/* SIDEBAR */
-.sidebar{width:220px;flex-shrink:0;background:#F8FAFC;border-right:1px solid #E2E8F0;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
-.sidebar::-webkit-scrollbar{width:4px}.sidebar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
-.sb-section{padding:.75rem .875rem .25rem}
-.sb-section-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:4px;padding:0 .25rem}
-.sbtn{display:flex;align-items:center;gap:9px;width:100%;padding:7px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;color:#334155;text-align:left;transition:all .12s;position:relative}
-.sbtn:hover{background:#F1F5F9;color:#1e293b}
-.sbtn.active{background:#DBEAFE;color:#1d4ed8;font-weight:600}
-.sbtn.active .sb-ico{color:#2563EB}
-.sb-ico{font-size:16px;flex-shrink:0;color:#64748b;transition:color .12s;width:20px;text-align:center}
-.sbtn:hover .sb-ico{color:#475569}
-.sb-lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-badge{font-size:9px;font-weight:700;background:#e2e8f0;color:#64748b;border-radius:10px;padding:1px 6px;flex-shrink:0}
-.sbtn.active .sb-badge{background:#bfdbfe;color:#1d4ed8}
-.sb-sep{height:1px;background:#E2E8F0;margin:.375rem .875rem}
-.sb-status{padding:.75rem .875rem;margin-top:auto;border-top:1px solid #E2E8F0;flex-shrink:0}
-.sb-status-row{display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b}
+/* ── SIDEBAR */
+.sb{width:216px;flex-shrink:0;background:var(--surf2);border-right:1px solid var(--brd);display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+.sb::-webkit-scrollbar{width:3px}.sb::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+.sb-sec{padding:.625rem .75rem .125rem}
+.sb-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;padding:0 6px;margin-bottom:3px}
+.sbi{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;border-radius:7px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;color:var(--txt2);text-align:left;transition:all .1s}
+.sbi:hover{background:#F1F5F9;color:#1e293b}
+.sbi.on{background:#DBEAFE;color:var(--blu);font-weight:600}
+.sbi.on .si{color:var(--blu)}
+.si{font-size:15px;flex-shrink:0;color:#94a3b8;width:18px;text-align:center;transition:color .1s}
+.sbi:hover .si{color:#64748b}
+.sn{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc{font-size:9px;font-weight:700;background:#e2e8f0;color:#64748b;border-radius:9px;padding:1px 5px;flex-shrink:0}
+.sbi.on .sc{background:#bfdbfe;color:var(--blu)}
+.sc.red{background:#fee2e2;color:#dc2626}
+.sb-div{height:1px;background:var(--brd);margin:.3rem .75rem}
+.sb-foot{padding:.625rem .75rem;margin-top:auto;border-top:1px solid var(--brd);flex-shrink:0}
 
-/* CONTENT */
-.content{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
-.main{padding:1.25rem 1.5rem;max-width:1600px;width:100%;margin:0 auto}
-.tab{display:none}.tab.active{display:block}
-/* LOADING */
-.ld{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;gap:.875rem;color:var(--txt2);min-height:400px}
-.spin{width:32px;height:32px;border:3px solid var(--brd);border-top-color:var(--pri);border-radius:50%;animation:spin .75s linear infinite}
+/* ── CONTENT */
+.cnt{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+.pg{padding:1.125rem 1.375rem;max-width:1600px;margin:0 auto}
+.tab{display:none}.tab.on{display:block}
+
+/* ── LOADING / ERROR */
+.ld{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;gap:.75rem;min-height:360px}
+.spin{width:30px;height:30px;border:3px solid var(--brd);border-top-color:var(--pri);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.ld-lbl{font-size:14px;font-weight:500}.ld-sub{font-size:12px;color:var(--txtm)}
-.ebox{background:#fff1f2;border:1px solid #fecdd3;border-radius:var(--r);padding:.875rem 1.125rem;color:#be123c;font-size:13px;display:flex;gap:8px;align-items:flex-start;margin:1rem 0}
-/* PILLS */
-.pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem}
-.pill{display:flex;flex-direction:column;align-items:center;padding:8px 16px;border-radius:10px;cursor:pointer;border:2px solid var(--brd);background:var(--surf);transition:all .15s;min-width:100px}
-.pill:hover{border-color:var(--pri)}
-.pill.active{background:var(--pri);border-color:var(--pri)}
-.pill-lbl{font-size:11px;font-weight:700;color:var(--txt2)}
-.pill.active .pill-lbl{color:#fff}
-.pill-val{font-size:22px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;color:var(--pri)}
-.pill.active .pill-val{color:#fff}
-.pill-sub{font-size:10px;color:var(--txtm)}
-.pill.active .pill-sub{color:rgba(255,255,255,.6)}
-.pill-meta{font-size:9px;margin-top:2px;display:flex;gap:5px}
-/* FILTERS */
+.ebox{background:#fff1f2;border:1px solid #fecdd3;border-radius:var(--r);padding:.75rem 1rem;color:#be123c;font-size:12px;display:flex;gap:8px}
+
+/* ── KPI ROW */
+.krow{display:grid;gap:10px;margin-bottom:1.125rem}
+.k4{grid-template-columns:repeat(4,1fr)}
+.k3{grid-template-columns:repeat(3,1fr)}
+.k2{grid-template-columns:repeat(2,1fr)}
+.kpi{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:.875rem 1rem;position:relative;overflow:hidden;cursor:default}
+.kpi.clickable{cursor:pointer;transition:box-shadow .15s}
+.kpi.clickable:hover{box-shadow:0 2px 12px rgba(0,0,0,.1)}
+.kpi.clickable.on{box-shadow:0 0 0 2px var(--blu);border-color:var(--blu)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi.kb::before{background:var(--pri)}.kpi.kg::before{background:var(--grn)}.kpi.ka::before{background:var(--amb)}.kpi.kp::before{background:var(--pur)}.kpi.kbl::before{background:var(--blu)}
+.ki{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;margin-bottom:7px}
+.kpi.kb .ki{background:var(--pri-pale);color:var(--pri)}.kpi.kg .ki{background:var(--grn-pale);color:var(--grn-d)}.kpi.ka .ki{background:var(--amb-pale);color:var(--amb-d)}.kpi.kp .ki{background:var(--pur-pale);color:var(--pur)}.kpi.kbl .ki{background:#dbeafe;color:var(--blu)}
+.kl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txtm);margin-bottom:2px}
+.kv{font-size:22px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1}
+.ks{font-size:10px;color:var(--txtm);margin-top:3px}
+
+/* ── WAREHOUSE CARDS (dashboard) */
+.wh-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:1.25rem}
+.whcard{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:1.125rem 1.25rem;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.whcard::before{content:'';position:absolute;top:0;left:0;right:0;height:4px}
+.whcard.cwb::before,.whcard.for_::before,.whcard.maoe::before{background:var(--cwb)}
+.whcard.maol::before{background:var(--mao-l)}
+.whcard:hover{box-shadow:0 3px 14px rgba(0,0,0,.1);transform:translateY(-1px)}
+.whcard.on{box-shadow:0 0 0 2px var(--blu);border-color:var(--blu)}
+.wh-name{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
+.wh-loc{font-size:10px;color:var(--txtm);margin-bottom:.875rem}
+.wh-disp-lbl{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.wh-disp-val{font-size:30px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1;margin-bottom:4px}
+.wh-saldo{font-size:11px;color:var(--txtm)}
+.wh-skus{font-size:10px;color:var(--txtm);margin-top:2px}
+
+/* ── TOP 10 */
+.tops-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem}
+.tops-grid.tri{grid-template-columns:1fr 1fr 1fr}
+.top-card{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden}
+.top-hdr{padding:.625rem .875rem;border-bottom:1px solid var(--brd);font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.top-hdr i{color:var(--pri);font-size:13px}
+.top-tbl{width:100%;border-collapse:collapse}
+.top-tbl td{padding:5px 10px;border-bottom:1px solid #f8fafc;font-size:11px}
+.top-tbl td:last-child{text-align:right;font-family:'DM Mono',monospace;font-weight:700}
+.top-tbl tr:last-child td{border-bottom:none}
+.top-tbl .rk{color:var(--txtm);font-size:10px;width:18px}
+.top-tbl .nm{font-weight:500;color:var(--txt)}
+.top-tbl .wh{color:var(--txtm);font-size:10px}
+
+/* ── FAMILY PILLS */
+.fam-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+.fpill{display:flex;flex-direction:column;padding:8px 14px;border-radius:10px;cursor:pointer;border:1.5px solid var(--brd);background:var(--surf);transition:all .12s;min-width:90px}
+.fpill:hover{border-color:#93c5fd}
+.fpill.on{background:var(--pri);border-color:var(--pri)}
+.fp-lbl{font-size:10px;font-weight:700;color:var(--txt2)}
+.fpill.on .fp-lbl{color:rgba(255,255,255,.7)}
+.fp-val{font-size:20px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;color:var(--pri);line-height:1.1}
+.fpill.on .fp-val{color:#fff}
+.fp-sub{font-size:9px;color:var(--txtm);margin-top:1px}
+.fpill.on .fp-sub{color:rgba(255,255,255,.55)}
+
+/* ── FILTER BAR */
 .fb{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
-.sbar{display:flex;align-items:center;gap:6px;background:var(--surf2);border:1px solid var(--brd);border-radius:7px;padding:0 10px;height:32px}
-.sbar i{color:var(--txtm);font-size:13px}
-.sbar input{border:none;background:none;outline:none;font-size:12px;color:var(--txt);font-family:inherit;width:180px}
+.sbar{display:flex;align-items:center;gap:6px;background:var(--surf);border:1px solid var(--brd);border-radius:7px;padding:0 10px;height:30px}
+.sbar i{color:var(--txtm);font-size:12px}
+.sbar input{border:none;background:none;outline:none;font-size:12px;color:var(--txt);font-family:inherit;width:160px}
 .sbar input::placeholder{color:var(--txtm)}
-.sel{height:32px;padding:0 8px;border:1px solid var(--brd);border-radius:7px;font-size:12px;font-family:inherit;background:var(--surf);color:var(--txt)}
-/* CARDS GRID */
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:1.25rem}
-/* PRODUCT CARD */
-.pcard{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:.875rem 1rem;position:relative}
-.pcard.mp{border-left:3px solid var(--red)}
-.pcard-fam{position:absolute;top:.75rem;right:.75rem;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px}
-.pcard-cod{font-size:12px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;margin-bottom:2px;padding-right:70px}
-.pcard-desc{font-size:10px;color:var(--txtm);margin-bottom:.75rem;line-height:1.4;padding-right:70px}
-.pcard-disp-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txtm);margin-bottom:1px}
-.pcard-disp{font-size:30px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1;margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid var(--brd)}
-.pcard-row{display:flex;justify-content:space-between;align-items:center;padding:2px 0}
-.pcard-row-lbl{font-size:12px}
-.pcard-row-val{font-size:13px;font-weight:600;font-family:'DM Mono',monospace}
-.pcard-divider{height:1px;background:var(--brd);margin:.5rem 0}
-.mp-badge{font-size:9px;font-weight:700;color:var(--red);background:var(--red-pale);padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:.5rem}
-/* TABLE */
-.card{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem}
-.ch{padding:.75rem 1.125rem;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px}
-.ct{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
-.ct i{color:var(--pri)}
-.tw{overflow-x:auto;max-height:500px;overflow-y:auto}
-.tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txtm);padding:7px 11px;border-bottom:1px solid var(--brd);white-space:nowrap;background:var(--surf2);position:sticky;top:0;z-index:2}
+.sel{height:30px;padding:0 7px;border:1px solid var(--brd);border-radius:7px;font-size:12px;font-family:inherit;background:var(--surf);color:var(--txt)}
+
+/* ── PRODUCT CARDS */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:11px;margin-bottom:1.125rem}
+.pc{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);padding:.875rem 1rem;position:relative}
+.pc.mp{border-left:3px solid var(--red)}
+.pc-fam{position:absolute;top:.75rem;right:.75rem;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;max-width:80px;text-align:right;line-height:1.3}
+/* nomenclature = main title */
+.pc-nom{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:1px;padding-right:88px;line-height:1.3}
+.pc-desc{font-size:10px;color:var(--txt2);margin-bottom:2px;padding-right:88px;line-height:1.35}
+.pc-cod{font-size:9px;color:var(--txtm);font-family:'DM Mono',monospace;margin-bottom:.75rem}
+/* disp highlight */
+.pc-disp-wrap{margin-bottom:.625rem;padding-bottom:.625rem;border-bottom:1px solid var(--brd)}
+.pc-disp-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px}
+.pc-disp{font-size:28px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;line-height:1}
+/* row */
+.pr{display:flex;justify-content:space-between;align-items:center;padding:2px 0}
+.pr-lbl{font-size:11px}
+.pr-val{font-size:12px;font-weight:600;font-family:'DM Mono',monospace}
+.pc-div{height:1px;background:var(--brd);margin:.5rem 0}
+.pc-note{font-size:9px;color:var(--txtm);margin-top:.375rem;font-style:italic}
+.mp-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;color:var(--red);background:var(--red-pale);padding:2px 6px;border-radius:4px;margin-bottom:.5rem}
+
+/* ── SECTION SEPARATOR (MP) */
+.mp-sep{display:flex;align-items:center;gap:8px;margin:.75rem 0 .875rem}
+.mp-sep-line{flex:1;height:1px;background:var(--brd)}
+.mp-sep-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--red);padding:3px 10px;border:1px solid var(--red);border-radius:20px}
+
+/* ── TABLE */
+.tcard{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);overflow:hidden;margin-bottom:1.125rem}
+.tc-hdr{padding:.625rem 1rem;border-bottom:1px solid var(--brd);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:7px;flex-wrap:wrap}
+.tc-hdr i{color:var(--pri);font-size:13px}
+.tw{overflow-x:auto;max-height:460px;overflow-y:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txtm);padding:6px 10px;border-bottom:1px solid var(--brd);background:var(--surf2);position:sticky;top:0;z-index:2;white-space:nowrap}
 .tbl th.r{text-align:right}
-.tbl td{padding:7px 11px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
-.tbl td.r{text-align:right;font-family:'DM Mono',monospace;font-size:12px}
+.tbl td{padding:6px 10px;border-bottom:1px solid #f8fafc;vertical-align:middle}
+.tbl td.r{text-align:right;font-family:'DM Mono',monospace}
+.tbl td.mono{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)}
 .tbl tr:hover td{background:#fafbfc}
 .tbl tr:last-child td{border-bottom:none}
-.cf{padding:7px 14px;border-top:1px solid var(--brd);font-size:11px;color:var(--txtm)}
-/* SECTION */
-.sec-sep{display:flex;align-items:center;gap:8px;margin:.75rem 0}
-.sec-sep-line{height:1px;flex:1;background:var(--brd)}
-.sec-sep-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;padding:3px 10px;border-radius:20px}
-/* ALERTA */
-.alrt-block{border-radius:var(--rl);overflow:hidden;margin-bottom:1.25rem}
-.alrt-hdr{padding:.75rem 1.125rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px}
-.alrt-hdr.red{background:#fff1f2;border:1px solid #fecdd3;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
-.alrt-hdr.amb{background:#fffbeb;border:1px solid #fed7aa;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
-.alrt-hdr.gry{background:var(--surf2);border:1px solid var(--brd);border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
-.alrt-hdr.pur{background:var(--pur-pale);border:1px solid #c4b5fd;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
-.alrt-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px}
-.alrt-body{background:var(--surf);border:1px solid var(--brd);border-radius:0 0 var(--rl) var(--rl)}
-/* KPI */
-.kg{display:grid;gap:12px;margin-bottom:1.5rem}
-.kg-5{grid-template-columns:repeat(5,1fr)}.kg-4{grid-template-columns:repeat(4,1fr)}.kg-3{grid-template-columns:repeat(3,1fr)}
-.kpi{background:var(--surf);border-radius:var(--rl);padding:1rem 1.125rem;border:1px solid var(--brd);position:relative;overflow:hidden}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.kpi.c-b::before{background:var(--pri)}.kpi.c-g::before{background:var(--grn)}.kpi.c-a::before{background:var(--amb)}.kpi.c-p::before{background:var(--pur)}
-.ki{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px}
-.kpi.c-b .ki{background:var(--pri-pale);color:var(--pri)}.kpi.c-g .ki{background:var(--grn-pale);color:var(--grn-d)}.kpi.c-a .ki{background:var(--amb-pale);color:var(--amb-d)}.kpi.c-p .ki{background:var(--pur-pale);color:var(--pur)}
-.kl{font-size:10px;font-weight:600;color:var(--txtm);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
-.kv{font-size:24px;font-weight:700;color:var(--txt);font-family:'DM Mono',monospace;letter-spacing:-1px}
-.ks{font-size:10px;color:var(--txtm);margin-top:3px}
-.cg2{display:grid;grid-template-columns:3fr 2fr;gap:14px;margin-bottom:1.25rem}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:1.25rem}
-.leg{display:flex;flex-direction:column;gap:5px}
-.leg-r{display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f8f8f8}
-.leg-r:last-child{border-bottom:none}
-.leg-d{width:8px;height:8px;border-radius:2px}
-.banner{border-radius:var(--r);padding:8px 13px;margin-bottom:1rem;font-size:12px;display:flex;align-items:center;gap:7px}
-.bn-pur{background:var(--pur-pale);border:1px solid #c4b5fd;color:#5b21b6}
-/* WH tag */
-.wt{font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px}
-@media(max-width:1300px){.kg-5{grid-template-columns:repeat(3,1fr)}.cg2{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
-@media(max-width:900px){.main{padding:.875rem}.kg-5,.kg-4{grid-template-columns:repeat(2,1fr)}.cards-grid{grid-template-columns:1fr}}
+.tc-foot{padding:5px 10px;border-top:1px solid var(--brd);font-size:10px;color:var(--txtm)}
+
+/* ── ALERT BLOCKS */
+.ab{border-radius:var(--rl);margin-bottom:1rem;overflow:hidden}
+.ab-hdr{padding:.625rem 1rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:7px}
+.ab-hdr.red{background:#fff1f2;border:1px solid #fecdd3;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.ab-hdr.amb{background:#fffbeb;border:1px solid #fed7aa;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.ab-hdr.grn{background:var(--grn-pale);border:1px solid #bbf7d0;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.ab-hdr.blu{background:#eff6ff;border:1px solid #bfdbfe;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.ab-hdr.gry{background:var(--surf2);border:1px solid var(--brd);border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.ab-hdr.org{background:#fff7ed;border:1px solid #fed7aa;border-bottom:none;border-radius:var(--rl) var(--rl) 0 0}
+.ab-body{background:var(--surf);border:1px solid var(--brd);border-radius:0 0 var(--rl) var(--rl)}
+.ab-title{font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px}
+.ab-cnt{font-size:11px;font-weight:400;color:var(--txtm);margin-left:5px}
+
+/* ── RESERVAS BANNER */
+.res-banner{background:#eff6ff;border:1px solid #bfdbfe;border-radius:var(--r);padding:.75rem 1rem;font-size:11px;color:#1d4ed8;margin-bottom:1.125rem;line-height:1.6}
+
+/* ── WH TAG */
+.wt{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;display:inline-block}
+
+@media(max-width:1100px){.wh-grid{grid-template-columns:repeat(2,1fr)}.tops-grid,.tops-grid.tri{grid-template-columns:1fr 1fr}.k4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.sb{display:none}.wh-grid{grid-template-columns:1fr 1fr}.cgrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="app">
 
+<!-- HEADER -->
 <header class="hdr">
   <div class="hdr-l">
     <div class="logo">LV</div>
     <div>
-      <div class="hdr-t">LIVOLTEK · Estoque Comercial Brasil</div>
-      <div class="hdr-s">Saldo − Em Separação − Reservas = Disponível para Venda</div>
+      <div class="hdr-title">LIVOLTEK · Estoque Comercial Brasil</div>
+      <div class="hdr-sub">Disponível = Saldo − Em Separação − Reservas</div>
     </div>
   </div>
   <div class="hdr-r">
     <div class="sbadge"><span class="dot dot-a" id="sdot"></span><span id="stxt">Carregando...</span></div>
-    <span class="sync-t" id="sync-t"></span>
+    <span class="sync-lbl" id="sync-t"></span>
     <button class="hico" onclick="boot()" title="Recarregar"><i class="ti ti-refresh"></i></button>
-    <button class="hbtn" id="btn-csv" onclick="exportCSV()" disabled><i class="ti ti-table-export" style="font-size:11px"></i> Excel</button>
-    <button class="hbtn" onclick="window.print()"><i class="ti ti-file-type-pdf" style="font-size:11px"></i> PDF</button>
+    <button class="hbtn" id="btn-csv" onclick="exportCSV()" disabled><i class="ti ti-table-export"></i> Excel</button>
+    <button class="hbtn" onclick="window.print()"><i class="ti ti-file-type-pdf"></i> PDF</button>
   </div>
 </header>
 
-<div class="body-layout">
+<div class="body">
 
 <!-- SIDEBAR -->
-<aside class="sidebar">
-
-  <!-- Dashboard -->
-  <div class="sb-section">
-    <button class="sbtn active" id="sb-dash" onclick="go('dash','dash')">
-      <i class="ti ti-chart-bar sb-ico"></i>
-      <span class="sb-lbl">Dashboard</span>
+<aside class="sb" id="sidebar">
+  <div class="sb-sec" style="padding-top:.875rem">
+    <button class="sbi on" id="sb-dash" onclick="go('dash')">
+      <i class="ti ti-chart-bar si"></i><span class="sn">Dashboard</span>
+    </button>
+    <button class="sbi" id="sb-todos" onclick="go('todos')">
+      <i class="ti ti-list-details si"></i><span class="sn">Todos os Produtos</span>
     </button>
   </div>
-
-  <div class="sb-sep"></div>
-
-  <!-- Categorias -->
-  <div class="sb-section">
-    <div class="sb-section-lbl">Categorias</div>
-    <button class="sbtn" id="sb-inv" onclick="go('inv','inv')">
-      <i class="ti ti-solar-panel sb-ico"></i>
-      <span class="sb-lbl">Inversores</span>
-      <span class="sb-badge" id="sbb-inv">—</span>
+  <div class="sb-div"></div>
+  <div class="sb-sec">
+    <div class="sb-lbl">Categorias</div>
+    <button class="sbi" id="sb-inv" onclick="go('inv')">
+      <i class="ti ti-solar-panel si"></i><span class="sn">Inversores</span><span class="sc" id="sc-inv">—</span>
     </button>
-    <button class="sbtn" id="sb-ev" onclick="go('ev','ev')">
-      <i class="ti ti-car sb-ico"></i>
-      <span class="sb-lbl">Carregadores EV</span>
-      <span class="sb-badge" id="sbb-ev">—</span>
+    <button class="sbi" id="sb-ev" onclick="go('ev')">
+      <i class="ti ti-car si"></i><span class="sn">Carregadores EV</span><span class="sc" id="sc-ev">—</span>
     </button>
-    <button class="sbtn" id="sb-bess" onclick="go('bess','bess')">
-      <i class="ti ti-battery-charging sb-ico"></i>
-      <span class="sb-lbl">BESS / Baterias</span>
-      <span class="sb-badge" id="sbb-bess">—</span>
+    <button class="sbi" id="sb-bess" onclick="go('bess')">
+      <i class="ti ti-battery-charging si"></i><span class="sn">BESS / Baterias</span><span class="sc" id="sc-bess">—</span>
     </button>
-    <button class="sbtn" id="sb-kit" onclick="go('kit','kit')">
-      <i class="ti ti-sun sb-ico"></i>
-      <span class="sb-lbl">Kit Solar</span>
-      <span class="sb-badge" id="sbb-kit">—</span>
+    <button class="sbi" id="sb-kit" onclick="go('kit')">
+      <i class="ti ti-sun si"></i><span class="sn">Kit Solar</span><span class="sc" id="sc-kit">—</span>
     </button>
-    <button class="sbtn" id="sb-acc" onclick="go('acc','acc')">
-      <i class="ti ti-adjustments-horizontal sb-ico"></i>
-      <span class="sb-lbl">Acessórios</span>
-      <span class="sb-badge" id="sbb-acc">—</span>
+    <button class="sbi" id="sb-strbox" onclick="go('strbox')">
+      <i class="ti ti-plug-connected si"></i><span class="sn">String Box</span><span class="sc" id="sc-strbox">—</span>
     </button>
-    <button class="sbtn" id="sb-todos" onclick="go('todos','todos')">
-      <i class="ti ti-list-details sb-ico"></i>
-      <span class="sb-lbl">Todos os Produtos</span>
+    <button class="sbi" id="sb-div" onclick="go('div')">
+      <i class="ti ti-category si"></i><span class="sn">Diversos</span><span class="sc" id="sc-div">—</span>
+    </button>
+    <button class="sbi" id="sb-mp" onclick="go('mp')">
+      <i class="ti ti-building-factory-2 si"></i><span class="sn">Matéria-Prima</span><span class="sc" id="sc-mp">—</span>
     </button>
   </div>
-
-  <div class="sb-sep"></div>
-
-  <!-- Comercial -->
-  <div class="sb-section">
-    <div class="sb-section-lbl">Comercial</div>
-    <button class="sbtn" id="sb-res" onclick="go('res','res')">
-      <i class="ti ti-handshake sb-ico"></i>
-      <span class="sb-lbl">Reservas Comerciais</span>
-      <span class="sb-badge" id="sbb-res">—</span>
+  <div class="sb-div"></div>
+  <div class="sb-sec">
+    <div class="sb-lbl">Comercial</div>
+    <button class="sbi" id="sb-res" onclick="go('res')">
+      <i class="ti ti-handshake si"></i><span class="sn">Reservas Comerciais</span><span class="sc" id="sc-res">—</span>
     </button>
-    <button class="sbtn" id="sb-alrt" onclick="go('alrt','alrt')">
-      <i class="ti ti-target sb-ico"></i>
-      <span class="sb-lbl">Oportunidades &amp; Atenção</span>
-      <span class="sb-badge" id="sbb-alrt" style="background:#fee2e2;color:#dc2626">—</span>
+    <button class="sbi" id="sb-alrt" onclick="go('alrt')">
+      <i class="ti ti-target si"></i><span class="sn">Oportunidades &amp; Atenção</span><span class="sc red" id="sc-alrt" style="display:none">—</span>
     </button>
   </div>
-
-  <!-- Status -->
-  <div class="sb-status">
-    <div class="sb-status-row"><span class="dot dot-a" id="sdot2"></span><span id="stxt2" style="font-size:11px;color:#64748b">Carregando...</span></div>
-    <div id="sync-t2" style="font-size:10px;color:#94a3b8;margin-top:2px"></div>
+  <div class="sb-foot">
+    <div style="display:flex;align-items:center;gap:5px">
+      <span class="dot dot-a" id="sdot2"></span>
+      <span id="stxt2" style="font-size:10px;color:var(--txtm)">Carregando...</span>
+    </div>
+    <div id="sync-t2" style="font-size:9px;color:#94a3b8;margin-top:1px"></div>
   </div>
 </aside>
 
 <!-- CONTENT -->
-<div class="content">
-<main class="main">
-<div id="ld-area" class="ld"><div class="spin"></div><div class="ld-lbl">Carregando arquivos CSV...</div><div id="lprog" class="ld-sub"></div></div>
+<div class="cnt" id="content">
+<div class="pg">
+<div id="ld-area" class="ld"><div class="spin"></div><div style="font-size:13px;font-weight:500;color:var(--txt2)">Carregando dados...</div><div id="lprog" style="font-size:11px;color:var(--txtm)"></div></div>
 <div id="err-area" style="display:none"></div>
 <div id="mc" style="display:none">
 
-<!-- DASHBOARD -->
-<div id="tab-dash" class="tab active">
-  <div class="kg kg-4">
-    <div class="kpi c-b"><div class="ki"><i class="ti ti-database"></i></div><div class="kl">SKUs Ativos</div><div class="kv" id="k-skus">—</div><div class="ks">produtos cadastrados</div></div>
-    <div class="kpi c-b"><div class="ki"><i class="ti ti-packages"></i></div><div class="kl">Saldo em Estoque</div><div class="kv" id="k-sal">—</div><div class="ks">total físico</div></div>
-    <div class="kpi c-g"><div class="ki"><i class="ti ti-circle-check"></i></div><div class="kl">Disponível para Venda</div><div class="kv" id="k-disp">—</div><div class="ks">saldo − sep. − reservas</div></div>
-    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Reservas Comerciais</div><div class="kv" id="k-res">—</div><div class="ks">comprometido</div></div>
-  </div>
-  <div class="cg2">
-    <div class="card" style="margin-bottom:0">
-      <div class="ch">
-        <span class="ct"><i class="ti ti-chart-bar"></i> Disponível por Categoria</span>
-        <div style="display:flex;gap:6px;flex-wrap:wrap" id="dash-wh-chips"></div>
-      </div>
-      <div style="padding:1.125rem"><div style="position:relative;height:260px"><canvas id="barChart"></canvas></div>
-        <div id="bar-leg" style="display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--txt2)"></div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:0">
-      <div class="ch"><span class="ct"><i class="ti ti-building-warehouse"></i> Disponível por Armazém</span></div>
-      <div style="padding:1.125rem">
-        <div style="position:relative;height:175px;margin-bottom:.875rem"><canvas id="donutChart"></canvas></div>
-        <div class="leg" id="donut-leg"></div>
-      </div>
-    </div>
-  </div>
-  <div class="g2">
-    <div class="card" style="margin-bottom:0">
-      <div class="ch"><span class="ct"><i class="ti ti-sun"></i> Top 10 Inversores — Disponível</span></div>
-      <div class="tw"><table class="tbl">
-        <thead><tr><th>#</th><th>Nome Comercial</th><th>Armazém</th><th class="r">Disponível</th></tr></thead>
-        <tbody id="top-inv"></tbody>
-      </table></div>
-    </div>
-    <div class="card" style="margin-bottom:0">
-      <div class="ch"><span class="ct"><i class="ti ti-bolt"></i> Top 10 Carregadores EV — Disponível</span></div>
-      <div class="tw"><table class="tbl">
-        <thead><tr><th>#</th><th>Nome Comercial</th><th>Armazém</th><th class="r">Disponível</th></tr></thead>
-        <tbody id="top-ev"></tbody>
-      </table></div>
-    </div>
-  </div>
+<!-- ══ DASHBOARD ══ -->
+<div id="tab-dash" class="tab on">
+  <!-- KPIs superiores: GT1, GT3, Produtos, SKUs -->
+  <div class="krow k4" id="dash-kpis"></div>
+  <!-- Armazéns -->
+  <div class="wh-grid" id="wh-cards"></div>
+  <!-- Top 10 tables -->
+  <div class="tops-grid" id="top-row1"></div>
+  <div class="tops-grid tri" id="top-row2"></div>
 </div>
 
-<!-- INVERSORES -->
-<div id="tab-inv" class="tab">
-  <div class="pills" id="inv-pills"></div>
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Código ou nome..." oninput="renderCat('inv')"></div>
-    <select class="sel" id="inv-wh" onchange="renderCat('inv')"><option value="">Todos os armazéns</option></select>
-  </div>
-  <div class="cards-grid" id="inv-cards"></div>
-  <div id="inv-mp-sec" style="display:none">
-    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Matéria-Prima</span><div class="sec-sep-line"></div></div>
-    <div class="cards-grid" id="inv-mp-cards"></div>
-  </div>
-  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="inv-cnt">0</span> SKUs · <span id="inv-mp-cnt">0</span> matéria-prima</div>
-</div>
-
-<!-- BESS -->
-<div id="tab-bess" class="tab">
-  <div class="pills" id="bess-pills"></div>
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="bess-q" placeholder="Código ou nome..." oninput="renderCat('bess')"></div>
-    <select class="sel" id="bess-wh" onchange="renderCat('bess')"><option value="">Todos os armazéns</option></select>
-  </div>
-  <div class="cards-grid" id="bess-cards"></div>
-  <div id="bess-mp-sec" style="display:none">
-    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Matéria-Prima</span><div class="sec-sep-line"></div></div>
-    <div class="cards-grid" id="bess-mp-cards"></div>
-  </div>
-  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="bess-cnt">0</span> produtos · <span id="bess-mp-cnt">0</span> matéria-prima</div>
-</div>
-
-<!-- CARREGADORES EV -->
-<div id="tab-ev" class="tab">
-  <div class="pills" id="ev-pills"></div>
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Código ou nome..." oninput="renderCat('ev')"></div>
-    <select class="sel" id="ev-wh" onchange="renderCat('ev')"><option value="">Todos os armazéns</option></select>
-  </div>
-  <div class="cards-grid" id="ev-cards"></div>
-  <div id="ev-mp-sec" style="display:none">
-    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Acessórios / Componentes EV</span><div class="sec-sep-line"></div></div>
-    <div class="cards-grid" id="ev-mp-cards"></div>
-  </div>
-  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="ev-cnt">0</span> SKUs</div>
-</div>
-
-<!-- KIT SOLAR -->
-<div id="tab-kit" class="tab">
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="kit-q" placeholder="Código ou nome..." oninput="renderCat('kit')"></div>
-    <select class="sel" id="kit-wh" onchange="renderCat('kit')"><option value="">Todos os armazéns</option></select>
-  </div>
-  <div class="cards-grid" id="kit-cards"></div>
-  <div id="kit-mp-sec" style="display:none">
-    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Matéria-Prima</span><div class="sec-sep-line"></div></div>
-    <div class="cards-grid" id="kit-mp-cards"></div>
-  </div>
-  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="kit-cnt">0</span> produtos · <span id="kit-mp-cnt">0</span> matéria-prima</div>
-</div>
-
-<!-- ACESSÓRIOS -->
-<div id="tab-acc" class="tab">
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="acc-q" placeholder="Código ou nome..." oninput="renderCat('acc')"></div>
-    <select class="sel" id="acc-wh" onchange="renderCat('acc')"><option value="">Todos os armazéns</option></select>
-  </div>
-  <div class="cards-grid" id="acc-cards"></div>
-  <div id="acc-mp-sec" style="display:none">
-    <div class="sec-sep"><div class="sec-sep-line"></div><span class="sec-sep-lbl" style="color:var(--red);border:1px solid var(--red)">Matéria-Prima</span><div class="sec-sep-line"></div></div>
-    <div class="cards-grid" id="acc-mp-cards"></div>
-  </div>
-  <div style="padding:7px 0;font-size:11px;color:var(--txtm)"><span id="acc-cnt">0</span> produtos · <span id="acc-mp-cnt">0</span> matéria-prima</div>
-</div>
-
-
-
-<!-- RESERVAS -->
-<div id="tab-res" class="tab">
-  <div class="kg kg-4">
-    <div class="kpi c-p"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Total Reservado</div><div class="kv" id="r-tot">—</div></div>
-    <div class="kpi c-b"><div class="ki"><i class="ti ti-list"></i></div><div class="kl">Linhas de Reserva</div><div class="kv" id="r-lin">—</div></div>
-    <div class="kpi c-g"><div class="ki"><i class="ti ti-trophy"></i></div><div class="kl">Mais Reservado</div><div id="r-tp" style="font-size:12px;font-weight:600;margin-top:5px">—</div></div>
-    <div class="kpi c-a"><div class="ki"><i class="ti ti-user"></i></div><div class="kl">Vendedor Ativo</div><div id="r-tv" style="font-size:12px;font-weight:600;margin-top:5px">—</div></div>
-  </div>
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código..." oninput="rRes()"></div>
-    <select class="sel" id="res-dir" onchange="rRes()"><option value="">Todas as diretorias</option><option>Mobility</option><option>Distribution</option><option>Projects E-mobility</option><option>Eletra</option></select>
-    <select class="sel" id="res-arm" onchange="rRes()"><option value="">Todos os armazéns</option><option value="Curitiba">Curitiba</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option></select>
-  </div>
-  <div class="card"><div class="tw"><table class="tbl">
-    <thead><tr><th>Cliente</th><th>Responsável</th><th>Diretoria</th><th>Código</th><th>Armazém</th><th class="r">Qtd</th><th>Solicitado</th></tr></thead>
-    <tbody id="res-tbl"></tbody>
-  </table></div><div class="cf"><span id="res-cnt">0</span> registros</div></div>
-</div>
-
-<!-- TODOS -->
+<!-- ══ TODOS ══ -->
 <div id="tab-todos" class="tab">
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="all-q" placeholder="Código, nome..." oninput="rAll()"></div>
+    <div class="sbar"><i class="ti ti-search"></i><input id="all-q" placeholder="Nomenclatura ou código..." oninput="rAll()"></div>
     <select class="sel" id="all-wh" onchange="rAll()"><option value="">Todos os armazéns</option></select>
-    <select class="sel" id="all-cat" onchange="rAll()"><option value="">Todas as categorias</option><option value="INVERSOR">Inversores</option><option value="BESS">BESS</option><option value="CARREGADOR">Carregadores EV</option><option value="KIT">Kit Solar</option><option value="ACESSÓRIO">Acessórios</option><option value="MATÉRIA-PRIMA">Matéria-Prima</option></select>
+    <select class="sel" id="all-cat" onchange="rAll()"><option value="">Todas categorias</option></select>
   </div>
-  <div class="card"><div class="tw"><table class="tbl">
-    <thead><tr><th>Código</th><th>Nome Comercial</th><th>Família</th><th>Armazém</th><th class="r">Saldo</th><th class="r">Em Sep.</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disponível</th></tr></thead>
+  <div class="tcard"><div class="tw"><table class="tbl">
+    <thead><tr><th>Nomenclatura</th><th>Código</th><th>Família</th><th>Armazém</th><th class="r">Estoque Total</th><th class="r">Em Sep.</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disponível</th></tr></thead>
     <tbody id="all-tbl"></tbody>
-  </table></div><div class="cf"><span id="all-cnt">0</span> SKUs</div></div>
+  </table></div><div class="tc-foot"><span id="all-cnt">0</span> produtos</div></div>
 </div>
 
-<!-- ALERTAS -->
+<!-- ══ INVERSORES ══ -->
+<div id="tab-inv" class="tab">
+  <div class="fam-pills" id="inv-pills"></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Nomenclatura ou código..." oninput="renderCat('inv')"></div>
+    <select class="sel" id="inv-wh" onchange="renderCat('inv')"><option value="">Todos os armazéns</option></select>
+    <select class="sel" id="inv-fam" onchange="renderCat('inv')"><option value="">Todas as famílias</option></select>
+  </div>
+  <div class="cgrid" id="inv-cards"></div>
+  <div id="inv-mp-sec" style="display:none"><div class="mp-sep"><div class="mp-sep-line"></div><span class="mp-sep-lbl">Matéria-Prima</span><div class="mp-sep-line"></div></div><div class="cgrid" id="inv-mp-cards"></div></div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="inv-cnt">0</span> produtos · <span id="inv-mp-cnt">0</span> matéria-prima</div>
+</div>
+
+<!-- ══ CARREGADORES EV ══ -->
+<div id="tab-ev" class="tab">
+  <div class="fam-pills" id="ev-pills"></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Nomenclatura ou código..." oninput="renderCat('ev')"></div>
+    <select class="sel" id="ev-wh" onchange="renderCat('ev')"><option value="">Todos os armazéns</option></select>
+  </div>
+  <div class="cgrid" id="ev-cards"></div>
+  <div id="ev-mp-sec" style="display:none"><div class="mp-sep"><div class="mp-sep-line"></div><span class="mp-sep-lbl">Matéria-Prima / Componentes</span><div class="mp-sep-line"></div></div><div class="cgrid" id="ev-mp-cards"></div></div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="ev-cnt">0</span> produtos</div>
+</div>
+
+<!-- ══ BESS ══ -->
+<div id="tab-bess" class="tab">
+  <div class="fam-pills" id="bess-pills"></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="bess-q" placeholder="Nomenclatura ou código..." oninput="renderCat('bess')"></div>
+    <select class="sel" id="bess-wh" onchange="renderCat('bess')"><option value="">Todos os armazéns</option></select>
+  </div>
+  <div class="cgrid" id="bess-cards"></div>
+  <div id="bess-mp-sec" style="display:none"><div class="mp-sep"><div class="mp-sep-line"></div><span class="mp-sep-lbl">Matéria-Prima</span><div class="mp-sep-line"></div></div><div class="cgrid" id="bess-mp-cards"></div></div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="bess-cnt">0</span> produtos</div>
+</div>
+
+<!-- ══ KIT SOLAR ══ -->
+<div id="tab-kit" class="tab">
+  <div class="fam-pills" id="kit-pills"></div>
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="kit-q" placeholder="Nomenclatura ou código..." oninput="renderCat('kit')"></div>
+    <select class="sel" id="kit-wh" onchange="renderCat('kit')"><option value="">Todos os armazéns</option></select>
+  </div>
+  <div class="cgrid" id="kit-cards"></div>
+  <div id="kit-mp-sec" style="display:none"><div class="mp-sep"><div class="mp-sep-line"></div><span class="mp-sep-lbl">Matéria-Prima</span><div class="mp-sep-line"></div></div><div class="cgrid" id="kit-mp-cards"></div></div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="kit-cnt">0</span> produtos</div>
+</div>
+
+<!-- ══ STRING BOX ══ -->
+<div id="tab-strbox" class="tab">
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="strbox-q" placeholder="Nomenclatura ou código..." oninput="renderCat('strbox')"></div>
+    <select class="sel" id="strbox-wh" onchange="renderCat('strbox')"><option value="">Todos os armazéns</option></select>
+  </div>
+  <div class="cgrid" id="strbox-cards"></div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="strbox-cnt">0</span> produtos</div>
+</div>
+
+<!-- ══ DIVERSOS ══ -->
+<div id="tab-div" class="tab">
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="div-q" placeholder="Nomenclatura ou código..." oninput="renderCat('div')"></div>
+    <select class="sel" id="div-wh" onchange="renderCat('div')"><option value="">Todos os armazéns</option></select>
+  </div>
+  <div class="cgrid" id="div-cards"></div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="div-cnt">0</span> produtos</div>
+</div>
+
+<!-- ══ MATÉRIA-PRIMA ══ -->
+<div id="tab-mp" class="tab">
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="mp-q" placeholder="Nomenclatura ou código..." oninput="renderCat('mp')"></div>
+    <select class="sel" id="mp-wh" onchange="renderCat('mp')"><option value="">Todos os armazéns</option></select>
+    <select class="sel" id="mp-fam" onchange="renderCat('mp')"><option value="">Todas as famílias</option></select>
+  </div>
+  <div class="cgrid" id="mp-cards"></div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="mp-cnt">0</span> SKUs de matéria-prima</div>
+</div>
+
+<!-- ══ RESERVAS COMERCIAIS ══ -->
+<div id="tab-res" class="tab">
+  <div class="res-banner">
+    <strong>Reservas Comerciais</strong> representam planejamentos previamente alinhados pelas diretorias comerciais. O objetivo desta tela é dar visibilidade sobre a utilização do estoque e facilitar negociações internas quando necessário.
+  </div>
+  <div class="krow k4">
+    <div class="kpi kp"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Total Reservado</div><div class="kv" id="r-tot">—</div></div>
+    <div class="kpi kb"><div class="ki"><i class="ti ti-building"></i></div><div class="kl">Diretoria com Maior Reserva</div><div id="r-dir" style="font-size:12px;font-weight:600;margin-top:4px;line-height:1.3">—</div></div>
+    <div class="kpi kg"><div class="ki"><i class="ti ti-star"></i></div><div class="kl">Produto Mais Reservado</div><div id="r-prod" style="font-size:12px;font-weight:600;margin-top:4px;line-height:1.3">—</div></div>
+    <div class="kpi ka"><div class="ki"><i class="ti ti-user"></i></div><div class="kl">Vendedor com Maior Reserva</div><div id="r-vend" style="font-size:12px;font-weight:600;margin-top:4px;line-height:1.3">—</div></div>
+  </div>
+  <!-- Impacto Comercial -->
+  <div class="tcard" style="margin-bottom:1rem">
+    <div class="tc-hdr"><span style="display:flex;align-items:center;gap:5px"><i class="ti ti-chart-pie"></i> Impacto Comercial — % do Estoque Comprometido por Família</span></div>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Família</th><th class="r">Estoque Total</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r">% Comprometido</th></tr></thead>
+      <tbody id="r-impact"></tbody>
+    </table></div>
+  </div>
+  <!-- Produtos Compartilhados -->
+  <div class="tcard" style="margin-bottom:1rem">
+    <div class="tc-hdr"><span style="display:flex;align-items:center;gap:5px"><i class="ti ti-share-2"></i> Produtos Compartilhados — reservados por mais de uma diretoria</span></div>
+    <div class="tw"><table class="tbl">
+      <thead><tr><th>Nomenclatura</th><th>Código</th><th class="r">Reserva Total</th><th>Diretorias</th></tr></thead>
+      <tbody id="r-shared"></tbody>
+    </table></div>
+  </div>
+  <!-- Tabela principal -->
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código, responsável..." oninput="rRes()"></div>
+    <select class="sel" id="res-dir" onchange="rRes()"><option value="">Todas as diretorias</option></select>
+    <select class="sel" id="res-arm" onchange="rRes()"><option value="">Todos os armazéns</option><option value="Curitiba">Curitiba</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option><option value="Fábrica">Fábrica</option></select>
+  </div>
+  <div class="tcard"><div class="tw"><table class="tbl">
+    <thead><tr><th>Cliente</th><th>Nomenclatura</th><th>Código</th><th>Reserva</th><th>Armazém</th><th>Diretoria</th><th>Responsável</th><th>Observação</th></tr></thead>
+    <tbody id="res-tbl"></tbody>
+  </table></div><div class="tc-foot"><span id="res-cnt">0</span> registros</div></div>
+</div>
+
+<!-- ══ OPORTUNIDADES & ATENÇÃO ══ -->
 <div id="tab-alrt" class="tab">
-  <div class="alrt-block">
-    <div class="alrt-hdr red">
-      <span class="alrt-title" style="color:#be123c"><i class="ti ti-alert-triangle"></i> Reservas acima do Saldo — <span id="a1-cnt">0</span></span>
-      <div style="display:flex;gap:7px"><div class="sbar"><i class="ti ti-search"></i><input id="a1-q" placeholder="Filtrar..." oninput="rAlrt()"></div><select class="sel" id="a1-wh" onchange="rAlrt()"><option value="">Todos WH</option></select></div>
+  <!-- 🔴 Crítico -->
+  <div class="ab">
+    <div class="ab-hdr red">
+      <span class="ab-title" style="color:#be123c"><i class="ti ti-alert-triangle"></i> Estoque Crítico — Disponível ≤ 5<span class="ab-cnt" id="a-crit-cnt"></span></span>
+      <div style="display:flex;gap:6px"><div class="sbar"><i class="ti ti-search"></i><input id="aq1" placeholder="Filtrar..." oninput="rAlrt()"></div><select class="sel" id="aw1" onchange="rAlrt()"><option value="">Todos WH</option></select></div>
     </div>
-    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Nome</th><th>Armazém</th><th class="r">Saldo</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:#dc2626">Neg.</th></tr></thead><tbody id="a1-tbl"></tbody></table></div></div>
+    <div class="ab-body"><div class="tw"><table class="tbl"><thead><tr><th>Nomenclatura</th><th>Código</th><th>Armazém</th><th class="r">Disponível</th></tr></thead><tbody id="a-crit"></tbody></table></div></div>
   </div>
-  <div class="alrt-block">
-    <div class="alrt-hdr amb">
-      <span class="alrt-title" style="color:#92400e"><i class="ti ti-alert-circle"></i> Ruptura Iminente (1–5 unid.) — <span id="a2-cnt">0</span></span>
-      <div style="display:flex;gap:7px"><div class="sbar"><i class="ti ti-search"></i><input id="a2-q" placeholder="Filtrar..." oninput="rAlrt()"></div><select class="sel" id="a2-wh" onchange="rAlrt()"><option value="">Todos WH</option></select></div>
+  <!-- 🟡 Baixo -->
+  <div class="ab">
+    <div class="ab-hdr amb">
+      <span class="ab-title" style="color:#92400e"><i class="ti ti-alert-circle"></i> Estoque Baixo — Disponível 6 a 20<span class="ab-cnt" id="a-low-cnt"></span></span>
+      <div style="display:flex;gap:6px"><div class="sbar"><i class="ti ti-search"></i><input id="aq2" placeholder="Filtrar..." oninput="rAlrt()"></div><select class="sel" id="aw2" onchange="rAlrt()"><option value="">Todos WH</option></select></div>
     </div>
-    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Nome</th><th>Armazém</th><th class="r">Saldo</th><th class="r">Disponível</th></tr></thead><tbody id="a2-tbl"></tbody></table></div></div>
+    <div class="ab-body"><div class="tw"><table class="tbl"><thead><tr><th>Nomenclatura</th><th>Código</th><th>Armazém</th><th class="r">Disponível</th></tr></thead><tbody id="a-low"></tbody></table></div></div>
   </div>
-  <div class="alrt-block">
-    <div class="alrt-hdr gry">
-      <span class="alrt-title" style="color:#475569"><i class="ti ti-minus-circle"></i> Disponível Zero — <span id="a3-cnt">0</span></span>
-      <div style="display:flex;gap:7px"><div class="sbar"><i class="ti ti-search"></i><input id="a3-q" placeholder="Filtrar..." oninput="rAlrt()"></div><select class="sel" id="a3-wh" onchange="rAlrt()"><option value="">Todos WH</option></select></div>
+  <!-- 🟢 Oportunidades -->
+  <div class="ab">
+    <div class="ab-hdr grn">
+      <span class="ab-title" style="color:var(--grn-d)"><i class="ti ti-trending-up"></i> Oportunidades Comerciais — Maior disponível<span class="ab-cnt" id="a-opp-cnt"></span></span>
+      <div style="display:flex;gap:6px"><div class="sbar"><i class="ti ti-search"></i><input id="aq3" placeholder="Filtrar..." oninput="rAlrt()"></div><select class="sel" id="aw3" onchange="rAlrt()"><option value="">Todos WH</option></select></div>
     </div>
-    <div class="alrt-body"><div class="tw"><table class="tbl"><thead><tr><th>Código</th><th>Nome</th><th>Armazém</th><th class="r">Saldo</th><th class="r" style="color:var(--pur)">Reserva</th></tr></thead><tbody id="a3-tbl"></tbody></table></div></div>
+    <div class="ab-body"><div class="tw"><table class="tbl"><thead><tr><th>Nomenclatura</th><th>Código</th><th>Armazém</th><th class="r">Disponível</th></tr></thead><tbody id="a-opp"></tbody></table></div></div>
+  </div>
+  <!-- 🔵 Concentrado -->
+  <div class="ab">
+    <div class="ab-hdr blu">
+      <span class="ab-title" style="color:#1d4ed8"><i class="ti ti-map-pin"></i> Estoque Concentrado — em apenas 1 armazém<span class="ab-cnt" id="a-conc-cnt"></span></span>
+    </div>
+    <div class="ab-body"><div class="tw"><table class="tbl"><thead><tr><th>Nomenclatura</th><th>Código</th><th>Armazém</th><th class="r">Disponível</th></tr></thead><tbody id="a-conc"></tbody></table></div></div>
+  </div>
+  <!-- ⚫ Sem estoque -->
+  <div class="ab">
+    <div class="ab-hdr gry">
+      <span class="ab-title" style="color:var(--txt2)"><i class="ti ti-minus-circle"></i> Sem Estoque — Disponível = 0<span class="ab-cnt" id="a-zero-cnt"></span></span>
+    </div>
+    <div class="ab-body"><div class="tw"><table class="tbl"><thead><tr><th>Nomenclatura</th><th>Código</th><th>Último Armazém</th></tr></thead><tbody id="a-zero"></tbody></table></div></div>
+  </div>
+  <!-- 🟠 Sugestão de Compra -->
+  <div class="ab">
+    <div class="ab-hdr org">
+      <span class="ab-title" style="color:#c2410c"><i class="ti ti-shopping-cart"></i> Sugestão de Compra — Disponível &lt; 5 e Reserva &gt; 0<span class="ab-cnt" id="a-buy-cnt"></span></span>
+    </div>
+    <div class="ab-body"><div class="tw"><table class="tbl"><thead><tr><th>Nomenclatura</th><th>Código</th><th>Armazém</th><th class="r">Disponível</th><th class="r" style="color:var(--pur)">Reserva</th></tr></thead><tbody id="a-buy"></tbody></table></div></div>
+  </div>
+  <!-- Comprometimento acima do estoque -->
+  <div class="ab">
+    <div class="ab-hdr gry">
+      <span class="ab-title" style="color:var(--pur)"><i class="ti ti-info-circle"></i> Comprometimento Acima do Estoque — Reserva &gt; Estoque Total<span class="ab-cnt" id="a-over-cnt"></span></span>
+    </div>
+    <div class="ab-body"><div class="tw"><table class="tbl"><thead><tr><th>Nomenclatura</th><th>Código</th><th>Armazém</th><th class="r">Estoque</th><th class="r" style="color:var(--pur)">Reserva</th></tr></thead><tbody id="a-over"></tbody></table></div></div>
   </div>
 </div>
 
 </div><!-- /mc -->
-</main>
-</div><!-- content -->
-</div><!-- body-layout -->
+</div><!-- /pg -->
+</div><!-- /cnt -->
+</div><!-- /body -->
+</div><!-- /app -->
 
 <script>
-// ══ FONTES DE DADOS
-const CSV = {
+// ══ CONFIG
+const CSV_FILES = {
   ESTOQUE:  'data/ESTOQUE.csv',
-  CADASTRO: 'data/CADASTRO.csv',
   RESERVAS: 'data/RESERVAS.csv',
 };
 
-// ══ ARMAZÉNS
-// Coluna "Armazém Dashboard" da planilha já traz o nome formatado
-// Fallback por FL code
-const WH_NAMES = {
-  '10108': 'Curitiba (Eletra)',
-  '10102': 'Fortaleza (Eletra)',
-  '10106': 'Manaus (Eletra)',
-  'MAO-LIV': 'Fábrica Livoltek',
-};
-const WH_COLORS = {
-  'Curitiba (Eletra)':  '#1E3A5F',
-  'Fortaleza (Eletra)': '#22C55E',
-  'Manaus (Eletra)':    '#F59E0B',
-  'Fábrica Livoltek':   '#7c3aed',
-};
-const WH_ICONS = {
-  'Curitiba (Eletra)':  'ti-building-warehouse',
-  'Fortaleza (Eletra)': 'ti-building-warehouse',
-  'Manaus (Eletra)':    'ti-building-warehouse',
-  'Fábrica Livoltek':   'ti-building-factory-2',
-};
-const WH_LIST = ['Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','Fábrica Livoltek'];
+const WH_NAMES = {'10108':'Curitiba (Eletra)','10102':'Fortaleza (Eletra)','10106':'Manaus (Eletra)','MAO-LIV':'Fábrica Livoltek'};
+const WH_LIST  = ['Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','Fábrica Livoltek'];
+const WH_COLOR = {'Curitiba (Eletra)':'var(--cwb)','Fortaleza (Eletra)':'var(--for)','Manaus (Eletra)':'var(--mao-e)','Fábrica Livoltek':'var(--mao-l)'};
+const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra)':'ti-building-warehouse','Manaus (Eletra)':'ti-building-warehouse','Fábrica Livoltek':'ti-building-factory-2'};
+const WH_CLASS = {'Curitiba (Eletra)':'cwb','Fortaleza (Eletra)':'for_','Manaus (Eletra)':'maoe','Fábrica Livoltek':'maol'};
 
-// ══ ESTADO
-let ST = [];   // [{codigo, nome, categoria, familia, wh, saldo, empenho, reserva, disp, isMP}]
-let CAD = {};  // {sku → {nome, categoria, familia}}
-let RES = [];
+// TAB → category
+const TAB_CAT = {inv:'INVERSOR',ev:'CARREGADOR',bess:'BESS',kit:'KIT',strbox:'STRING BOX',div:'DIVERSOS',mp:'MATÉRIA-PRIMA'};
 
-// ══ PARSE
-function pn(v){ if(!v||v==='-')return 0; return parseFloat(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''))||0; }
+let ST=[], RES=[];
+let whFilter='', famFilters={};
+let catOptions={};
+
+// ══ PARSE HELPERS
+const pn = v => { if(!v||v==='-')return 0; return parseFloat(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''))||0; };
 const fmt = n => Math.round(n).toLocaleString('pt-BR');
-const trunc = (s,n=55) => s && s.length>n ? s.slice(0,n)+'…' : (s||'');
+const tr  = (s,n=55) => s&&s.length>n?s.slice(0,n)+'…':(s||'—');
 
-function parseCadastro(csv){
+function parseEstoque(csv){
   const rows = Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
-  const cad = {};
-  rows.forEach(r=>{
-    const sku = String(r.SKU||r.sku||'').trim();
-    if(!sku) return;
-    cad[sku] = {
-      nome:      String(r['Nome Comercial']||r.nome||'').trim(),
-      categoria: String(r.Categoria||r.categoria||'').trim().toUpperCase(),
-      familia:   String(r['Família']||r.familia||r.Familia||'').trim(),
-    };
-  });
-  return cad;
-}
-
-function parseEstoque(csv, cad){
-  const rows = Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
-  const items = [];
+  const items=[];
   rows.forEach(r=>{
     const codigo = String(r.CODIGO||r.codigo||'').trim();
     if(!codigo) return;
-
-    // Armazém — usar coluna "Armazém Dashboard" ou derivar de FL
-    const armLabel = String(r['Armazém Dashboard']||r['Armazem Dashboard']||'').trim();
-    const fl  = String(r.FL||'').trim();
-    const armz= String(r.ARMZ||'').trim();
-
-    let wh = armLabel || WH_NAMES[fl] || fl;
-
-    // Filtro ARMZ=7 para Eletra (FL 10108/10102/10106)
-    // MAO-LIV usa todos os registros (sem filtro de ARMZ)
+    const fl   = String(r.FL||'').trim();
+    const armz = String(r.ARMZ||'').trim();
     const isEletra = ['10108','10102','10106'].includes(fl);
-    if(isEletra && armz !== '7') return;
-
-    // Categoria e Família vêm direto do ESTOQUE.csv (últimas colunas)
-    // Fallback: tentar cadastro pelo CODIGO TOP MANAGE
-    const topManage = String(r['CODIGO TOP MANAGE']||r['Codigo Top Manage']||'').trim();
-    const info = cad[topManage] || cad[codigo] || {};
-
-    // Prioridade: coluna do ESTOQUE.csv → cadastro → vazio
-    const catRaw  = String(r['Categoria']||r['CATEGORIA']||info.categoria||'').trim();
-    const famRaw  = String(r['Família']||r['Familia']||r['FAMILIA']||info.familia||'').trim();
-    const nome    = info.nome || String(r['Nome Comercial']||r.DESCRICAO||r.descricao||'').trim();
-    const cat     = catRaw;
-    const fam     = famRaw;
-
-    const saldo  = pn(r['SALDO EM ESTOQUE']);
-    const empenho= pn(r['NO PARA REQ/PV/RE']||r['EMPENHO']||0);
-
-    items.push({codigo, nome, categoria:cat, familia:fam, wh,
-                saldo, empenho, reserva:0, disp:0,
-                isMP: cat === 'MATÉRIA-PRIMA'});
+    if(isEletra && armz!=='7') return;
+    const armLabel = String(r['Armazém Dashboard']||r['Armazem Dashboard']||'').trim();
+    const wh = armLabel || WH_NAMES[fl] || fl;
+    // Fields from spreadsheet
+    const nomenclatura = String(r['Nomenclatura']||r['NOMENCLATURA']||r['Nome Comercial']||'').trim();
+    const descricao    = String(r['DESCRICAO']||r['Descricao']||r['DESCRICAO DO PRODUTO']||'').trim();
+    const categoria    = String(r['Categoria']||r['CATEGORIA']||'').trim().toUpperCase();
+    const familia      = String(r['Família']||r['Familia']||r['FAMILIA']||'').trim();
+    const saldo        = pn(r['SALDO EM ESTOQUE']||r['Estoque Total']||0);
+    const empenho      = pn(r['NO PARA REQ/PV/RE']||r['Em Separação']||r['Em Separacao']||0);
+    const isMP         = categoria==='MATÉRIA-PRIMA'||categoria==='MATERIA-PRIMA'||categoria==='MATERIA PRIMA';
+    items.push({codigo, nomenclatura, descricao, categoria, familia, wh, saldo, empenho, reserva:0, disp:0, isMP});
   });
   return items;
 }
 
 function parseReservas(csv){
+  // Try header-based parse first
+  const parsed = Papa.parse(csv,{header:true,skipEmptyLines:true});
+  if(parsed.data.length && parsed.meta.fields){
+    const f=parsed.meta.fields;
+    // Find columns
+    const cCli  = f.find(x=>/cliente/i.test(x));
+    const cResp = f.find(x=>/respons/i.test(x));
+    const cDir  = f.find(x=>/diretor/i.test(x));
+    const cCod  = f.find(x=>/c[oó]digo|produto|sku/i.test(x)&&!/nome|nomen/i.test(x));
+    const cNom  = f.find(x=>/nome|nomen|descri/i.test(x));
+    const cObs  = f.find(x=>/obs|armaz/i.test(x));
+    const cQtd  = f.find(x=>/qtd|quant|reserv/i.test(x)&&!/total/i.test(x));
+    const result=[];
+    parsed.data.forEach(r=>{
+      const codigo=(cCod?String(r[cCod]||''):'').trim().toUpperCase();
+      const qtd=pn(cQtd?r[cQtd]:0);
+      if(!codigo||qtd<=0) return;
+      result.push({
+        cliente:    (cCli?String(r[cCli]||''):'').trim(),
+        responsavel:(cResp?String(r[cResp]||''):'').trim(),
+        diretoria:  (cDir?String(r[cDir]||''):'').trim(),
+        codigo, nome:(cNom?String(r[cNom]||''):'').trim(),
+        obs:        (cObs?String(r[cObs]||''):'').trim(),
+        qtd,
+      });
+    });
+    return result;
+  }
+  // Fallback: positional
   const rows = Papa.parse(csv,{skipEmptyLines:false}).data;
-  let hIdx = rows.findIndex(r=>String(r[0]||'').toUpperCase().includes('CLIENTE'));
+  let hIdx=rows.findIndex(r=>String(r[0]||'').toUpperCase().includes('CLIENTE'));
   if(hIdx<0) hIdx=0;
   const result=[];
   for(const r of rows.slice(hIdx+1)){
     const codigo=String(r[3]||'').trim().toUpperCase();
     const qtd=pn(r[6]);
-    const cancelado=String(r[7]||'').trim();
-    if(!codigo||qtd<=0||cancelado) continue;
-    result.push({
-      cliente:    String(r[0]||'').trim(),
-      responsavel:String(r[1]||'').trim(),
-      diretoria:  String(r[2]||'').trim(),
-      codigo, descricao:String(r[4]||'').trim(),
-      obs:        String(r[5]||'').trim(),
-      qtd, solicitado:String(r[8]||'').trim(),
-    });
+    if(!codigo||qtd<=0) continue;
+    result.push({cliente:String(r[0]||'').trim(),responsavel:String(r[1]||'').trim(),
+      diretoria:String(r[2]||'').trim(),codigo,nome:String(r[4]||'').trim(),
+      obs:String(r[5]||'').trim(),qtd});
   }
   return result;
 }
 
 function obsToWH(o){
   const l=o.toLowerCase();
-  if(l.includes('curitiba')) return 'Curitiba (Eletra)';
-  if(l.includes('fortaleza')) return 'Fortaleza (Eletra)';
-  if(l.includes('manaus')) return 'Manaus (Eletra)';
-  // format "CWB","FOR","MAO"
-  if(l==='cwb') return 'Curitiba (Eletra)';
-  if(l==='for') return 'Fortaleza (Eletra)';
-  if(l==='mao'||l==='mao-liv') return 'Fábrica Livoltek';
+  if(l.includes('curitiba')||l==='cwb') return 'Curitiba (Eletra)';
+  if(l.includes('fortaleza')||l==='for') return 'Fortaleza (Eletra)';
+  if(l.includes('manaus')||l==='mao'||l==='mao-ele') return 'Manaus (Eletra)';
+  if(l.includes('livoltek')||l.includes('fábrica')||l==='mao-liv') return 'Fábrica Livoltek';
   return null;
 }
 
 function applyReservas(){
   const lkp={};
   RES.forEach(r=>{
+    // Try obs field for WH; if empty, apply to all WH for that code
     const w=obsToWH(r.obs);
-    if(!w) return;
-    const k=w+'|'+r.codigo;
-    lkp[k]=(lkp[k]||0)+r.qtd;
+    if(w){lkp[w+'|'+r.codigo]=(lkp[w+'|'+r.codigo]||0)+r.qtd;}
+    else{lkp['*|'+r.codigo]=(lkp['*|'+r.codigo]||0)+r.qtd;}
   });
   ST.forEach(s=>{
-    s.reserva=lkp[s.wh+'|'+s.codigo.toUpperCase()]||0;
+    const specific=lkp[s.wh+'|'+s.codigo.toUpperCase()]||0;
+    const global=lkp['*|'+s.codigo.toUpperCase()]||0;
+    s.reserva=specific+global;
     s.disp=Math.max(0,s.saldo-s.empenho-s.reserva);
   });
+}
+
+// ══ DEDUP
+function dedup(items){
+  const m={};
+  items.forEach(r=>{
+    if(!m[r.codigo]){m[r.codigo]={...r,_byWH:{},_sal:0,_emp:0,_res:0,_disp:0};}
+    m[r.codigo]._byWH[r.wh]=(m[r.codigo]._byWH[r.wh]||0)+r.saldo;
+    m[r.codigo]._sal +=r.saldo;
+    m[r.codigo]._emp +=r.empenho;
+    m[r.codigo]._res +=r.reserva;
+    m[r.codigo]._disp+=r.disp;
+  });
+  return Object.values(m);
+}
+
+// ══ CATEGORY ROUTING
+function getCatTab(r){
+  const fam=(r.familia||'').toUpperCase();
+  const cat=(r.categoria||'').toUpperCase();
+  const desc=(r.nomenclatura||r.descricao||'').toUpperCase();
+  if(cat.includes('MATÉR')||cat.includes('MATER')) return 'mp';
+  if(fam.includes('STRING BOX')||fam.includes('COMBINER')||desc.includes('STRING BOX')) return 'strbox';
+  if(fam.includes('INVERSOR')||cat.includes('INVERSOR')||desc.includes('INVERSOR')) return 'inv';
+  if(fam.includes('CARREGADOR')||cat.includes('CARREGADOR')||desc.includes('CARREGADOR VE')) return 'ev';
+  if(fam.includes('BESS')||fam.includes('BATERIA')||cat.includes('BESS')||cat.includes('BATERIA')) return 'bess';
+  if(fam.includes('PLACA')||fam.includes('MÓDULO')||fam.includes('MODULO')||
+     fam.includes('CABO FOTOV')||fam.includes('ESTRUTURA')||fam.includes('TELHADO')||
+     fam.includes('SOLO')||fam.includes('CONECTOR')||cat.includes('KIT')) return 'kit';
+  return 'div';
+}
+
+// ══ PRODUCT CARD
+function pCard(r, isMP){
+  const disp=r._disp;
+  const dispCol=disp>20?'var(--grn-d)':disp>=1?'var(--amb-d)':'var(--red)';
+  const dispBg =disp>20?'var(--grn-pale)':disp>=1?'var(--amb-pale)':'var(--red-pale)';
+  const famLabel=r.familia||r.categoria||'';
+  const famCol=isMP?'var(--red)':'var(--pri)';
+  const famBg =isMP?'var(--red-pale)':'var(--pri-pale)';
+
+  const whRows=WH_LIST.map(w=>{
+    const s=r._byWH[w]||0; if(!s) return '';
+    const c=WH_COLOR[w]; const ico=WH_ICON[w];
+    return `<div class="pr"><span class="pr-lbl" style="color:${c};display:flex;align-items:center;gap:4px"><i class="ti ${ico}" style="font-size:11px"></i>${w}</span><span class="pr-val">${fmt(s)}</span></div>`;
+  }).join('');
+
+  const nom=r.nomenclatura||r.nome||r.descricao||r.codigo;
+  const desc=r.descricao&&r.descricao!==nom?r.descricao:'';
+
+  return `<div class="pc${isMP?' mp':''}">
+    ${famLabel?`<span class="pc-fam" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
+    ${isMP?'<div class="mp-badge"><i class="ti ti-box" style="font-size:10px"></i> MATÉRIA-PRIMA</div>':''}
+    <div class="pc-nom">${tr(nom,48)}</div>
+    ${desc?`<div class="pc-desc">${tr(desc,55)}</div>`:''}
+    <div class="pc-cod">${r.codigo}</div>
+    <div class="pc-disp-wrap">
+      <div class="pc-disp-lbl" style="color:${dispCol}">Disponível para Venda</div>
+      <div class="pc-disp" style="color:${dispCol}">${fmt(disp)}</div>
+    </div>
+    ${whRows}
+    <div class="pc-div"></div>
+    <div class="pr"><span class="pr-lbl" style="color:var(--txtm)">Estoque Total</span><span class="pr-val" style="color:var(--txtm)">${fmt(r._sal)}</span></div>
+    <div class="pr"><span class="pr-lbl" style="color:var(--amb-d)">Em Separação</span><span class="pr-val" style="color:${r._emp>0?'var(--amb-d)':'var(--txtm)'}">${fmt(r._emp)}</span></div>
+    <div class="pr"><span class="pr-lbl" style="color:var(--pur)">Reserva</span><span class="pr-val" style="color:${r._res>0?'var(--pur)':'var(--txtm)'}">${fmt(r._res)}</span></div>
+    <div class="pc-note">Separação e Reserva já foram abatidas do disponível.</div>
+  </div>`;
+}
+
+// ══ FAMILY PILLS
+function buildPills(tabId, items){
+  const fams={};
+  items.forEach(r=>{const f=r.familia||'Outros';if(!fams[f])fams[f]={sal:0,disp:0};fams[f].sal+=r._sal;fams[f].disp+=r._disp;});
+  const cur=famFilters[tabId]||'';
+  const totalSal=items.reduce((a,r)=>a+r._sal,0);
+  const totalDisp=items.reduce((a,r)=>a+r._disp,0);
+  let html=`<div class="fpill${cur===''?' on':''}" onclick="setFam('${tabId}','')">
+    <span class="fp-lbl">Todos</span>
+    <span class="fp-val">${fmt(totalDisp)}</span>
+    <span class="fp-sub">${fmt(totalSal)} em estoque</span>
+  </div>`;
+  Object.entries(fams).sort((a,b)=>b[1].disp-a[1].disp).forEach(([f,v])=>{
+    const on=cur===f;
+    html+=`<div class="fpill${on?' on':''}" onclick="setFam('${tabId}','${f.replace(/'/g,"\\'")}')">
+      <span class="fp-lbl">${f}</span>
+      <span class="fp-val">${fmt(v.disp)}</span>
+      <span class="fp-sub">${fmt(v.sal)} em estoque</span>
+    </div>`;
+  });
+  const el=document.getElementById(tabId+'-pills');
+  if(el) el.innerHTML=html;
+}
+
+function setFam(tabId,fam){
+  famFilters[tabId]=famFilters[tabId]===fam?'':fam;
+  renderCat(tabId);
+}
+
+// ══ RENDER CATEGORY
+function renderCat(tabId){
+  const q=(document.getElementById(tabId+'-q')?.value||'').toLowerCase();
+  const wh=document.getElementById(tabId+'-wh')?.value||'';
+  const famSel=document.getElementById(tabId+'-fam')?.value||'';
+  const famPill=famFilters[tabId]||'';
+
+  const items=ST.filter(r=>{
+    if(getCatTab(r)!==tabId) return false;
+    const mq=!q||r.codigo.toLowerCase().includes(q)||(r.nomenclatura||'').toLowerCase().includes(q)||(r.descricao||'').toLowerCase().includes(q);
+    const mw=!wh||r.wh===wh;
+    const mf=!famSel||(r.familia||'')=== famSel;
+    return mq&&mw&&mf;
+  });
+
+  const dd=dedup(items).sort((a,b)=>b._disp-a._disp);
+
+  // Family pills for tabs that have them
+  if(document.getElementById(tabId+'-pills')){
+    buildPills(tabId, dedup(ST.filter(r=>getCatTab(r)===tabId&&!r.isMP)));
+  }
+
+  const fam=famPill||famSel;
+  const filtered=fam?dd.filter(r=>(r.familia||')===fam'):dd;
+
+  const prod=filtered.filter(r=>!r.isMP);
+  const mp  =filtered.filter(r=>r.isMP);
+
+  const cardsEl=document.getElementById(tabId+'-cards');
+  const mpSec=document.getElementById(tabId+'-mp-sec');
+  const mpCards=document.getElementById(tabId+'-mp-cards');
+  const cntEl=document.getElementById(tabId+'-cnt');
+  const mpCntEl=document.getElementById(tabId+'-mp-cnt');
+
+  if(cardsEl) cardsEl.innerHTML=prod.map(r=>pCard(r,false)).join('')||
+    `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm);font-size:13px">Nenhum produto encontrado.</div>`;
+  if(mpSec) mpSec.style.display=mp.length?'block':'none';
+  if(mpCards) mpCards.innerHTML=mp.map(r=>pCard(r,true)).join('');
+  if(cntEl) cntEl.textContent=prod.length;
+  if(mpCntEl) mpCntEl.textContent=mp.length;
+}
+
+// ══ TODOS
+function rAll(){
+  const q=(document.getElementById('all-q')?.value||'').toLowerCase();
+  const wh=document.getElementById('all-wh')?.value||'';
+  const cat=document.getElementById('all-cat')?.value||'';
+  const dd=dedup(ST.filter(r=>{
+    const mq=!q||r.codigo.toLowerCase().includes(q)||(r.nomenclatura||'').toLowerCase().includes(q);
+    const mw=!wh||r.wh===wh;
+    const mc=!cat||(r.categoria||'').toUpperCase().includes(cat)||(r.familia||'').toUpperCase().includes(cat);
+    return mq&&mw&&mc;
+  })).sort((a,b)=>b._disp-a._disp);
+  document.getElementById('all-cnt').textContent=dd.length;
+  document.getElementById('all-tbl').innerHTML=dd.map(r=>{
+    const dispCol=r._disp>20?'var(--grn-d)':r._disp>=1?'var(--amb-d)':'var(--red)';
+    return`<tr>
+      <td style="font-weight:500">${tr(r.nomenclatura||r.descricao,45)}</td>
+      <td class="mono">${r.codigo}</td>
+      <td style="font-size:10px;color:var(--txtm)">${r.familia||'—'}</td>
+      <td style="font-size:10px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh))].map(w=>`<span class="wt" style="color:${WH_COLOR[w]};background:${WH_COLOR[w]}1a">${w.split(' ')[0]}</span>`).join(' ')}</td>
+      <td class="r">${fmt(r._sal)}</td>
+      <td class="r" style="color:${r._emp>0?'var(--amb-d)':'var(--txtm)'}">${r._emp>0?fmt(r._emp):'—'}</td>
+      <td class="r" style="color:${r._res>0?'var(--pur)':'var(--txtm)'}">${r._res>0?fmt(r._res):'—'}</td>
+      <td class="r" style="font-weight:700;color:${dispCol}">${fmt(r._disp)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══ DASHBOARD
+function rDash(){
+  const prod=dedup(ST.filter(r=>!r.isMP));
+
+  // GT1 / GT3 KPI cards
+  const gt1=prod.filter(r=>(r.familia||'').toUpperCase().includes('GT1')||(r.nomenclatura||'').toUpperCase().includes('GT1'));
+  const gt3=prod.filter(r=>(r.familia||'').toUpperCase().includes('GT3')||(r.nomenclatura||'').toUpperCase().includes('GT3'));
+  const gt1Disp=gt1.reduce((a,r)=>a+r._disp,0);
+  const gt3Disp=gt3.reduce((a,r)=>a+r._disp,0);
+  const totalDisp=prod.reduce((a,r)=>a+r._disp,0);
+  const totalSKU=prod.length;
+
+  document.getElementById('dash-kpis').innerHTML=`
+    <div class="kpi kbl clickable" onclick="filterDash('GT1',this)" title="Filtrar GT1">
+      <div class="ki"><i class="ti ti-solar-panel"></i></div>
+      <div class="kl">Total GT1</div>
+      <div class="kv">${fmt(gt1Disp)}</div>
+      <div class="ks">disponível · ${gt1.length} SKUs</div>
+    </div>
+    <div class="kpi kbl clickable" onclick="filterDash('GT3',this)" title="Filtrar GT3">
+      <div class="ki"><i class="ti ti-solar-panel"></i></div>
+      <div class="kl">Total GT3</div>
+      <div class="kv">${fmt(gt3Disp)}</div>
+      <div class="ks">disponível · ${gt3.length} SKUs</div>
+    </div>
+    <div class="kpi kb">
+      <div class="ki"><i class="ti ti-packages"></i></div>
+      <div class="kl">Total de Produtos</div>
+      <div class="kv">${fmt(totalDisp)}</div>
+      <div class="ks">disponível para venda</div>
+    </div>
+    <div class="kpi kb">
+      <div class="ki"><i class="ti ti-list"></i></div>
+      <div class="kl">Total de SKUs</div>
+      <div class="kv">${totalSKU}</div>
+      <div class="ks">produtos ativos</div>
+    </div>`;
+
+  // Warehouse cards
+  document.getElementById('wh-cards').innerHTML=WH_LIST.map(w=>{
+    const it=ST.filter(r=>r.wh===w&&!r.isMP);
+    const wDisp=it.reduce((a,r)=>a+r.disp,0);
+    const wSal=it.reduce((a,r)=>a+r.saldo,0);
+    const wSKU=[...new Set(it.map(r=>r.codigo))].length;
+    const cls=WH_CLASS[w];
+    return`<div class="whcard ${cls}" onclick="filterByWH('${w}',this)">
+      <div class="wh-name" style="color:${WH_COLOR[w]}">${w}</div>
+      <div class="wh-loc">${w.includes('Curitiba')?'Paraná':w.includes('Fortaleza')?'Ceará':w.includes('Manaus')?'Amazonas':'MAO-LIV'}</div>
+      <div class="wh-disp-lbl" style="color:${WH_COLOR[w]}">Disponível para Venda</div>
+      <div class="wh-disp-val" style="color:${WH_COLOR[w]}">${fmt(wDisp)}</div>
+      <div class="wh-saldo">Estoque: ${fmt(wSal)}</div>
+      <div class="wh-skus">${wSKU} SKUs</div>
+    </div>`;
+  }).join('');
+
+  // Top 10 tables
+  const tops=[
+    {id:'top-inv', label:'Top 10 Inversores', ico:'ti-solar-panel', cat:'inv'},
+    {id:'top-ev',  label:'Top 10 Carregadores EV', ico:'ti-car', cat:'ev'},
+    {id:'top-bess',label:'Top 10 BESS/Baterias', ico:'ti-battery-charging', cat:'bess'},
+    {id:'top-kit', label:'Top 10 Kit Solar', ico:'ti-sun', cat:'kit'},
+    {id:'top-str', label:'Top 10 String Box', ico:'ti-plug-connected', cat:'strbox'},
+    {id:'top-mp',  label:'Top 10 Matéria-Prima', ico:'ti-building-factory-2', cat:'mp'},
+  ];
+  document.getElementById('top-row1').innerHTML=tops.slice(0,2).map(t=>`<div class="top-card" id="${t.id}"><div class="top-hdr"><i class="ti ${t.ico}"></i>${t.label}</div><table class="top-tbl"><tbody></tbody></table></div>`).join('');
+  document.getElementById('top-row2').innerHTML=tops.slice(2).map(t=>`<div class="top-card" id="${t.id}"><div class="top-hdr"><i class="ti ${t.ico}"></i>${t.label}</div><table class="top-tbl"><tbody></tbody></table></div>`).join('');
+
+  tops.forEach(t=>{
+    const rows=dedup(ST.filter(r=>getCatTab(r)===t.cat)).sort((a,b)=>b._disp-a._disp).slice(0,10);
+    const el=document.querySelector(`#${t.id} tbody`);
+    if(el) el.innerHTML=rows.map((r,i)=>{
+      const dispCol=r._disp>20?'var(--grn-d)':r._disp>=1?'var(--amb-d)':'var(--red)';
+      const whUsed=[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh))];
+      return`<tr>
+        <td class="rk">${i+1}</td>
+        <td class="nm">${tr(r.nomenclatura||r.descricao,36)}</td>
+        <td class="wh">${whUsed.map(w=>`<span style="color:${WH_COLOR[w]};font-size:9px;font-weight:700">${w.split(' ')[0]}</span>`).join(' ')}</td>
+        <td style="color:${dispCol};font-weight:700;font-family:'DM Mono',monospace">${fmt(r._disp)}</td>
+      </tr>`;
+    }).join('');
+  });
+}
+
+let dashGtFilter='', dashWhFilter='';
+function filterDash(gt, btn){
+  dashGtFilter=dashGtFilter===gt?'':gt;
+  document.querySelectorAll('#dash-kpis .kpi.clickable').forEach(k=>k.classList.remove('on'));
+  if(dashGtFilter) btn.classList.add('on');
+  // Navigate to inversores tab with filter
+  if(dashGtFilter){
+    famFilters['inv']=dashGtFilter==='GT1'?'INVERSOR - GT1':dashGtFilter==='GT3'?'INVERSOR - GT3':'';
+    go('inv');
+  }
+}
+
+function filterByWH(wh, btn){
+  dashWhFilter=dashWhFilter===wh?'':wh;
+  document.querySelectorAll('.whcard').forEach(c=>c.classList.remove('on'));
+  if(dashWhFilter){btn.classList.add('on');}
+  // Apply WH filter to todos
+  const whSel=document.getElementById('all-wh');
+  if(whSel){whSel.value=dashWhFilter||''; rAll();}
+  if(dashWhFilter) go('todos');
+}
+
+// ══ RESERVAS
+function rRes(){
+  const q=(document.getElementById('res-q')?.value||'').toLowerCase();
+  const dir=document.getElementById('res-dir')?.value||'';
+  const arm=document.getElementById('res-arm')?.value||'';
+  const rows=RES.filter(r=>{
+    const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||(r.nome||'').toLowerCase().includes(q);
+    const md=!dir||r.diretoria===dir;
+    const ma=!arm||r.obs.toLowerCase().includes(arm.toLowerCase());
+    return mq&&md&&ma;
+  });
+
+  const tot=RES.reduce((a,r)=>a+r.qtd,0);
+  document.getElementById('r-tot').textContent=fmt(tot);
+
+  const byDir={},byProd={},byVend={};
+  RES.forEach(r=>{
+    byDir[r.diretoria]=(byDir[r.diretoria]||0)+r.qtd;
+    byProd[r.codigo]=(byProd[r.codigo]||0)+r.qtd;
+    byVend[r.responsavel]=(byVend[r.responsavel]||0)+r.qtd;
+  });
+  const tDir=Object.entries(byDir).sort((a,b)=>b[1]-a[1])[0];
+  const tProd=Object.entries(byProd).sort((a,b)=>b[1]-a[1])[0];
+  const tVend=Object.entries(byVend).sort((a,b)=>b[1]-a[1])[0];
+  if(tDir) document.getElementById('r-dir').textContent=`${tDir[0]} (${fmt(tDir[1])} un.)`;
+  if(tProd){
+    const st=ST.find(s=>s.codigo===tProd[0]);
+    document.getElementById('r-prod').textContent=`${st?.nomenclatura||tProd[0]} — ${fmt(tProd[1])} un.`;
+  }
+  if(tVend) document.getElementById('r-vend').textContent=`${tVend[0]} (${fmt(tVend[1])} un.)`;
+
+  // Impact table
+  const famRes={};
+  RES.forEach(r=>{
+    const st=ST.find(s=>s.codigo===r.codigo);
+    const f=(st?.familia)||'Outros';
+    if(!famRes[f]) famRes[f]={res:0,sal:0};
+    famRes[f].res+=r.qtd;
+  });
+  ST.forEach(s=>{const f=s.familia||'Outros';if(!famRes[f]) famRes[f]={res:0,sal:0};famRes[f].sal+=s.saldo;});
+  document.getElementById('r-impact').innerHTML=Object.entries(famRes).filter(([,v])=>v.res>0).sort((a,b)=>b[1].res-a[1].res).map(([f,v])=>{
+    const pct=v.sal>0?((v.res/v.sal)*100).toFixed(1):0;
+    const col=pct>80?'var(--red)':pct>50?'var(--amb-d)':'var(--grn-d)';
+    return`<tr><td style="font-weight:500">${f}</td><td class="r">${fmt(v.sal)}</td><td class="r" style="color:var(--pur);font-weight:700">${fmt(v.res)}</td><td class="r" style="font-weight:700;color:${col}">${pct}%</td></tr>`;
+  }).join('');
+
+  // Shared products
+  const codDir={};
+  RES.forEach(r=>{if(!codDir[r.codigo])codDir[r.codigo]=new Set();codDir[r.codigo].add(r.diretoria);});
+  const shared=Object.entries(codDir).filter(([,dirs])=>dirs.size>1).sort((a,b)=>(byProd[b[0]]||0)-(byProd[a[0]]||0)).slice(0,10);
+  document.getElementById('r-shared').innerHTML=shared.map(([cod,dirs])=>{
+    const st=ST.find(s=>s.codigo===cod);
+    return`<tr><td style="font-weight:500">${st?.nomenclatura||cod}</td><td class="mono">${cod}</td><td class="r" style="color:var(--pur);font-weight:700">${fmt(byProd[cod]||0)}</td><td style="font-size:10px">${[...dirs].join(', ')}</td></tr>`;
+  }).join('');
+
+  // Main table
+  document.getElementById('res-tbl').innerHTML=rows.map(r=>{
+    const st=ST.find(s=>s.codigo===r.codigo);
+    const w=obsToWH(r.obs)||'—';
+    return`<tr>
+      <td style="font-weight:500;font-size:12px">${r.cliente}</td>
+      <td style="font-size:12px">${tr(st?.nomenclatura||r.nome||r.codigo,38)}</td>
+      <td class="mono">${r.codigo}</td>
+      <td class="r" style="font-weight:700;color:var(--pur)">${fmt(r.qtd)}</td>
+      <td style="font-size:10px"><span class="wt" style="color:${WH_COLOR[w]||'#888'};background:${WH_COLOR[w]||'#888'}1a">${w.split(' ')[0]}</span></td>
+      <td style="font-size:11px;color:var(--txt2)">${r.diretoria||'—'}</td>
+      <td style="font-size:11px;color:var(--txt2)">${r.responsavel||'—'}</td>
+      <td style="font-size:10px;color:var(--txtm)">${r.obs||'—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('res-cnt').textContent=rows.length;
+}
+
+// ══ ALERTAS
+function rAlrt(){
+  const PROD_CATS=['inv','ev','bess','kit','strbox'];
+  const dd=dedup(ST.filter(r=>PROD_CATS.includes(getCatTab(r))&&!r.isMP));
+  const filt=(items,qid,whid)=>{
+    const q=(document.getElementById(qid)?.value||'').toLowerCase();
+    const wh=document.getElementById(whid)?.value||'';
+    return items.filter(r=>(!q||(r.nomenclatura||r.descricao||'').toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q))&&(!wh||Object.keys(r._byWH).includes(wh)));
+  };
+  const crit=filt(dd.filter(r=>r._disp>=0&&r._disp<=5),'aq1','aw1').sort((a,b)=>a._disp-b._disp);
+  const low =filt(dd.filter(r=>r._disp>=6&&r._disp<=20),'aq2','aw2').sort((a,b)=>a._disp-b._disp);
+  const opp =filt(dd.filter(r=>r._disp>20),'aq3','aw3').sort((a,b)=>b._disp-a._disp).slice(0,50);
+  const conc=dd.filter(r=>Object.keys(r._byWH).length===1&&r._disp>0).sort((a,b)=>b._disp-a._disp);
+  const zero=dd.filter(r=>r._disp===0&&r._sal>0).sort((a,b)=>b._sal-a._sal);
+  const buy =dd.filter(r=>r._disp<5&&r._res>0).sort((a,b)=>b._res-a._res);
+  const over=dd.filter(r=>r._res>r._sal&&r._sal>0).sort((a,b)=>(b._res-b._sal)-(a._res-a._sal));
+
+  const row4=(r)=>{const nom=tr(r.nomenclatura||r.descricao,38);const whs=[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh))].map(w=>`<span style="color:${WH_COLOR[w]};font-size:9px;font-weight:700">${w.split(' ')[0]}</span>`).join(' ');const dc=r._disp>20?'var(--grn-d)':r._disp>=1?'var(--amb-d)':'var(--red)';return`<tr><td style="font-weight:500">${nom}</td><td class="mono">${r.codigo}</td><td>${whs}</td><td class="r" style="font-weight:700;color:${dc}">${fmt(r._disp)}</td></tr>`;};
+  const setTbl=(id,cntId,items,rowFn)=>{const el=document.getElementById(id),ce=document.getElementById(cntId);if(el)el.innerHTML=items.map(rowFn).join('');if(ce)ce.innerHTML=` — ${items.length} itens`;};
+
+  setTbl('a-crit','a-crit-cnt',crit,row4);
+  setTbl('a-low','a-low-cnt',low,row4);
+  setTbl('a-opp','a-opp-cnt',opp,row4);
+  setTbl('a-conc','a-conc-cnt',conc,r=>`<tr><td style="font-weight:500">${tr(r.nomenclatura||r.descricao,38)}</td><td class="mono">${r.codigo}</td><td style="font-size:10px">${Object.keys(r._byWH)[0]}</td><td class="r" style="font-weight:700;color:var(--grn-d)">${fmt(r._disp)}</td></tr>`);
+  setTbl('a-zero','a-zero-cnt',zero,r=>`<tr><td style="font-weight:500">${tr(r.nomenclatura||r.descricao,40)}</td><td class="mono">${r.codigo}</td><td style="font-size:10px">${Object.keys(r._byWH).join(', ')}</td></tr>`);
+  setTbl('a-buy','a-buy-cnt',buy,r=>`<tr><td style="font-weight:500">${tr(r.nomenclatura||r.descricao,38)}</td><td class="mono">${r.codigo}</td><td style="font-size:10px">${Object.keys(r._byWH)[0]||'—'}</td><td class="r" style="color:var(--red);font-weight:700">${fmt(r._disp)}</td><td class="r" style="color:var(--pur);font-weight:700">${fmt(r._res)}</td></tr>`);
+  setTbl('a-over','a-over-cnt',over,r=>`<tr><td style="font-weight:500">${tr(r.nomenclatura||r.descricao,38)}</td><td class="mono">${r.codigo}</td><td style="font-size:10px">${Object.keys(r._byWH)[0]||'—'}</td><td class="r">${fmt(r._sal)}</td><td class="r" style="color:var(--pur);font-weight:700">${fmt(r._res)}</td></tr>`);
+
+  // Update sidebar alert badge
+  const total=crit.length+buy.length+over.length;
+  const el=document.getElementById('sc-alrt');
+  if(el){el.textContent=total;el.style.display=total?'':'none';}
+}
+
+// ══ SIDEBAR BADGES
+function updateSidebar(){
+  const tabs=['inv','ev','bess','kit','strbox','div','mp'];
+  tabs.forEach(t=>{
+    const n=dedup(ST.filter(r=>getCatTab(r)===t)).length;
+    const el=document.getElementById('sc-'+t);
+    if(el) el.textContent=n;
+  });
+  const el=document.getElementById('sc-res');
+  if(el) el.textContent=RES.length;
+  // Sync status
+  ['sdot2','stxt2','sync-t2'].forEach(id=>{
+    const src=document.getElementById(id.replace('2',''));
+    const dst=document.getElementById(id);
+    if(src&&dst){dst.className=src.className;dst.textContent=src.textContent;}
+  });
+}
+
+// ══ POPULATE SELECTS
+function populateSelects(){
+  const whs=[...new Set(ST.map(r=>r.wh))].sort();
+  document.querySelectorAll('select[id$="-wh"]').forEach(sel=>{
+    const v=sel.value;
+    sel.innerHTML='<option value="">Todos os armazéns</option>'+whs.map(w=>`<option value="${w}">${w}</option>`).join('');
+    sel.value=v;
+  });
+  document.querySelectorAll('#aw1,#aw2,#aw3').forEach(sel=>{
+    sel.innerHTML='<option value="">Todos WH</option>'+whs.map(w=>`<option value="${w}">${w}</option>`).join('');
+  });
+  // Dirs for reservas
+  const dirs=[...new Set(RES.map(r=>r.diretoria).filter(Boolean))].sort();
+  const rd=document.getElementById('res-dir');
+  if(rd) rd.innerHTML='<option value="">Todas as diretorias</option>'+dirs.map(d=>`<option value="${d}">${d}</option>`).join('');
+  // Families for inv and mp
+  ['inv','mp'].forEach(t=>{
+    const fams=[...new Set(ST.filter(r=>getCatTab(r)===t).map(r=>r.familia).filter(Boolean))].sort();
+    const sf=document.getElementById(t+'-fam');
+    if(sf) sf.innerHTML='<option value="">Todas as famílias</option>'+fams.map(f=>`<option value="${f}">${f}</option>`).join('');
+  });
+  // All tab categories
+  const cats=[...new Set(ST.map(r=>r.familia||r.categoria).filter(Boolean))].sort();
+  const ac=document.getElementById('all-cat');
+  if(ac) ac.innerHTML='<option value="">Todas categorias</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 
 // ══ BOOT
@@ -590,443 +1045,61 @@ async function boot(){
   document.getElementById('err-area').style.display='none';
   document.getElementById('mc').style.display='none';
   document.getElementById('btn-csv').disabled=true;
-  ST=[]; CAD={}; RES=[];
-
-  const raw={};
-  for(const[k,path] of Object.entries(CSV)){
+  ST=[]; RES=[];
+  for(const[k,path] of Object.entries(CSV_FILES)){
     document.getElementById('lprog').textContent='Carregando '+path+'...';
     try{
       const r=await fetch(path,{cache:'no-store'});
       if(!r.ok) throw new Error('HTTP '+r.status);
-      raw[k]=await r.text();
+      const txt=await r.text();
+      if(k==='ESTOQUE') ST=parseEstoque(txt);
+      else if(k==='RESERVAS') RES=parseReservas(txt);
     }catch(e){
-      if(k!=='RESERVAS'){showErr(`Arquivo <b>${path}</b> não encontrado.`);return;}
-      raw[k]='';
+      if(k!=='RESERVAS'){showErr(`<b>${path}</b> não encontrado. Rode o GitHub Action para gerar os dados.`);return;}
     }
   }
-
-  document.getElementById('lprog').textContent='Processando cadastro e estoque...';
-  CAD = parseCadastro(raw.CADASTRO||'');
-  ST  = parseEstoque(raw.ESTOQUE||'', CAD);
-  RES = parseReservas(raw.RESERVAS||'');
-  applyReservas();
-
   if(!ST.length){showErr('Nenhum produto carregado. Verifique data/ESTOQUE.csv');return;}
-
-  // Populate WH selects
-  const whs = [...new Set(ST.map(r=>r.wh))].sort();
-  document.querySelectorAll('select[id$="-wh"], #all-wh, #a1-wh, #a2-wh, #a3-wh').forEach(sel=>{
-    const cur=sel.value;
-    sel.innerHTML='<option value="">Todos os armazéns</option>'+whs.map(w=>`<option value="${w}">${w}</option>`).join('');
-    sel.value=cur;
-  });
-
+  applyReservas();
+  populateSelects();
   document.getElementById('ld-area').style.display='none';
   document.getElementById('mc').style.display='block';
   document.getElementById('btn-csv').disabled=false;
   const now=new Date();
-  document.getElementById('sync-t').textContent=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const ts=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('sync-t').textContent=ts;
   setStatus('ok');
-  renderAll();
+  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div','mp'].forEach(t=>renderCat(t)); rRes(); rAlrt(); updateSidebar();
 }
 
 function showErr(m){
   document.getElementById('ld-area').style.display='none';
   const e=document.getElementById('err-area');e.style.display='block';
-  e.innerHTML=`<div class="ebox"><i class="ti ti-alert-circle" style="font-size:17px;flex-shrink:0"></i><div>${m}<br><button onclick="boot()" style="margin-top:8px;padding:5px 12px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px">Tentar novamente</button></div></div>`;
+  e.innerHTML=`<div class="ebox"><i class="ti ti-alert-circle" style="font-size:16px;flex-shrink:0"></i><div>${m}<br><button onclick="boot()" style="margin-top:7px;padding:4px 11px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px">Tentar novamente</button></div></div>`;
   setStatus('err');
 }
 function setStatus(s){
   const d=document.getElementById('sdot'),t=document.getElementById('stxt');d.className='dot';
   if(s==='ok'){d.classList.add('dot-g');t.textContent='Base Atualizada';}
   else if(s==='loading'){d.classList.add('dot-a');t.textContent='Carregando...';}
-  else{d.classList.add('dot-r');t.textContent='Erro';}
+  else{d.classList.add('dot-r');t.textContent='Erro ao carregar';}
 }
 
-// ══ HELPERS
-function wTag(w){const c=WH_COLORS[w]||'#888';return`<span class="wt" style="color:${c};background:${c}1a">${w}</span>`;}
-
-// Deduplica ST por codigo — agrega saldo por armazém
-function dedupByCode(items){
-  const m={};
-  items.forEach(r=>{
-    if(!m[r.codigo]) m[r.codigo]={...r,_byWH:{},_saldo:0,_empenho:0,_reserva:0,_disp:0};
-    m[r.codigo]._byWH[r.wh]=(m[r.codigo]._byWH[r.wh]||0)+r.saldo;
-    m[r.codigo]._saldo  +=r.saldo;
-    m[r.codigo]._empenho+=r.empenho;
-    m[r.codigo]._reserva+=r.reserva;
-    m[r.codigo]._disp   +=r.disp;
-  });
-  return Object.values(m);
-}
-
-// Render product card
-function pCard(r){
-  const disp=Math.max(0,r._saldo-r._empenho-r._reserva);
-  const dispCol=disp>20?'var(--grn-d)':disp>=5?'var(--amb-d)':'var(--red)';
-  const famCol=WH_COLORS[r.wh]||'#475569';
-
-  // WH rows
-  const whRows=WH_LIST.map(w=>{
-    const s=r._byWH[w]||0; if(!s) return '';
-    const c=WH_COLORS[w]||'#888';
-    return `<div class="pcard-row"><span class="pcard-row-lbl" style="color:${c}">${w}</span><span class="pcard-row-val">${fmt(s)}</span></div>`;
-  }).join('');
-
-  const famLabel = r.familia || r.categoria || '';
-
-  return `<div class="pcard${r.isMP?' mp':''}">
-    ${famLabel?`<span class="pcard-fam" style="color:${r.isMP?'var(--red)':'var(--pri)'};background:${r.isMP?'var(--red-pale)':'var(--pri-pale)'}">${famLabel}</span>`:''}
-    ${r.isMP?'<div class="mp-badge">MATÉRIA-PRIMA</div>':''}
-    <div class="pcard-cod">${r.codigo}</div>
-    <div class="pcard-desc">${trunc(r.nome||r.descricao||'',58)}</div>
-    <div class="pcard-disp-lbl">Disponível para Venda</div>
-    <div class="pcard-disp" style="color:${dispCol}">${fmt(disp)}</div>
-    <div class="pcard-row"><span class="pcard-row-lbl">Saldo</span><span class="pcard-row-val">${fmt(r._saldo)}</span></div>
-    ${whRows}
-    <div class="pcard-divider"></div>
-    <div class="pcard-row"><span class="pcard-row-lbl" style="color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">Reserva</span><span class="pcard-row-val" style="color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">${fmt(r._reserva)}</span></div>
-    <div class="pcard-row"><span class="pcard-row-lbl" style="color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">Em Separação</span><span class="pcard-row-val" style="color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">${fmt(r._empenho)}</span></div>
-  </div>`;
-}
-
-// ══ CATEGORIAS
-// Derivar categoria do cadastro — não inferir
-function getMainCat(r){
-  // Matéria-prima pertence à família → mesma aba, seção inferior
-  // Usar a família para determinar qual aba, mesmo sendo MP
-  const cat=(r.categoria||'').toUpperCase();
-  const fam=(r.familia||'').toUpperCase();
-  const desc=(r.nome||'').toUpperCase();
-  // Classificar pela família (independente de ser PRODUTO ou MATÉRIA-PRIMA)
-  if(fam.includes('INVERSOR')||cat.includes('INVERSOR')||desc.includes('INVERSOR')) return 'inv';
-  if(fam.includes('BESS')||fam.includes('BATERIA')||cat.includes('BESS')||cat.includes('BATERIA')) return 'bess';
-  if(fam.includes('CARREGADOR')||cat.includes('CARREGADOR')||
-     desc.includes('CARREGADOR VE')||desc.includes('CARREGADOR VEICULAR')) return 'ev';
-  if(fam.includes('KIT')||fam.includes('TELHADO')||fam.includes('SOLO')||
-     fam.includes('STRING')||fam.includes('MEDIDOR')||cat.includes('KIT')) return 'kit';
-  if(cat.includes('ACESSÓRIO')||cat.includes('ACESSORIO')||fam.includes('ACESSÓRIO')||
-     fam.includes('CABO')&&!fam.includes('INVERSOR')&&!fam.includes('BESS')) return 'acc';
-  if(desc.includes('BATERIA')||desc.includes('BESS')||desc.includes('BMS')) return 'bess';
-  if(desc.includes('STRING BOX')||desc.includes('MODULO FOTOVOLTAICO')) return 'kit';
-  return 'outro';
-}
-
-// ══ PILLS genérico
-let catFilters={inv:'',bess:'',ev:'',kit:'',acc:''};
-
-function buildPills(tabId, items, famField){
-  const fams={};
-  items.forEach(r=>{
-    const f=r[famField]||'Outros';
-    if(!fams[f]) fams[f]={saldo:0,disp:0};
-    fams[f].saldo+=r._saldo; fams[f].disp+=r._disp;
-  });
-  const cur=catFilters[tabId]||'';
-  const totalSaldo=items.reduce((a,r)=>a+r._saldo,0);
-  const totalDisp=items.reduce((a,r)=>a+r._disp,0);
-  const pills=[];
-  const totalActive=cur==='';
-  pills.push(`<button class="pill${totalActive?' active':''}" onclick="setPillFilter('${tabId}','')">
-    <span class="pill-lbl">Todos</span>
-    <span class="pill-val">${fmt(totalSaldo)}</span>
-    <span class="pill-sub">em estoque</span>
-    <span class="pill-sub" style="color:${totalActive?'rgba(255,255,255,.6)':'var(--grn-d)'}">Disp: ${fmt(totalDisp)}</span>
-  </button>`);
-  Object.entries(fams).sort((a,b)=>b[1].saldo-a[1].saldo).forEach(([f,v])=>{
-    const active=cur===f;
-    pills.push(`<button class="pill${active?' active':''}" onclick="setPillFilter('${tabId}','${f.replace(/'/g,"\\'")}')">
-      <span class="pill-lbl">${f}</span>
-      <span class="pill-val">${fmt(v.saldo)}</span>
-      <span class="pill-sub">em estoque</span>
-      <span class="pill-sub" style="color:${active?'rgba(255,255,255,.6)':'var(--grn-d)'}">Disp: ${fmt(v.disp)}</span>
-    </button>`);
-  });
-  const el=document.getElementById(tabId+'-pills');
-  if(el) el.innerHTML=pills.join('');
-}
-
-function setPillFilter(tabId, fam){
-  catFilters[tabId]=catFilters[tabId]===fam?'':fam;
-  renderCat(tabId);
-}
-
-// ══ RENDER CATEGORY TABS
-function renderCat(tabId){
-  const q=(document.getElementById(tabId+'-q')?.value||'').toLowerCase();
-  const wh=document.getElementById(tabId+'-wh')?.value||'';
-  const catMap={inv:'inv',bess:'bess',ev:'ev',kit:'kit',acc:'acc',mp:'mp'};
-  const mainCat=catMap[tabId];
-
-  // Filter
-  let items=ST.filter(r=>{
-    const mc=getMainCat(r);
-    if(mc!==mainCat) return false;
-    const mq=!q||r.codigo.toLowerCase().includes(q)||r.nome.toLowerCase().includes(q);
-    const mw=!wh||r.wh===wh;
-    return mq&&mw;
-  });
-
-  // Dedup
-  const dedup=dedupByCode(items);
-
-  // Sort by familia then code
-  dedup.sort((a,b)=>(a.familia||'').localeCompare(b.familia||'')||a.codigo.localeCompare(b.codigo));
-
-  // Rebuild pills (only on non-mp tabs)
-  if(tabId!=='mp'){
-    const famField='familia';
-    const allForPills=dedupByCode(ST.filter(r=>getMainCat(r)===mainCat));
-    buildPills(tabId, allForPills, famField);
-  }
-
-  // Apply pill filter
-  const fam=catFilters[tabId]||'';
-  const filtered=fam?dedup.filter(r=>r.familia===fam):dedup;
-
-  // Separar produtos acabados (PRODUTO) da matéria-prima
-  // MP fica na seção inferior da mesma aba
-  const main=filtered.filter(r=>!r.isMP);
-  const mp=filtered.filter(r=>r.isMP);
-  const cntEl=document.getElementById(tabId+'-cnt');
-  const mpCntEl=document.getElementById(tabId+'-mp-cnt');
-  if(cntEl) cntEl.textContent=main.length;
-  if(mpCntEl) mpCntEl.textContent=mp.length;
-  const cardsEl=document.getElementById(tabId+'-cards');
-  const mpCardsEl=document.getElementById(tabId+'-mp-cards');
-  const mpSecEl=document.getElementById(tabId+'-mp-sec');
-  if(cardsEl) cardsEl.innerHTML=main.map(pCard).join('')||`<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)">Nenhum produto encontrado.</div>`;
-  if(mpSecEl) mpSecEl.style.display=mp.length?'block':'none';
-  if(mpCardsEl) mpCardsEl.innerHTML=mp.map(pCard).join('');
-}
-
-// ══ DASHBOARD
-let barInst=null,donutInst=null;
-
-const _dlp={id:'dl',afterDatasetsDraw(chart){
-  const{ctx,data}=chart;ctx.save();
-  chart.getDatasetMeta(0).data.forEach((bar,i)=>{
-    const v=data.datasets[0].data[i];if(!v)return;
-    const lbl=v>=1000?(v/1000).toFixed(1)+'k':String(Math.round(v));
-    ctx.fillStyle='#475569';ctx.font='600 10px DM Sans,sans-serif';
-    ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(lbl,bar.x,bar.y-2);
-  });
-  ctx.restore();
-}};
-
-function rDash(){
-  const prod=ST.filter(r=>!r.isMP);
-  const dedup=dedupByCode(prod);
-  document.getElementById('k-skus').textContent=dedup.length;
-  document.getElementById('k-sal').textContent=fmt(prod.reduce((a,r)=>a+r.saldo,0));
-  document.getElementById('k-disp').textContent=fmt(prod.reduce((a,r)=>a+r.disp,0));
-  document.getElementById('k-res').textContent=fmt(RES.reduce((a,r)=>a+r.qtd,0));
-
-  // Bar chart: disponível por categoria
-  const cats=['inv','bess','ev','kit','acc'];
-  const catNames={inv:'Inversores',bess:'BESS',ev:'Carregadores EV',kit:'Kit Solar',acc:'Acessórios'};
-  const saldos=cats.map(c=>ST.filter(r=>getMainCat(r)===c&&!r.isMP).reduce((a,r)=>a+r.saldo,0));
-  const disps=cats.map(c=>ST.filter(r=>getMainCat(r)===c&&!r.isMP).reduce((a,r)=>a+r.disp,0));
-
-  if(barInst) barInst.destroy();
-  barInst=new Chart(document.getElementById('barChart').getContext('2d'),{
-    type:'bar',plugins:[_dlp],
-    data:{labels:cats.map(c=>catNames[c]),datasets:[
-      {label:'Saldo',data:saldos,backgroundColor:'#93c5fd',borderRadius:4,borderSkipped:false},
-      {label:'Disponível',data:disps,backgroundColor:'#1E3A5F',borderRadius:4,borderSkipped:false},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24}},
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)} — ${c.dataset.label}`}}},
-      scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#64748b'}},
-              y:{grid:{color:'#f1f5f9'},ticks:{font:{size:11},color:'#94a3b8',callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}
-  });
-  document.getElementById('bar-leg').innerHTML=`
-    <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#93c5fd"></span>Saldo</div>
-    <div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#1E3A5F"></span>Disponível</div>`;
-
-  // Donut: disponível por armazém
-  const whDisps=WH_LIST.map(w=>ST.filter(r=>r.wh===w&&!r.isMP).reduce((a,r)=>a+r.disp,0));
-  const grand=whDisps.reduce((a,b)=>a+b,0);
-  const ctrP={id:'ctr',afterDraw(chart){
-    const{ctx,chartArea}=chart;
-    const cx=(chartArea.left+chartArea.right)/2,cy=(chartArea.top+chartArea.bottom)/2;
-    const ac=chart.getActiveElements();
-    ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
-    if(ac.length){
-      const i=ac[0].index;
-      const p=grand>0?((whDisps[i]/grand)*100).toFixed(1):0;
-      ctx.fillStyle=Object.values(WH_COLORS)[i];ctx.font='700 16px DM Mono,monospace';ctx.fillText(p+'%',cx,cy-7);
-      ctx.fillStyle='#475569';ctx.font='500 10px DM Sans,sans-serif';ctx.fillText(WH_LIST[i].split(' ')[0],cx,cy+8);
-    }else{ctx.fillStyle='#94a3b8';ctx.font='400 10px DM Sans,sans-serif';ctx.fillText('hover →%',cx,cy);}
-    ctx.restore();
-  }};
-  if(donutInst) donutInst.destroy();
-  donutInst=new Chart(document.getElementById('donutChart').getContext('2d'),{
-    type:'doughnut',plugins:[ctrP],
-    data:{labels:WH_LIST,datasets:[{data:whDisps,backgroundColor:Object.values(WH_COLORS),borderWidth:0,hoverOffset:5}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const p=grand>0?((c.raw/grand)*100).toFixed(1):0;return` ${fmt(c.raw)} (${p}%)`;}}}}},
-  });
-  document.getElementById('donut-leg').innerHTML=WH_LIST.map((w,i)=>{
-    const p=grand>0?((whDisps[i]/grand)*100).toFixed(1):0;
-    return`<div class="leg-r"><div style="display:flex;align-items:center;gap:6px"><span class="leg-d" style="background:${WH_COLORS[w]}"></span><span style="font-size:11px;color:var(--txt2)">${w}</span></div><span style="font-size:12px;font-weight:700">${fmt(whDisps[i])} <span style="font-size:10px;color:var(--txtm)">(${p}%)</span></span></div>`;
-  }).join('');
-
-  // Top 10
-  const invDedup=dedupByCode(ST.filter(r=>getMainCat(r)==='inv'&&!r.isMP)).sort((a,b)=>b._disp-a._disp).slice(0,10);
-  const evDedup=dedupByCode(ST.filter(r=>getMainCat(r)==='ev'&&!r.isMP)).sort((a,b)=>b._disp-a._disp).slice(0,10);
-  const tRow=(r,i)=>`<tr><td style="color:var(--txtm);font-size:10px">${i+1}</td><td style="font-size:11px;font-weight:500">${trunc(r.nome||r.codigo,40)}</td><td style="font-size:10px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh))].map(w=>`<span style="font-size:9px;font-weight:700;color:${WH_COLORS[w]}">${w.split(' ')[0]}</span>`).join(' ')}</td><td class="r" style="font-weight:700;color:${r._disp>20?'var(--grn-d)':r._disp>=5?'var(--amb-d)':'var(--red)'}">${fmt(r._disp)}</td></tr>`;
-  document.getElementById('top-inv').innerHTML=invDedup.map(tRow).join('');
-  document.getElementById('top-ev').innerHTML=evDedup.map(tRow).join('');
-}
-
-// ══ TODOS OS PRODUTOS
-function rAll(){
-  const q=(document.getElementById('all-q')?.value||'').toLowerCase();
-  const wh=document.getElementById('all-wh')?.value||'';
-  const cat=document.getElementById('all-cat')?.value||'';
-  let items=ST.filter(r=>{
-    const mq=!q||r.codigo.toLowerCase().includes(q)||r.nome.toLowerCase().includes(q);
-    const mw=!wh||r.wh===wh;
-    const mc=!cat||(r.categoria.toUpperCase().includes(cat)||r.familia.toUpperCase().includes(cat));
-    return mq&&mw&&mc;
-  });
-  const dedup=dedupByCode(items).sort((a,b)=>a.codigo.localeCompare(b.codigo));
-  document.getElementById('all-cnt').textContent=dedup.length;
-  document.getElementById('all-tbl').innerHTML=dedup.map(r=>`<tr>
-    <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
-    <td style="font-size:12px;font-weight:500">${trunc(r.nome,50)}</td>
-    <td style="font-size:11px;color:var(--txt2)">${r.familia||'—'}</td>
-    <td style="font-size:11px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh))].map(w=>wTag(w)).join(' ')}</td>
-    <td class="r">${fmt(r._saldo)}</td>
-    <td class="r" style="color:${r._empenho>0?'var(--amb-d)':'var(--txtm)'}">${r._empenho>0?fmt(r._empenho):'—'}</td>
-    <td class="r" style="color:${r._reserva>0?'var(--pur)':'var(--txtm)'}">${r._reserva>0?fmt(r._reserva):'—'}</td>
-    <td class="r" style="font-weight:700;color:${r._disp>20?'var(--grn-d)':r._disp>=5?'var(--amb-d)':r._disp>0?'var(--red)':'var(--txtm)'}">${fmt(r._disp)}</td>
-  </tr>`).join('');
-}
-
-// ══ RESERVAS
-function rRes(){
-  const q=(document.getElementById('res-q')?.value||'').toLowerCase();
-  const arm=document.getElementById('res-arm')?.value||'';
-  const dir=document.getElementById('res-dir')?.value||'';
-  const rows=RES.filter(r=>{
-    const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q);
-    const ma=!arm||r.obs.includes(arm);
-    const md=!dir||r.diretoria===dir;
-    return mq&&ma&&md;
-  });
-  const tot=RES.reduce((a,r)=>a+r.qtd,0);
-  document.getElementById('r-tot').textContent=fmt(tot);
-  document.getElementById('r-lin').textContent=RES.length;
-  const byP={},byV={};
-  RES.forEach(r=>{byP[r.codigo]=(byP[r.codigo]||0)+r.qtd;byV[r.responsavel]=(byV[r.responsavel]||0)+r.qtd;});
-  const tp=Object.entries(byP).sort((a,b)=>b[1]-a[1])[0];
-  const tv=Object.entries(byV).sort((a,b)=>b[1]-a[1])[0];
-  if(tp) document.getElementById('r-tp').textContent=tp[0]+' ('+fmt(tp[1])+' un.)';
-  if(tv) document.getElementById('r-tv').textContent=tv[0]+' ('+fmt(tv[1])+' un.)';
-  document.getElementById('res-tbl').innerHTML=rows.map(r=>{
-    const w=obsToWH(r.obs)||'?';const c=WH_COLORS[w]||'#888';
-    return`<tr>
-      <td style="font-weight:500;font-size:12px">${r.cliente}</td>
-      <td style="font-size:12px;color:var(--txt2)">${r.responsavel}</td>
-      <td style="font-size:11px;color:var(--txt2)">${r.diretoria||'—'}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
-      <td><span class="wt" style="color:${c};background:${c}1a">${w.split(' ')[0]}</span></td>
-      <td class="r" style="font-weight:700;color:var(--pur)">${fmt(r.qtd)}</td>
-      <td style="font-size:11px;color:var(--txtm)">${r.solicitado||'—'}</td>
-    </tr>`;
-  }).join('');
-  document.getElementById('res-cnt').textContent=rows.length;
-}
-
-// ══ ALERTAS
-function rAlrt(){
-  const filt=(base,qid,whid)=>{
-    const q=(document.getElementById(qid)?.value||'').toLowerCase();
-    const wh=document.getElementById(whid)?.value||'';
-    return base.filter(r=>(!q||r.codigo.toLowerCase().includes(q)||r.nome.toLowerCase().includes(q))&&(!wh||r.wh===wh));
-  };
-  const dedup=dedupByCode(ST.filter(r=>!r.isMP));
-  const a1=filt(dedup.filter(r=>r._reserva>r._saldo),'a1-q','a1-wh');
-  const a2=filt(dedup.filter(r=>r._disp>=1&&r._disp<=5),'a2-q','a2-wh').sort((a,b)=>a._disp-b._disp);
-  const a3=filt(dedup.filter(r=>r._saldo>0&&r._disp===0),'a3-q','a3-wh');
-  document.getElementById('a1-cnt').textContent=a1.length+' itens';
-  document.getElementById('a1-tbl').innerHTML=a1.map(r=>`<tr>
-    <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
-    <td style="font-size:11px">${trunc(r.nome,40)}</td>
-    <td style="font-size:11px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh.split(' ')[0]))].join(', ')}</td>
-    <td class="r">${fmt(r._saldo)}</td>
-    <td class="r" style="color:var(--pur);font-weight:700">${fmt(r._reserva)}</td>
-    <td class="r" style="color:#dc2626;font-weight:700">−${fmt(r._reserva-r._saldo)}</td>
-  </tr>`).join('');
-  document.getElementById('a2-cnt').textContent=a2.length+' itens';
-  document.getElementById('a2-tbl').innerHTML=a2.map(r=>`<tr>
-    <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
-    <td style="font-size:11px">${trunc(r.nome,40)}</td>
-    <td style="font-size:11px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh.split(' ')[0]))].join(', ')}</td>
-    <td class="r">${fmt(r._saldo)}</td>
-    <td class="r" style="color:var(--amb-d);font-weight:700">${fmt(r._disp)}</td>
-  </tr>`).join('');
-  document.getElementById('a3-cnt').textContent=a3.length+' itens';
-  document.getElementById('a3-tbl').innerHTML=a3.map(r=>`<tr>
-    <td style="font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)">${r.codigo}</td>
-    <td style="font-size:11px">${trunc(r.nome,40)}</td>
-    <td style="font-size:11px">${[...new Set(ST.filter(x=>x.codigo===r.codigo).map(x=>x.wh.split(' ')[0]))].join(', ')}</td>
-    <td class="r">${fmt(r._saldo)}</td>
-    <td class="r" style="color:var(--pur)">${r._reserva>0?fmt(r._reserva):'—'}</td>
-  </tr>`).join('');
-}
-
-// ══ RENDER ALL
-function renderAll(){
-  rDash();
-  ['inv','bess','ev','kit','acc'].forEach(t=>renderCat(t));
-  rAll(); rRes(); rAlrt();
-  updateSidebarBadges();
-}
-
-// ══ TABS
-function go(id, _unused){
-  document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  const sbEl=document.getElementById('sb-'+id);
-  if(sbEl) sbEl.classList.add('active');
-  const tabEl=document.getElementById('tab-'+id);
-  if(tabEl) tabEl.classList.add('active');
-  // Scroll content to top
-  const c=document.querySelector('.content');
-  if(c) c.scrollTop=0;
-}
-
-// Update sidebar badges after data loads
-function updateSidebarBadges(){
-  const cats={inv:'inv',ev:'ev',bess:'bess',kit:'kit',acc:'acc'};
-  Object.entries(cats).forEach(([id,cat])=>{
-    const dedup=dedupByCode(ST.filter(r=>getMainCat(r)===cat&&!r.isMP));
-    const el=document.getElementById('sbb-'+id);
-    if(el) el.textContent=dedup.length;
-  });
-  const el2=document.getElementById('sbb-res');
-  if(el2) el2.textContent=RES.length;
-  // Alerts
-  const dedup=dedupByCode(ST.filter(r=>!r.isMP));
-  const alrtN=dedup.filter(r=>r._reserva>r._saldo||r._disp===0||(r._disp>=1&&r._disp<=5)).length;
-  const el3=document.getElementById('sbb-alrt');
-  if(el3){el3.textContent=alrtN;el3.style.display=alrtN?'':'none';}
-  // Sync status to sidebar
-  const d=document.getElementById('sdot2'),t=document.getElementById('stxt2');
-  const sd=document.getElementById('sdot'),st=document.getElementById('stxt');
-  if(d&&sd){d.className=sd.className;}
-  if(t&&st){t.textContent=st.textContent;}
-  const st2=document.getElementById('sync-t2'),stm=document.getElementById('sync-t');
-  if(st2&&stm) st2.textContent=stm.textContent;
+// ══ NAVIGATION
+function go(id){
+  document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  const sb=document.getElementById('sb-'+id);
+  if(sb) sb.classList.add('on');
+  const tab=document.getElementById('tab-'+id);
+  if(tab) tab.classList.add('on');
+  document.getElementById('content').scrollTop=0;
 }
 
 // ══ EXPORT
 function exportCSV(){
-  const dedup=dedupByCode(ST);
-  const cols=['Codigo','Nome','Categoria','Familia','Saldo','Em_Separacao','Reserva','Disponivel'];
-  const rows=[cols,...dedup.map(r=>[r.codigo,'"'+r.nome.replace(/"/g,"'")+'"',r.categoria,'"'+r.familia+'"',r._saldo,r._empenho,r._reserva,r._disp])];
+  const dd=dedup(ST);
+  const cols=['Nomenclatura','Codigo','Categoria','Familia','Armazem','Estoque_Total','Em_Separacao','Reserva','Disponivel'];
+  const rows=[cols,...dd.map(r=>[`"${(r.nomenclatura||'').replace(/"/g,"'")}"`,(r.codigo||''),r.categoria,`"${r.familia}"`,Object.keys(r._byWH).join('|'),r._sal,r._emp,r._res,r._disp])];
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.join(';')).join('\n')],{type:'text/csv;charset=utf-8'}));
   a.download='Livoltek_Estoque_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.csv';
