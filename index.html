@@ -524,7 +524,6 @@ const tr  = (s,n=55) => s&&s.length>n?s.slice(0,n)+'…':(s||'—');
 function parseEstoque(csv){
   const rows = Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
   // Debug: log headers from first row
-  if(rows.length>0) console.log('ESTOQUE headers:', Object.keys(rows[0]).join(' | '));
   const items=[];
   rows.forEach(r=>{
     const codigo = String(r.CODIGO||r.codigo||'').trim();
@@ -547,21 +546,20 @@ function parseEstoque(csv){
     // Categoria e Família
     const categoria = String(r['Categoria']||r['CATEGORIA']||r['categoria']||'').trim().toUpperCase();
     const familia   = String(r['Família']||r['Familia']||r['FAMILIA']||r['família']||r['familia']||'').trim();
-    // Saldo: "SALDO EM ESTOQUE" é col padrão TOTVS
-    const saldo   = pn(r['SALDO EM ESTOQUE']||r['Saldo Em Estoque']||r['SALDO']||r['Estoque Total']||0);
-    // Empenho: col TOTVS = "NO PARA REQ/PV/RE" ou variações
-    const empenho = pn(r['NO PARA REQ/PV/RE']||r['EMPENHO PARA REQ/PV/RE']||r['EMPENHO']||
-                       r['Em Separação']||r['Em Separacao']||r['EM SEPARACAO']||0);
-    // isMP: by Categoria field or fallback by TP=MP
+    // Saldo: col TOTVS exata = "SALDO EM ESTOQUE"
+    const saldo   = pn(r['SALDO EM ESTOQUE']||r['SALDO']||r['Estoque Total']||r['ESTOQUE DISPONIVEL']||0);
+    // Empenho: col TOTVS exata = "EMPENHO PARA REQ/PV/RESERVA"
+    const empenho = pn(r['EMPENHO PARA REQ/PV/RESERVA']||r['EMPENHO PARA REQ/PV/RE']||
+                       r['NO PARA REQ/PV/RE']||r['EMPENHO']||r['Em Separação']||0);
     const tp = String(r.TP||'').trim().toUpperCase();
+    // isMP: categoria says MATÉRIA-PRIMA, or no categoria and TP=MP (TOTVS code for raw material)
     const isMP = categoria.includes('MATÉR')||categoria.includes('MATER')||
-                 (tp==='MP'&&!['PA','PI','PE'].includes(tp));
+                 (!categoria && tp==='MP');
     // Use nomenclatura if available, else DESCRICAO
     const nomFinal = nomenclatura || descricao;
     items.push({codigo, nomenclatura:nomFinal, descricao, categoria, familia, wh,
                 saldo, empenho, reserva:0, disp:0, isMP});
   });
-  if(items.length>0) console.log('Sample item:', JSON.stringify(items[0]));
   return items;
 }
 
