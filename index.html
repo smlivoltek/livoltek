@@ -537,6 +537,7 @@ function parseEstoque(csv){
     const armLabel = String(r['Armazém Dashboard']||r['Armazem Dashboard']||r['ARMAZEM DASHBOARD']||'').trim();
     const wh = armLabel || WH_NAMES[fl] || fl;
     // Nomenclatura — many possible column names
+    // "Nomenclatura" = last column in real CSV
     const nomenclatura = String(
       r['Nomenclatura']||r['NOMENCLATURA']||r['Nome Comercial']||
       r['NOME COMERCIAL']||r['NomeComercial']||''
@@ -545,7 +546,7 @@ function parseEstoque(csv){
     const descricao = String(r['DESCRICAO']||r['Descricao']||r['DESCRIÇÃO']||r['descricao']||'').trim();
     // Categoria e Família
     const categoria = String(r['Categoria']||r['CATEGORIA']||r['categoria']||'').trim().toUpperCase();
-    const familia   = String(r['Família']||r['Familia']||r['FAMILIA']||r['família']||r['familia']||'').trim();
+    const familia   = String(r['Família']||r['Familia']||r['FAMILIA']||r['família']||r['familia']||r['FamÃ­lia']||'').trim();
     // Saldo: col TOTVS exata = "SALDO EM ESTOQUE"
     const saldo   = pn(r['SALDO EM ESTOQUE']||r['SALDO']||r['Estoque Total']||r['ESTOQUE DISPONIVEL']||0);
     // Empenho: col TOTVS exata = "EMPENHO PARA REQ/PV/RESERVA"
