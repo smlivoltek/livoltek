@@ -261,9 +261,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <button class="sbi" id="sb-div" onclick="go('div')">
       <i class="ti ti-category si"></i><span class="sn">Diversos · Others</span><span class="sc" id="sc-div">—</span>
     </button>
-    <button class="sbi" id="sb-mp" onclick="go('mp')">
-      <i class="ti ti-building-factory-2 si"></i><span class="sn">Matéria-Prima · Raw Mat.</span><span class="sc" id="sc-mp">—</span>
-    </button>
+
   </div>
   <div class="sb-div"></div>
   <div class="sb-sec">
@@ -735,9 +733,13 @@ function getCatTab(r){
   const fam=(r.familia||'').toUpperCase();
   const cat=(r.categoria||'').toUpperCase();
   const desc=(r.nomenclatura||r.descricao||'').toUpperCase();
-  if(cat.includes('MATÉR')||cat.includes('MATER')) return 'mp';
+  // Matéria-prima: vai para a aba da sua família (não aba separada)
+  // CABO → Diversos (não Kit Solar)
+  if(fam==='CABO') return 'div';
   if(fam.includes('STRING BOX')||fam.includes('COMBINER')||desc.includes('STRING BOX')) return 'strbox';
+  // Inversores: inclui matéria-prima de inversor
   if(fam.includes('INVERSOR')||cat.includes('INVERSOR')||desc.includes('INVERSOR')) return 'inv';
+  // Carregadores: inclui matéria-prima de carregador
   if(fam.includes('CARREGADOR')||cat.includes('CARREGADOR')||desc.includes('CARREGADOR VE')) return 'ev';
   if(fam.includes('BESS')||fam.includes('BATERIA')||cat.includes('BESS')||cat.includes('BATERIA')) return 'bess';
   if(fam.includes('PLACA')||fam.includes('MÓDULO')||fam.includes('MODULO')||
@@ -795,7 +797,17 @@ function buildPills(tabId, items){
     <span class="fp-val">${fmt(totalDisp)}</span>
     <span class="fp-sub">${fmt(totalSal)} em estoque</span>
   </div>`;
-  Object.entries(fams).sort((a,b)=>b[1].disp-a[1].disp).forEach(([f,v])=>{
+  // Ordem fixa para famílias de inversores; demais por disponível
+  const FAM_ORDER=['INVERSOR - GT1','INVERSOR - GT3','INVERSOR - HP1','INVERSOR - HP3',
+    'INVERSOR - HP','INVERSOR - GF','CARREGADOR','BATERIA','BESS'];
+  Object.entries(fams).sort((a,b)=>{
+    const ia=FAM_ORDER.findIndex(f=>a[0].toUpperCase().includes(f.toUpperCase()));
+    const ib=FAM_ORDER.findIndex(f=>b[0].toUpperCase().includes(f.toUpperCase()));
+    if(ia!==-1&&ib!==-1) return ia-ib;
+    if(ia!==-1) return -1;
+    if(ib!==-1) return 1;
+    return b[1].disp-a[1].disp;
+  }).forEach(([f,v])=>{
     const on=cur===f;
     html+=`<div class="fpill${on?' on':''}" onclick="setFam('${tabId}','${f.replace(/'/g,"\\'")}')">
       <span class="fp-lbl">${f}</span>
@@ -827,7 +839,7 @@ function renderCat(tabId){
     return mq&&mw&&mf;
   });
 
-  const dd=dedup(items).sort((a,b)=>b._disp-a._disp);
+  const dd=dedup(items).sort((a,b)=>(a.nomenclatura||a.descricao||'').localeCompare(b.nomenclatura||b.descricao||''));
 
   // Family pills for tabs that have them
   if(document.getElementById(tabId+'-pills')){
@@ -894,21 +906,9 @@ function rDash(){
   const totalSKU=prod.length;
 
   document.getElementById('dash-kpis').innerHTML=`
-    <div class="kpi kbl clickable" onclick="filterDash('GT1',this)" title="Filtrar GT1">
-      <div class="ki"><i class="ti ti-solar-panel"></i></div>
-      <div class="kl">Total GT1</div>
-      <div class="kv">${fmt(gt1Disp)}</div>
-      <div class="ks">disponível · ${gt1.length} SKUs</div>
-    </div>
-    <div class="kpi kbl clickable" onclick="filterDash('GT3',this)" title="Filtrar GT3">
-      <div class="ki"><i class="ti ti-solar-panel"></i></div>
-      <div class="kl">Total GT3</div>
-      <div class="kv">${fmt(gt3Disp)}</div>
-      <div class="ks">disponível · ${gt3.length} SKUs</div>
-    </div>
     <div class="kpi kb">
       <div class="ki"><i class="ti ti-packages"></i></div>
-      <div class="kl">Total de Produtos</div>
+      <div class="kl">Total Disponível</div>
       <div class="kv">${fmt(totalDisp)}</div>
       <div class="ks">disponível para venda</div>
     </div>
@@ -917,6 +917,18 @@ function rDash(){
       <div class="kl">Total de SKUs</div>
       <div class="kv">${totalSKU}</div>
       <div class="ks">produtos ativos</div>
+    </div>
+    <div class="kpi kp">
+      <div class="ki"><i class="ti ti-bookmark"></i></div>
+      <div class="kl">Total Reservado</div>
+      <div class="kv">${fmt(RES.reduce((a,r)=>a+r.qtd,0))}</div>
+      <div class="ks">comprometido</div>
+    </div>
+    <div class="kpi ka">
+      <div class="ki"><i class="ti ti-lock"></i></div>
+      <div class="kl">Em Separação</div>
+      <div class="kv">${fmt(prod.reduce((a,r)=>a+r._emp,0))}</div>
+      <div class="ks">pedidos lançados</div>
     </div>`;
 
   // Warehouse cards
@@ -1318,7 +1330,7 @@ async function boot(){
   const ts=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('sync-t').textContent=ts;
   setStatus('ok');
-  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div','mp'].forEach(t=>renderCat(t)); rRes(); rAlrt(); updateSidebar(); rAudit();
+  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div'].forEach(t=>renderCat(t)); rRes(); rAlrt(); updateSidebar(); rAudit();
 }
 
 function showErr(m){
