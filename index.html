@@ -21,32 +21,49 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;min-height:100vh}
-.app{display:flex;flex-direction:column;min-height:100vh}
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 /* HDR */
-.hdr{background:var(--pri);padding:0 1.75rem;display:flex;align-items:center;justify-content:space-between;height:54px;position:sticky;top:0;z-index:200;gap:12px}
-.hdr-l{display:flex;align-items:center;gap:.875rem}
-.logo{width:28px;height:28px;background:linear-gradient(135deg,#22C55E,#16a34a);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px}
-.hdr-t{color:#fff;font-size:14px;font-weight:600}
-.hdr-s{color:rgba(255,255,255,.4);font-size:11px}
-.hdr-r{display:flex;align-items:center;gap:7px}
-.sbadge{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:4px 10px;color:rgba(255,255,255,.88);font-size:11px;white-space:nowrap}
+.hdr{background:var(--pri);padding:0 1.25rem;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0;z-index:200;gap:12px}
+.hdr-l{display:flex;align-items:center;gap:.75rem}
+.logo{width:28px;height:28px;background:linear-gradient(135deg,#22C55E,#16a34a);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;flex-shrink:0}
+.hdr-t{color:#fff;font-size:13px;font-weight:600}
+.hdr-s{color:rgba(255,255,255,.4);font-size:10px}
+.hdr-r{display:flex;align-items:center;gap:6px}
+.sbadge{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:3px 9px;color:rgba(255,255,255,.88);font-size:11px;white-space:nowrap}
 .dot{width:6px;height:6px;border-radius:50%}
 .dot-g{background:#22C55E;animation:blink 2s infinite}.dot-r{background:#EF4444}.dot-a{background:#F59E0B;animation:blink 2s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
 .sync-t{color:rgba(255,255,255,.4);font-size:11px;white-space:nowrap}
-.hbtn{display:flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.82);cursor:pointer;font-size:12px;font-family:inherit;font-weight:500;transition:all .15s}
+.hbtn{display:flex;align-items:center;gap:5px;height:28px;padding:0 9px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.82);cursor:pointer;font-size:11px;font-family:inherit;font-weight:500;transition:all .15s}
 .hbtn:hover{background:rgba(255,255,255,.14);color:#fff}
-.hico{width:30px;height:30px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s}
+.hbtn:disabled{opacity:.35;cursor:not-allowed}
+.hico{width:28px;height:28px;border:1px solid rgba(255,255,255,.18);border-radius:6px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.75);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
 .hico:hover{background:rgba(255,255,255,.14);color:#fff}
-/* NAV */
-.nav{background:var(--surf);border-bottom:1px solid var(--brd);padding:0 1.75rem;display:flex;overflow-x:auto;scrollbar-width:none}
-.nav::-webkit-scrollbar{display:none}
-.tbtn{display:flex;align-items:center;gap:5px;padding:0 13px;height:42px;border:none;background:none;color:var(--txt2);font-size:12px;font-family:inherit;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap;flex-shrink:0}
-.tbtn i{font-size:13px}
-.tbtn:hover{color:var(--pri)}
-.tbtn.active{color:var(--pri);border-bottom-color:var(--pri)}
-/* MAIN */
-.main{flex:1;padding:1.25rem 1.75rem;max-width:1680px;width:100%;margin:0 auto}
+
+/* BODY LAYOUT: sidebar + content */
+.body-layout{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{width:220px;flex-shrink:0;background:#F8FAFC;border-right:1px solid #E2E8F0;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden}
+.sidebar::-webkit-scrollbar{width:4px}.sidebar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:2px}
+.sb-section{padding:.75rem .875rem .25rem}
+.sb-section-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#94a3b8;margin-bottom:4px;padding:0 .25rem}
+.sbtn{display:flex;align-items:center;gap:9px;width:100%;padding:7px 10px;border:none;background:none;border-radius:8px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;color:#334155;text-align:left;transition:all .12s;position:relative}
+.sbtn:hover{background:#F1F5F9;color:#1e293b}
+.sbtn.active{background:#DBEAFE;color:#1d4ed8;font-weight:600}
+.sbtn.active .sb-ico{color:#2563EB}
+.sb-ico{font-size:16px;flex-shrink:0;color:#64748b;transition:color .12s;width:20px;text-align:center}
+.sbtn:hover .sb-ico{color:#475569}
+.sb-lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-badge{font-size:9px;font-weight:700;background:#e2e8f0;color:#64748b;border-radius:10px;padding:1px 6px;flex-shrink:0}
+.sbtn.active .sb-badge{background:#bfdbfe;color:#1d4ed8}
+.sb-sep{height:1px;background:#E2E8F0;margin:.375rem .875rem}
+.sb-status{padding:.75rem .875rem;margin-top:auto;border-top:1px solid #E2E8F0;flex-shrink:0}
+.sb-status-row{display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+.main{padding:1.25rem 1.5rem;max-width:1600px;width:100%;margin:0 auto}
 .tab{display:none}.tab.active{display:block}
 /* LOADING */
 .ld{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:5rem 2rem;gap:.875rem;color:var(--txt2);min-height:400px}
@@ -147,31 +164,94 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   <div class="hdr-l">
     <div class="logo">LV</div>
     <div>
-      <div class="hdr-t">LIVOLTEK | Estoque Comercial</div>
-      <div class="hdr-s">Armazém 07 · Saldo − Em Separação − Reserva = Disponível para Venda</div>
+      <div class="hdr-t">LIVOLTEK · Estoque Comercial Brasil</div>
+      <div class="hdr-s">Saldo − Em Separação − Reservas = Disponível para Venda</div>
     </div>
   </div>
   <div class="hdr-r">
     <div class="sbadge"><span class="dot dot-a" id="sdot"></span><span id="stxt">Carregando...</span></div>
     <span class="sync-t" id="sync-t"></span>
-    <button class="hico" onclick="boot()"><i class="ti ti-refresh"></i></button>
-    <button class="hbtn" id="btn-csv" onclick="exportCSV()" disabled><i class="ti ti-table-export" style="font-size:12px"></i> Excel</button>
-    <button class="hbtn" onclick="window.print()"><i class="ti ti-file-type-pdf" style="font-size:12px"></i> PDF</button>
+    <button class="hico" onclick="boot()" title="Recarregar"><i class="ti ti-refresh"></i></button>
+    <button class="hbtn" id="btn-csv" onclick="exportCSV()" disabled><i class="ti ti-table-export" style="font-size:11px"></i> Excel</button>
+    <button class="hbtn" onclick="window.print()"><i class="ti ti-file-type-pdf" style="font-size:11px"></i> PDF</button>
   </div>
 </header>
 
-<nav class="nav">
-  <button class="tbtn active" onclick="go('dash',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</button>
-  <button class="tbtn" onclick="go('inv',this)"><i class="ti ti-sun"></i> Inversores</button>
-  <button class="tbtn" onclick="go('bess',this)"><i class="ti ti-battery-charging"></i> BESS</button>
-  <button class="tbtn" onclick="go('ev',this)"><i class="ti ti-bolt"></i> Carregadores EV</button>
-  <button class="tbtn" onclick="go('kit',this)"><i class="ti ti-solar-panel"></i> Kit Solar</button>
-  <button class="tbtn" onclick="go('acc',this)"><i class="ti ti-tool"></i> Acessórios</button>
-  <button class="tbtn" onclick="go('res',this)"><i class="ti ti-bookmark"></i> Reservas</button>
-  <button class="tbtn" onclick="go('todos',this)"><i class="ti ti-packages"></i> Todos</button>
-  <button class="tbtn" onclick="go('alrt',this)"><i class="ti ti-bell"></i> Alertas</button>
-</nav>
+<div class="body-layout">
 
+<!-- SIDEBAR -->
+<aside class="sidebar">
+
+  <!-- Dashboard -->
+  <div class="sb-section">
+    <button class="sbtn active" id="sb-dash" onclick="go('dash','dash')">
+      <i class="ti ti-chart-bar sb-ico"></i>
+      <span class="sb-lbl">Dashboard</span>
+    </button>
+  </div>
+
+  <div class="sb-sep"></div>
+
+  <!-- Categorias -->
+  <div class="sb-section">
+    <div class="sb-section-lbl">Categorias</div>
+    <button class="sbtn" id="sb-inv" onclick="go('inv','inv')">
+      <i class="ti ti-solar-panel sb-ico"></i>
+      <span class="sb-lbl">Inversores</span>
+      <span class="sb-badge" id="sbb-inv">—</span>
+    </button>
+    <button class="sbtn" id="sb-ev" onclick="go('ev','ev')">
+      <i class="ti ti-car sb-ico"></i>
+      <span class="sb-lbl">Carregadores EV</span>
+      <span class="sb-badge" id="sbb-ev">—</span>
+    </button>
+    <button class="sbtn" id="sb-bess" onclick="go('bess','bess')">
+      <i class="ti ti-battery-charging sb-ico"></i>
+      <span class="sb-lbl">BESS / Baterias</span>
+      <span class="sb-badge" id="sbb-bess">—</span>
+    </button>
+    <button class="sbtn" id="sb-kit" onclick="go('kit','kit')">
+      <i class="ti ti-sun sb-ico"></i>
+      <span class="sb-lbl">Kit Solar</span>
+      <span class="sb-badge" id="sbb-kit">—</span>
+    </button>
+    <button class="sbtn" id="sb-acc" onclick="go('acc','acc')">
+      <i class="ti ti-adjustments-horizontal sb-ico"></i>
+      <span class="sb-lbl">Acessórios</span>
+      <span class="sb-badge" id="sbb-acc">—</span>
+    </button>
+    <button class="sbtn" id="sb-todos" onclick="go('todos','todos')">
+      <i class="ti ti-list-details sb-ico"></i>
+      <span class="sb-lbl">Todos os Produtos</span>
+    </button>
+  </div>
+
+  <div class="sb-sep"></div>
+
+  <!-- Comercial -->
+  <div class="sb-section">
+    <div class="sb-section-lbl">Comercial</div>
+    <button class="sbtn" id="sb-res" onclick="go('res','res')">
+      <i class="ti ti-handshake sb-ico"></i>
+      <span class="sb-lbl">Reservas Comerciais</span>
+      <span class="sb-badge" id="sbb-res">—</span>
+    </button>
+    <button class="sbtn" id="sb-alrt" onclick="go('alrt','alrt')">
+      <i class="ti ti-target sb-ico"></i>
+      <span class="sb-lbl">Oportunidades &amp; Atenção</span>
+      <span class="sb-badge" id="sbb-alrt" style="background:#fee2e2;color:#dc2626">—</span>
+    </button>
+  </div>
+
+  <!-- Status -->
+  <div class="sb-status">
+    <div class="sb-status-row"><span class="dot dot-a" id="sdot2"></span><span id="stxt2" style="font-size:11px;color:#64748b">Carregando...</span></div>
+    <div id="sync-t2" style="font-size:10px;color:#94a3b8;margin-top:2px"></div>
+  </div>
+</aside>
+
+<!-- CONTENT -->
+<div class="content">
 <main class="main">
 <div id="ld-area" class="ld"><div class="spin"></div><div class="ld-lbl">Carregando arquivos CSV...</div><div id="lprog" class="ld-sub"></div></div>
 <div id="err-area" style="display:none"></div>
@@ -355,7 +435,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 </div><!-- /mc -->
 </main>
-</div>
+</div><!-- content -->
+</div><!-- body-layout -->
 
 <script>
 // ══ FONTES DE DADOS
@@ -379,6 +460,12 @@ const WH_COLORS = {
   'Fortaleza (Eletra)': '#22C55E',
   'Manaus (Eletra)':    '#F59E0B',
   'Fábrica Livoltek':   '#7c3aed',
+};
+const WH_ICONS = {
+  'Curitiba (Eletra)':  'ti-building-warehouse',
+  'Fortaleza (Eletra)': 'ti-building-warehouse',
+  'Manaus (Eletra)':    'ti-building-warehouse',
+  'Fábrica Livoltek':   'ti-building-factory-2',
 };
 const WH_LIST = ['Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','Fábrica Livoltek'];
 
@@ -895,14 +982,44 @@ function renderAll(){
   rDash();
   ['inv','bess','ev','kit','acc'].forEach(t=>renderCat(t));
   rAll(); rRes(); rAlrt();
+  updateSidebarBadges();
 }
 
 // ══ TABS
-function go(id,btn){
-  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('active'));
+function go(id, _unused){
+  document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('tab-'+id).classList.add('active');
+  const sbEl=document.getElementById('sb-'+id);
+  if(sbEl) sbEl.classList.add('active');
+  const tabEl=document.getElementById('tab-'+id);
+  if(tabEl) tabEl.classList.add('active');
+  // Scroll content to top
+  const c=document.querySelector('.content');
+  if(c) c.scrollTop=0;
+}
+
+// Update sidebar badges after data loads
+function updateSidebarBadges(){
+  const cats={inv:'inv',ev:'ev',bess:'bess',kit:'kit',acc:'acc'};
+  Object.entries(cats).forEach(([id,cat])=>{
+    const dedup=dedupByCode(ST.filter(r=>getMainCat(r)===cat&&!r.isMP));
+    const el=document.getElementById('sbb-'+id);
+    if(el) el.textContent=dedup.length;
+  });
+  const el2=document.getElementById('sbb-res');
+  if(el2) el2.textContent=RES.length;
+  // Alerts
+  const dedup=dedupByCode(ST.filter(r=>!r.isMP));
+  const alrtN=dedup.filter(r=>r._reserva>r._saldo||r._disp===0||(r._disp>=1&&r._disp<=5)).length;
+  const el3=document.getElementById('sbb-alrt');
+  if(el3){el3.textContent=alrtN;el3.style.display=alrtN?'':'none';}
+  // Sync status to sidebar
+  const d=document.getElementById('sdot2'),t=document.getElementById('stxt2');
+  const sd=document.getElementById('sdot'),st=document.getElementById('stxt');
+  if(d&&sd){d.className=sd.className;}
+  if(t&&st){t.textContent=st.textContent;}
+  const st2=document.getElementById('sync-t2'),stm=document.getElementById('sync-t');
+  if(st2&&stm) st2.textContent=stm.textContent;
 }
 
 // ══ EXPORT
