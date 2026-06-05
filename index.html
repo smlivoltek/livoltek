@@ -1083,8 +1083,22 @@ async function boot(){
   // DEBUG: show first item
   if(ST.length>0){
     const s=ST[0];
-    console.log('DEBUG item[0]:', JSON.stringify({codigo:s.codigo,saldo:s.saldo,empenho:s.empenho,wh:s.wh,nom:s.nomenclatura,cat:s.categoria,fam:s.familia}));
-    console.log('DEBUG raw keys:', Object.keys(Papa.parse(await(await fetch('data/ESTOQUE.csv',{cache:'no-store'})).text(),{header:true}).data[0]).join(' | '));
+    console.log('DEBUG item[0]:', JSON.stringify({codigo:s.codigo,saldo:s.saldo,empenho:s.empenho,wh:s.wh}));
+    // Show raw value of SALDO EM ESTOQUE for first ARMZ=7 row
+    const rawCsv=await(await fetch('data/ESTOQUE.csv',{cache:'no-store'})).text();
+    const parsed=Papa.parse(rawCsv,{header:true,skipEmptyLines:true});
+    const armz7=parsed.data.find(r=>String(r.ARMZ||'').trim()==='7');
+    if(armz7) console.log('DEBUG first ARMZ=7 raw:', JSON.stringify({
+      CODIGO:armz7.CODIGO,
+      ARMZ:armz7.ARMZ,
+      FL:armz7.FL,
+      SALDO:armz7['SALDO EM ESTOQUE'],
+      EMPENHO:armz7['EMPENHO PARA REQ/PV/RESERVA'],
+      ARM_DASH:armz7['Armazém Dashboard'],
+      CAT:armz7['Categoria'],
+      FAM:armz7['Família'],
+      NOM:armz7['Nomenclatura']
+    }));
   }
   applyReservas();
   populateSelects();
