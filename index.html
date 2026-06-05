@@ -274,6 +274,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <button class="sbi" id="sb-alrt" onclick="go('alrt')">
       <i class="ti ti-target si"></i><span class="sn">Oportunidades · Insights</span><span class="sc red" id="sc-alrt" style="display:none">—</span>
     </button>
+    <button class="sbi" id="sb-audit" onclick="go('audit')" style="margin-top:8px;border:1px dashed #94a3b8">
+      <i class="ti ti-microscope si"></i><span class="sn" style="color:#dc2626;font-weight:700">AUDITORIA</span>
+    </button>
   </div>
   <div class="sb-foot">
     <div style="display:flex;align-items:center;gap:5px">
@@ -490,6 +493,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
+<!-- ══ AUDITORIA ══ -->
+<div id="tab-audit" class="tab">
+<div style="background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;font-weight:600;color:#856404">
+  ⚠️ MODO AUDITORIA — Dados brutos sem filtros visuais. Use para validar integridade contra as planilhas de origem.
+</div>
+<div id="audit-content" style="font-family:'DM Mono',monospace;font-size:12px;line-height:1.8"></div>
+</div>
+
 </div><!-- /mc -->
 </div><!-- /pg -->
 </div><!-- /cnt -->
@@ -538,50 +549,74 @@ const pn = v => {
 const fmt = n => Math.round(n).toLocaleString('pt-BR');
 const tr  = (s,n=55) => s&&s.length>n?s.slice(0,n)+'…':(s||'—');
 
+// Colunas confirmadas do CSV real (por posição):
+// 0=CODIGO 1=TP 2=GRUPO 3=DESCRICAO 4=U.M. 5=FL 6=ARMZ
+// 7=SALDO EM ESTOQUE 8=EMPENHO PARA REQ/PV/RESERVA 9=ESTOQUE DISPONIVEL
+// 10=VALOR EM ESTOQUE 11=VALOR EMPENHADO 12=DESCRICAO DO ARMAZEM
+// 13=CODIGO TOP MANAGER 14=Armazém Dashboard 15=Categoria 16=Família 17=Nomenclatura
+let _rawEstoqueHeaders = [];
+let _rawEstoqueRows = 0;
+
 function parseEstoque(csv){
-  const rows = Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
-  // Debug: log headers from first row
+  // Parse sem header para usar índices — evita problemas de encoding nos nomes de colunas
+  const cleanCsv = csv.replace(/^\uFEFF/,'');
+  const all = Papa.parse(cleanCsv,{header:false,skipEmptyLines:true}).data;
+  _rawEstoqueRows = all.length - 1; // total de linhas de dados
+
+  const hdr = all[0].map(h=>String(h).trim());
+  _rawEstoqueHeaders = hdr;
+
+  // Localizar índice de cada coluna pelo nome (case-insensitive, trim)
+  const ci = (...names) => {
+    for(const n of names){
+      const i = hdr.findIndex(h=>h.toLowerCase()===n.toLowerCase());
+      if(i>=0) return i;
+    }
+    return -1;
+  };
+
+  const iCOD  = ci('CODIGO');
+  const iTP   = ci('TP');
+  const iFL   = ci('FL');
+  const iARMZ = ci('ARMZ');
+  const iSAL  = ci('SALDO EM ESTOQUE');
+  const iEMP  = ci('EMPENHO PARA REQ/PV/RESERVA','NO PARA REQ/PV/RE','EMPENHO');
+  const iARM  = ci('Armazém Dashboard','Armazem Dashboard','ARMAZEM DASHBOARD');
+  const iCAT  = ci('Categoria','CATEGORIA');
+  const iFAM  = ci('Família','Familia','FAMILIA');
+  const iNOM  = ci('Nomenclatura','NOMENCLATURA','Nome Comercial');
+  const iDESC = ci('DESCRICAO','Descricao','DESCRIÇÃO');
+  const iDISP = ci('ESTOQUE DISPONIVEL','Estoque Disponivel');
+
+  // Expor índices para auditoria
+  window._AUDIT_IDX = {iCOD,iTP,iFL,iARMZ,iSAL,iEMP,iARM,iCAT,iFAM,iNOM,iDESC,iDISP};
+
   const items=[];
-  // DEBUG: show exact values from first ARMZ=7 row
-  const dbg7 = rows.find(r=>String(r['ARMZ']||'').trim()==='7');
-  if(dbg7) console.log('SALDO raw:', JSON.stringify(dbg7['SALDO EM ESTOQUE']), '| ARMZ:', dbg7['ARMZ'], '| CODIGO:', dbg7['CODIGO']);
-  console.log('Total rows:', rows.length, '| Headers:', Object.keys(rows[0]||{}).slice(0,10));
-  rows.forEach(r=>{
-    const codigo = String(r.CODIGO||r.codigo||'').trim();
-    if(!codigo) return;
-    const fl   = String(r.FL||'').trim();
-    // ARMZ: for Eletra only ARMZ=7; MAO-LIV uses all
-    const armz = String(r.ARMZ||'').trim();
+  for(let i=1;i<all.length;i++){
+    const r = all[i];
+    const codigo = String(r[iCOD]||'').trim();
+    if(!codigo) continue;
+    const fl   = String(r[iFL]||'').trim();
+    const armz = String(r[iARMZ]||'').trim();
     const isEletra = ['10108','10102','10106'].includes(fl);
-    if(isEletra && armz!=='7') return;
-    // WH name: use "Armazém Dashboard" col if present, else derive from FL
-    const armLabel = String(r['Armazém Dashboard']||r['Armazem Dashboard']||r['ARMAZEM DASHBOARD']||'').trim();
+    if(isEletra && armz!=='7') continue;
+
+    const armLabel = iARM>=0?String(r[iARM]||'').trim():'';
     const wh = armLabel || WH_NAMES[fl] || fl;
-    // Nomenclatura — many possible column names
-    // "Nomenclatura" = last column in real CSV
-    const nomenclatura = String(
-      r['Nomenclatura']||r['NOMENCLATURA']||r['Nome Comercial']||
-      r['NOME COMERCIAL']||r['NomeComercial']||''
-    ).trim();
-    // Descrição — DESCRICAO é col padrão TOTVS
-    const descricao = String(r['DESCRICAO']||r['Descricao']||r['DESCRIÇÃO']||r['descricao']||'').trim();
-    // Categoria e Família
-    const categoria = String(r['Categoria']||r['CATEGORIA']||r['categoria']||'').trim().toUpperCase();
-    const familia   = String(r['Família']||r['Familia']||r['FAMILIA']||r['família']||r['familia']||r['FamÃ­lia']||'').trim();
-    // Saldo: col TOTVS exata = "SALDO EM ESTOQUE" (col índice 7)
-    // Usar também ESTOQUE DISPONIVEL como fallback (col 9)
-    const saldo   = pn(r['SALDO EM ESTOQUE'])||pn(r['SALDO'])||pn(r['Estoque Total'])||0;
-    // Empenho: col TOTVS exata = "EMPENHO PARA REQ/PV/RESERVA" (col índice 8)
-    const empenho = pn(r['EMPENHO PARA REQ/PV/RESERVA'])||pn(r['NO PARA REQ/PV/RE'])||pn(r['EMPENHO'])||0;
-    const tp = String(r.TP||'').trim().toUpperCase();
-    // isMP: categoria says MATÉRIA-PRIMA, or no categoria and TP=MP (TOTVS code for raw material)
+
+    const saldo   = pn(iSAL>=0 ? r[iSAL] : 0);
+    const empenho = pn(iEMP>=0 ? r[iEMP] : 0);
+    const descricao   = String(iDESC>=0?r[iDESC]||'':'').trim();
+    const categoria   = String(iCAT>=0 ?r[iCAT]||'':'').trim().toUpperCase();
+    const familia     = String(iFAM>=0 ?r[iFAM]||'':'').trim();
+    const nomenclatura= String(iNOM>=0 ?r[iNOM]||'':'').trim();
+    const tp = String(r[iTP]||'').trim().toUpperCase();
     const isMP = categoria.includes('MATÉR')||categoria.includes('MATER')||
                  (!categoria && tp==='MP');
-    // Use nomenclatura if available, else DESCRICAO
-    const nomFinal = nomenclatura || descricao;
-    items.push({codigo, nomenclatura:nomFinal, descricao, categoria, familia, wh,
-                saldo, empenho, reserva:0, disp:0, isMP});
-  });
+
+    items.push({codigo, nomenclatura:nomenclatura||descricao, descricao,
+                categoria, familia, wh, saldo, empenho, reserva:0, disp:0, isMP});
+  }
   return items;
 }
 
@@ -1066,6 +1101,117 @@ function populateSelects(){
 }
 
 // ══ BOOT
+// ══ AUDITORIA
+function rAudit(){
+  const el=document.getElementById('audit-content');
+  if(!el) return;
+  const idx=window._AUDIT_IDX||{};
+  const N=n=>Math.round(n).toLocaleString('pt-BR');
+
+  // 1. Índices das colunas encontradas
+  const idxTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px">
+    <tr style="background:#1E3A5F;color:#fff"><th colspan="2" style="padding:6px 10px;text-align:left;font-size:13px">1. ÍNDICES DE COLUNAS ENCONTRADOS</th></tr>
+    ${Object.entries(idx).map(([k,v])=>`<tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:4px 10px;color:#475569">${k}</td>
+      <td style="padding:4px 10px;font-weight:700;color:${v===-1?'#dc2626':'#15803d'}">${v===-1?'NÃO ENCONTRADO':'Coluna '+v}</td>
+    </tr>`).join('')}
+  </table>`;
+
+  // 2. Totais brutos
+  const totalRaw = _rawEstoqueRows;
+  const totalLoaded = ST.length;
+  const totalRes = RES.length;
+  const skusUnicos = new Set(ST.map(r=>r.codigo)).size;
+  const sumSal = ST.reduce((a,r)=>a+r.saldo,0);
+  const sumEmp = ST.reduce((a,r)=>a+r.empenho,0);
+  const sumRes = RES.reduce((a,r)=>a+r.qtd,0);
+  const sumDisp= ST.reduce((a,r)=>a+r.disp,0);
+
+  const totTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px">
+    <tr style="background:#1E3A5F;color:#fff"><th colspan="2" style="padding:6px 10px;text-align:left;font-size:13px">2. TOTAIS GERAIS</th></tr>
+    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">Linhas brutas no CSV (sem header)</td><td style="padding:4px 10px;font-weight:700">${N(totalRaw)}</td></tr>
+    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">Registros carregados (após filtro ARMZ=7)</td><td style="padding:4px 10px;font-weight:700">${N(totalLoaded)}</td></tr>
+    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">Registros filtrados/descartados</td><td style="padding:4px 10px;font-weight:700;color:#dc2626">${N(totalRaw-totalLoaded)}</td></tr>
+    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">SKUs únicos (código distinto)</td><td style="padding:4px 10px;font-weight:700">${N(skusUnicos)}</td></tr>
+    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">Registros de Reservas carregados</td><td style="padding:4px 10px;font-weight:700">${N(totalRes)}</td></tr>
+    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px;font-weight:600">SALDO TOTAL (soma SALDO EM ESTOQUE)</td><td style="padding:4px 10px;font-weight:700;color:#1E3A5F">${N(sumSal)}</td></tr>
+    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px;font-weight:600">EM SEPARAÇÃO TOTAL</td><td style="padding:4px 10px;font-weight:700;color:#b45309">${N(sumEmp)}</td></tr>
+    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px;font-weight:600">RESERVAS TOTAL (soma Qtdade)</td><td style="padding:4px 10px;font-weight:700;color:#7c3aed">${N(sumRes)}</td></tr>
+    <tr><td style="padding:4px 10px;font-weight:600">DISPONÍVEL TOTAL (saldo−emp−reserva)</td><td style="padding:4px 10px;font-weight:700;color:#15803d">${N(sumDisp)}</td></tr>
+  </table>`;
+
+  // 3. Por armazém
+  const whRows=WH_LIST.map(w=>{
+    const items=ST.filter(r=>r.wh===w);
+    const recs=items.length;
+    const skus=new Set(items.map(r=>r.codigo)).size;
+    const sal=items.reduce((a,r)=>a+r.saldo,0);
+    const emp=items.reduce((a,r)=>a+r.empenho,0);
+    const res=items.reduce((a,r)=>a+r.reserva,0);
+    const disp=items.reduce((a,r)=>a+r.disp,0);
+    const resRaw=RES.filter(r=>r.wh===w).reduce((a,r)=>a+r.qtd,0);
+    return`<tr style="border-bottom:1px solid #e2e8f0">
+      <td style="padding:4px 10px;font-weight:600">${w}</td>
+      <td style="padding:4px 10px;text-align:right">${N(recs)}</td>
+      <td style="padding:4px 10px;text-align:right">${N(skus)}</td>
+      <td style="padding:4px 10px;text-align:right;font-weight:700;color:#1E3A5F">${N(sal)}</td>
+      <td style="padding:4px 10px;text-align:right;color:#b45309">${N(emp)}</td>
+      <td style="padding:4px 10px;text-align:right;color:#7c3aed">${N(res)}</td>
+      <td style="padding:4px 10px;text-align:right;color:#7c3aed;font-style:italic;font-size:10px">(raw: ${N(resRaw)})</td>
+      <td style="padding:4px 10px;text-align:right;font-weight:700;color:#15803d">${N(disp)}</td>
+    </tr>`;
+  }).join('');
+
+  const whTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px">
+    <tr style="background:#1E3A5F;color:#fff">
+      <th colspan="8" style="padding:6px 10px;text-align:left;font-size:13px">3. POR ARMAZÉM</th>
+    </tr>
+    <tr style="background:#f8fafc;font-size:10px;font-weight:700;color:#64748b">
+      <td style="padding:4px 10px">ARMAZÉM</td>
+      <td style="padding:4px 10px;text-align:right">REGISTROS</td>
+      <td style="padding:4px 10px;text-align:right">SKUs</td>
+      <td style="padding:4px 10px;text-align:right">SALDO</td>
+      <td style="padding:4px 10px;text-align:right">EM SEP.</td>
+      <td style="padding:4px 10px;text-align:right">RESERVA</td>
+      <td style="padding:4px 10px;text-align:right">RES.RAW</td>
+      <td style="padding:4px 10px;text-align:right">DISPONÍVEL</td>
+    </tr>
+    ${whRows}
+  </table>`;
+
+  // 4. Primeiros 10 itens carregados (amostra)
+  const sample=ST.slice(0,10);
+  const sampleTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px;font-size:11px">
+    <tr style="background:#1E3A5F;color:#fff"><th colspan="7" style="padding:6px 10px;text-align:left;font-size:13px">4. AMOSTRA — PRIMEIROS 10 REGISTROS CARREGADOS</th></tr>
+    <tr style="background:#f8fafc;font-size:9px;font-weight:700;color:#64748b">
+      <td style="padding:3px 8px">CODIGO</td><td style="padding:3px 8px">ARMAZÉM</td>
+      <td style="padding:3px 8px;text-align:right">SALDO</td><td style="padding:3px 8px;text-align:right">EMP.</td>
+      <td style="padding:3px 8px;text-align:right">RESERVA</td><td style="padding:3px 8px;text-align:right">DISP.</td>
+      <td style="padding:3px 8px">NOMENCLATURA</td>
+    </tr>
+    ${sample.map(r=>`<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:3px 8px;font-size:10px">${r.codigo}</td>
+      <td style="padding:3px 8px;font-size:10px">${r.wh}</td>
+      <td style="padding:3px 8px;text-align:right;font-weight:700;color:${r.saldo>0?'#1E3A5F':'#dc2626'}">${N(r.saldo)}</td>
+      <td style="padding:3px 8px;text-align:right">${N(r.empenho)}</td>
+      <td style="padding:3px 8px;text-align:right;color:#7c3aed">${N(r.reserva)}</td>
+      <td style="padding:3px 8px;text-align:right;font-weight:700;color:#15803d">${N(r.disp)}</td>
+      <td style="padding:3px 8px;font-size:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.nomenclatura||r.descricao}</td>
+    </tr>`).join('')}
+  </table>`;
+
+  // 5. Cabeçalhos lidos
+  const hdrTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px;font-size:11px">
+    <tr style="background:#1E3A5F;color:#fff"><th colspan="2" style="padding:6px 10px;text-align:left;font-size:13px">5. CABEÇALHOS DO CSV (todos)</th></tr>
+    ${_rawEstoqueHeaders.map((h,i)=>`<tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:3px 8px;color:#64748b;width:40px">${i}</td>
+      <td style="padding:3px 8px">${h}</td>
+    </tr>`).join('')}
+  </table>`;
+
+  el.innerHTML=idxTable+totTable+whTable+sampleTable+hdrTable;
+}
+
 async function boot(){
   setStatus('loading');
   document.getElementById('ld-area').style.display='flex';
@@ -1097,7 +1243,7 @@ async function boot(){
   const ts=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('sync-t').textContent=ts;
   setStatus('ok');
-  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div','mp'].forEach(t=>renderCat(t)); rRes(); rAlrt(); updateSidebar();
+  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div','mp'].forEach(t=>renderCat(t)); rRes(); rAlrt(); updateSidebar(); rAudit();
 }
 
 function showErr(m){
