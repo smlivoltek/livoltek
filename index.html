@@ -735,7 +735,7 @@ function renderCat(tabId){
   }
 
   const fam=famPill||famSel;
-  const filtered=fam?dd.filter(r=>(r.familia||')===fam'):dd;
+  const filtered=fam?dd.filter(r=>(r.familia||'')=== fam):dd;
 
   const prod=filtered.filter(r=>!r.isMP);
   const mp  =filtered.filter(r=>r.isMP);
