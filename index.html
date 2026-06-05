@@ -517,7 +517,22 @@ let whFilter='', famFilters={};
 let catOptions={};
 
 // ══ PARSE HELPERS
-const pn = v => { if(!v||v==='-')return 0; return parseFloat(String(v).replace(/\./g,'').replace(',','.').replace(/[^0-9.\-]/g,''))||0; };
+const pn = v => {
+  if(!v||v==='-'||v===''||v===null||v===undefined) return 0;
+  let s = String(v).trim();
+  if(!s||s==='-') return 0;
+  // Remove R$, spaces, etc
+  s = s.replace(/[R$\s]/g,'');
+  // BR format: 1.300,00 → has comma as decimal
+  if(s.includes(',') && s.includes('.')){
+    s = s.replace(/\./g,'').replace(',','.');
+  } else if(s.includes(',') && !s.includes('.')){
+    s = s.replace(',','.');
+  }
+  // Remove remaining non-numeric except dot and minus
+  s = s.replace(/[^0-9.\-]/g,'');
+  return parseFloat(s)||0;
+};
 const fmt = n => Math.round(n).toLocaleString('pt-BR');
 const tr  = (s,n=55) => s&&s.length>n?s.slice(0,n)+'…':(s||'—');
 
@@ -1065,6 +1080,12 @@ async function boot(){
     }
   }
   if(!ST.length){showErr('Nenhum produto carregado. Verifique data/ESTOQUE.csv');return;}
+  // DEBUG: show first item
+  if(ST.length>0){
+    const s=ST[0];
+    console.log('DEBUG item[0]:', JSON.stringify({codigo:s.codigo,saldo:s.saldo,empenho:s.empenho,wh:s.wh,nom:s.nomenclatura,cat:s.categoria,fam:s.familia}));
+    console.log('DEBUG raw keys:', Object.keys(Papa.parse(await(await fetch('data/ESTOQUE.csv',{cache:'no-store'})).text(),{header:true}).data[0]).join(' | '));
+  }
   applyReservas();
   populateSelects();
   document.getElementById('ld-area').style.display='none';
