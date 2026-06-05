@@ -646,8 +646,9 @@ function parseReservas(csv){
     const qtd = pn(r['Qtdade']||r['Qtd']||r['QTD']||r['Quantidade']||r['QTDADE']||0);
     const cancelado = String(r['Cancelado']||r['CANCELADO']||'').trim();
     if(!codigo || qtd<=0 || cancelado) return;
-    // Armazem = nome completo direto (ex: "Curitiba (Eletra)")
-    const wh = String(r['Armazem']||r['Armazém']||r['ARMAZEM']||'').trim();
+    // Armazem = nome completo OU código numérico (suporte aos dois formatos)
+    const armRaw = String(r['Armazem']||r['Armazém']||r['ARMAZEM']||'').trim();
+    const wh = WH_NAMES[armRaw] || armRaw;
     result.push({
       cliente:    String(r['Cliente']||'').trim(),
       responsavel:String(r['Responsavel']||r['Responsável']||'').trim(),
