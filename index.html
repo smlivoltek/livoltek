@@ -627,7 +627,10 @@ function parseEstoque(csv){
     const isMP = categoria.includes('MATÉR')||categoria.includes('MATER')||
                  (!categoria && tp==='MP');
 
-    items.push({codigo, nomenclatura:nomenclatura||descricao, descricao,
+    // Se Nomenclatura vazia, usar DESCRICAO (do TOTVS)
+    // Família serve para classificação nos pills
+    const nomFinal = nomenclatura || descricao;
+    items.push({codigo, nomenclatura:nomFinal, descricao,
                 categoria, familia, wh, saldo, empenho, reserva:0, disp:0, isMP});
   }
   return items;
@@ -789,6 +792,7 @@ function pCard(r, isMP){
 function buildPills(tabId, items){
   const fams={};
   items.forEach(r=>{const f=r.familia||'Outros';if(!fams[f])fams[f]={sal:0,disp:0};fams[f].sal+=r._sal;fams[f].disp+=r._disp;});
+  if(tabId==='inv') console.log('INV FAMS:', JSON.stringify(Object.keys(fams)));
   const cur=famFilters[tabId]||'';
   const totalSal=items.reduce((a,r)=>a+r._sal,0);
   const totalDisp=items.reduce((a,r)=>a+r._disp,0);
