@@ -766,8 +766,10 @@ function pCard(r, isMP){
     return `<div class="pr"><span class="pr-lbl" style="color:${c};display:flex;align-items:center;gap:4px"><i class="ti ${ico}" style="font-size:11px"></i>${w}</span><span class="pr-val">${fmt(s)}</span></div>`;
   }).join('');
 
-  const nom=r.nomenclatura||r.nome||r.descricao||r.codigo;
-  const desc=r.descricao&&r.descricao!==nom?r.descricao:'';
+  // Título: Nomenclatura se disponível, senão Descrição
+  // Subtítulo: Descrição se diferente do título
+  const nom = r.nomenclatura||r.descricao||r.codigo;
+  const desc = (r.descricao && r.descricao!==nom && r.nomenclatura) ? r.descricao : '';
 
   return `<div class="pc${isMP?' mp':''}">
     ${famLabel?`<span class="pc-fam" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
@@ -792,7 +794,6 @@ function pCard(r, isMP){
 function buildPills(tabId, items){
   const fams={};
   items.forEach(r=>{const f=r.familia||'Outros';if(!fams[f])fams[f]={sal:0,disp:0};fams[f].sal+=r._sal;fams[f].disp+=r._disp;});
-  if(tabId==='inv') console.log('INV FAMS:', JSON.stringify(Object.keys(fams)));
   const cur=famFilters[tabId]||'';
   const totalSal=items.reduce((a,r)=>a+r._sal,0);
   const totalDisp=items.reduce((a,r)=>a+r._disp,0);
@@ -813,8 +814,9 @@ function buildPills(tabId, items){
     return b[1].disp-a[1].disp;
   }).forEach(([f,v])=>{
     const on=cur===f;
+    const sl=f.replace(/^INVERSOR - /i,'').replace(/^CARREGADOR - /i,'').replace(/^BATERIA - /i,'')||f;
     html+=`<div class="fpill${on?' on':''}" onclick="setFam('${tabId}','${f.replace(/'/g,"\\'")}')">
-      <span class="fp-lbl">${f}</span>
+      <span class="fp-lbl">${sl}</span>
       <span class="fp-val">${fmt(v.disp)}</span>
       <span class="fp-sub">${fmt(v.sal)} em estoque</span>
     </div>`;
