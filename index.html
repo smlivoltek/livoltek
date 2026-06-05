@@ -514,7 +514,12 @@ const CSV_FILES = {
   RESERVAS: 'data/RESERVAS.csv',
 };
 
-const WH_NAMES = {'10108':'Curitiba (Eletra)','10102':'Fortaleza (Eletra)','10106':'Manaus (Eletra)','MAO-LIV':'Fábrica Livoltek'};
+const WH_NAMES = {
+  '10108':'Curitiba (Eletra)','10102':'Fortaleza (Eletra)','10106':'Manaus (Eletra)',
+  'MAO-LIV':'Fábrica Livoltek','MAOLIV':'Fábrica Livoltek',
+  'mao-liv':'Fábrica Livoltek','Fábrica Livoltek':'Fábrica Livoltek',
+  'Fabrica Livoltek':'Fábrica Livoltek','LIVOLTEK':'Fábrica Livoltek',
+};
 const WH_LIST  = ['Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','Fábrica Livoltek'];
 const WH_COLOR = {'Curitiba (Eletra)':'var(--cwb)','Fortaleza (Eletra)':'var(--for)','Manaus (Eletra)':'var(--mao-e)','Fábrica Livoltek':'var(--mao-l)'};
 const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra)':'ti-building-warehouse','Manaus (Eletra)':'ti-building-warehouse','Fábrica Livoltek':'ti-building-factory-2'};
@@ -602,7 +607,17 @@ function parseEstoque(csv){
     if(isEletra && armz!=='7') continue;
 
     const armLabel = iARM>=0?String(r[iARM]||'').trim():'';
-    const wh = armLabel || WH_NAMES[fl] || fl;
+    // Resolver WH: prioridade para Armazém Dashboard, depois FL
+    let wh = '';
+    if(armLabel){
+      // "Fábrica Livoltek" ou "Curitiba (Eletra)" etc. vêm direto
+      wh = WH_NAMES[armLabel] || armLabel;
+    } else {
+      wh = WH_NAMES[fl] || fl;
+    }
+    // Normalizar nomes conhecidos
+    if(wh.toLowerCase().includes('livoltek')||wh.toLowerCase().includes('fábrica')||wh.toLowerCase().includes('fabrica'))
+      wh='Fábrica Livoltek';
 
     const saldo   = pn(iSAL>=0 ? r[iSAL] : 0);
     const empenho = pn(iEMP>=0 ? r[iEMP] : 0);
@@ -658,21 +673,33 @@ function obsToWH(o){
 }
 
 function applyReservas(){
+  // Mapa: wh|codigo → qtd (reservas com armazém específico)
+  // Mapa: *|codigo  → qtd (reservas sem armazém ou armazém não reconhecido)
   const lkp={};
   RES.forEach(r=>{
-    // r.wh já está resolvido no parseReservas
+    const cod=r.codigo.toUpperCase();
     if(r.wh && WH_LIST.includes(r.wh)){
-      const k=r.wh+'|'+r.codigo;
+      const k=r.wh+'|'+cod;
       lkp[k]=(lkp[k]||0)+r.qtd;
     } else {
-      // Sem armazém específico: aplica a todos
-      lkp['*|'+r.codigo]=(lkp['*|'+r.codigo]||0)+r.qtd;
+      // WH inválido ou vazio → reserva global (aplica ao primeiro armazém com saldo)
+      lkp['*|'+cod]=(lkp['*|'+cod]||0)+r.qtd;
     }
   });
+  // Para reservas globais (*|cod), aplicar ao primeiro registro do produto com saldo>0
+  // Isso evita duplicar a reserva em múltiplos armazéns
+  const globalApplied={};
   ST.forEach(s=>{
-    const specific=lkp[s.wh+'|'+s.codigo.toUpperCase()]||0;
-    const global  =lkp['*|'+s.codigo.toUpperCase()]||0;
-    s.reserva=specific+global;
+    const cod=s.codigo.toUpperCase();
+    const specific=lkp[s.wh+'|'+cod]||0;
+    const globalQty=lkp['*|'+cod]||0;
+    // Aplicar reserva global apenas uma vez (no armazém com maior saldo)
+    let globalShare=0;
+    if(globalQty>0 && !globalApplied[cod]){
+      globalApplied[cod]=true;
+      globalShare=globalQty;
+    }
+    s.reserva=specific+globalShare;
     s.disp=Math.max(0,s.saldo-s.empenho-s.reserva);
   });
 }
