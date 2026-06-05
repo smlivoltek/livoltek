@@ -237,42 +237,42 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
       <i class="ti ti-chart-bar si"></i><span class="sn">Dashboard</span>
     </button>
     <button class="sbi" id="sb-todos" onclick="go('todos')">
-      <i class="ti ti-list-details si"></i><span class="sn">Todos os Produtos</span>
+      <i class="ti ti-list-details si"></i><span class="sn">Todos · All Products</span>
     </button>
   </div>
   <div class="sb-div"></div>
   <div class="sb-sec">
-    <div class="sb-lbl">Categorias</div>
+    <div class="sb-lbl">Categorias · Categories</div>
     <button class="sbi" id="sb-inv" onclick="go('inv')">
-      <i class="ti ti-solar-panel si"></i><span class="sn">Inversores</span><span class="sc" id="sc-inv">—</span>
+      <i class="ti ti-solar-panel si"></i><span class="sn">Inversores · Inverters</span><span class="sc" id="sc-inv">—</span>
     </button>
     <button class="sbi" id="sb-ev" onclick="go('ev')">
-      <i class="ti ti-car si"></i><span class="sn">Carregadores EV</span><span class="sc" id="sc-ev">—</span>
+      <i class="ti ti-car si"></i><span class="sn">Carregadores EV · EV Chargers</span><span class="sc" id="sc-ev">—</span>
     </button>
     <button class="sbi" id="sb-bess" onclick="go('bess')">
-      <i class="ti ti-battery-charging si"></i><span class="sn">BESS / Baterias</span><span class="sc" id="sc-bess">—</span>
+      <i class="ti ti-battery-charging si"></i><span class="sn">BESS / Baterias · Batteries</span><span class="sc" id="sc-bess">—</span>
     </button>
     <button class="sbi" id="sb-kit" onclick="go('kit')">
-      <i class="ti ti-sun si"></i><span class="sn">Kit Solar</span><span class="sc" id="sc-kit">—</span>
+      <i class="ti ti-sun si"></i><span class="sn">Kit Solar · Solar Kit</span><span class="sc" id="sc-kit">—</span>
     </button>
     <button class="sbi" id="sb-strbox" onclick="go('strbox')">
       <i class="ti ti-plug-connected si"></i><span class="sn">String Box</span><span class="sc" id="sc-strbox">—</span>
     </button>
     <button class="sbi" id="sb-div" onclick="go('div')">
-      <i class="ti ti-category si"></i><span class="sn">Diversos</span><span class="sc" id="sc-div">—</span>
+      <i class="ti ti-category si"></i><span class="sn">Diversos · Others</span><span class="sc" id="sc-div">—</span>
     </button>
     <button class="sbi" id="sb-mp" onclick="go('mp')">
-      <i class="ti ti-building-factory-2 si"></i><span class="sn">Matéria-Prima</span><span class="sc" id="sc-mp">—</span>
+      <i class="ti ti-building-factory-2 si"></i><span class="sn">Matéria-Prima · Raw Mat.</span><span class="sc" id="sc-mp">—</span>
     </button>
   </div>
   <div class="sb-div"></div>
   <div class="sb-sec">
-    <div class="sb-lbl">Comercial</div>
+    <div class="sb-lbl">Comercial · Commercial</div>
     <button class="sbi" id="sb-res" onclick="go('res')">
-      <i class="ti ti-handshake si"></i><span class="sn">Reservas Comerciais</span><span class="sc" id="sc-res">—</span>
+      <i class="ti ti-handshake si"></i><span class="sn">Reservas · Bookings</span><span class="sc" id="sc-res">—</span>
     </button>
     <button class="sbi" id="sb-alrt" onclick="go('alrt')">
-      <i class="ti ti-target si"></i><span class="sn">Oportunidades &amp; Atenção</span><span class="sc red" id="sc-alrt" style="display:none">—</span>
+      <i class="ti ti-target si"></i><span class="sn">Oportunidades · Insights</span><span class="sc red" id="sc-alrt" style="display:none">—</span>
     </button>
   </div>
   <div class="sb-foot">
@@ -523,26 +523,45 @@ const tr  = (s,n=55) => s&&s.length>n?s.slice(0,n)+'…':(s||'—');
 
 function parseEstoque(csv){
   const rows = Papa.parse(csv,{header:true,skipEmptyLines:true}).data;
+  // Debug: log headers from first row
+  if(rows.length>0) console.log('ESTOQUE headers:', Object.keys(rows[0]).join(' | '));
   const items=[];
   rows.forEach(r=>{
     const codigo = String(r.CODIGO||r.codigo||'').trim();
     if(!codigo) return;
     const fl   = String(r.FL||'').trim();
+    // ARMZ: for Eletra only ARMZ=7; MAO-LIV uses all
     const armz = String(r.ARMZ||'').trim();
     const isEletra = ['10108','10102','10106'].includes(fl);
     if(isEletra && armz!=='7') return;
-    const armLabel = String(r['Armazém Dashboard']||r['Armazem Dashboard']||'').trim();
+    // WH name: use "Armazém Dashboard" col if present, else derive from FL
+    const armLabel = String(r['Armazém Dashboard']||r['Armazem Dashboard']||r['ARMAZEM DASHBOARD']||'').trim();
     const wh = armLabel || WH_NAMES[fl] || fl;
-    // Fields from spreadsheet
-    const nomenclatura = String(r['Nomenclatura']||r['NOMENCLATURA']||r['Nome Comercial']||'').trim();
-    const descricao    = String(r['DESCRICAO']||r['Descricao']||r['DESCRICAO DO PRODUTO']||'').trim();
-    const categoria    = String(r['Categoria']||r['CATEGORIA']||'').trim().toUpperCase();
-    const familia      = String(r['Família']||r['Familia']||r['FAMILIA']||'').trim();
-    const saldo        = pn(r['SALDO EM ESTOQUE']||r['Estoque Total']||0);
-    const empenho      = pn(r['NO PARA REQ/PV/RE']||r['Em Separação']||r['Em Separacao']||0);
-    const isMP         = categoria==='MATÉRIA-PRIMA'||categoria==='MATERIA-PRIMA'||categoria==='MATERIA PRIMA';
-    items.push({codigo, nomenclatura, descricao, categoria, familia, wh, saldo, empenho, reserva:0, disp:0, isMP});
+    // Nomenclatura — many possible column names
+    const nomenclatura = String(
+      r['Nomenclatura']||r['NOMENCLATURA']||r['Nome Comercial']||
+      r['NOME COMERCIAL']||r['NomeComercial']||''
+    ).trim();
+    // Descrição — DESCRICAO é col padrão TOTVS
+    const descricao = String(r['DESCRICAO']||r['Descricao']||r['DESCRIÇÃO']||r['descricao']||'').trim();
+    // Categoria e Família
+    const categoria = String(r['Categoria']||r['CATEGORIA']||r['categoria']||'').trim().toUpperCase();
+    const familia   = String(r['Família']||r['Familia']||r['FAMILIA']||r['família']||r['familia']||'').trim();
+    // Saldo: "SALDO EM ESTOQUE" é col padrão TOTVS
+    const saldo   = pn(r['SALDO EM ESTOQUE']||r['Saldo Em Estoque']||r['SALDO']||r['Estoque Total']||0);
+    // Empenho: col TOTVS = "NO PARA REQ/PV/RE" ou variações
+    const empenho = pn(r['NO PARA REQ/PV/RE']||r['EMPENHO PARA REQ/PV/RE']||r['EMPENHO']||
+                       r['Em Separação']||r['Em Separacao']||r['EM SEPARACAO']||0);
+    // isMP: by Categoria field or fallback by TP=MP
+    const tp = String(r.TP||'').trim().toUpperCase();
+    const isMP = categoria.includes('MATÉR')||categoria.includes('MATER')||
+                 (tp==='MP'&&!['PA','PI','PE'].includes(tp));
+    // Use nomenclatura if available, else DESCRICAO
+    const nomFinal = nomenclatura || descricao;
+    items.push({codigo, nomenclatura:nomFinal, descricao, categoria, familia, wh,
+                saldo, empenho, reserva:0, disp:0, isMP});
   });
+  if(items.length>0) console.log('Sample item:', JSON.stringify(items[0]));
   return items;
 }
 
