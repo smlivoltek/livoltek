@@ -1266,7 +1266,25 @@ function rAudit(){
     ${resMatchFail.length===0?'<tr><td colspan="4" style="padding:8px;text-align:center;color:#15803d;font-weight:700">✅ Todos os armazéns de reservas reconhecidos</td></tr>':''}
   </table>`;
 
-  el.innerHTML=idxTable+totTable+whTable+sampleTable+resDebugTable+hdrTable;
+  // 7. Reservas não aplicadas (produto não encontrado no estoque carregado)
+  const stCodes=new Set(ST.map(r=>r.codigo.toUpperCase()));
+  const resNotFound=RES.filter(r=>!stCodes.has(r.codigo.toUpperCase()));
+  const resNotFoundTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px;font-size:11px">
+    <tr style="background:#1E3A5F;color:#fff"><th colspan="4" style="padding:6px 10px;text-align:left;font-size:13px">7. RESERVAS SEM PRODUTO NO ESTOQUE (${resNotFound.length} registros · ${resNotFound.reduce((a,r)=>a+r.qtd,0)} unidades perdidas)</th></tr>
+    <tr style="background:#f8fafc;font-size:9px;font-weight:700;color:#64748b">
+      <td style="padding:3px 8px">CLIENTE</td><td style="padding:3px 8px">CÓDIGO</td>
+      <td style="padding:3px 8px">ARMAZÉM</td><td style="padding:3px 8px;text-align:right">QTD</td>
+    </tr>
+    ${resNotFound.map(r=>`<tr style="background:#fff1f2;border-bottom:1px solid #fecdd3">
+      <td style="padding:3px 8px;color:#dc2626">${r.cliente}</td>
+      <td style="padding:3px 8px;font-size:10px;color:#dc2626;font-weight:700">${r.codigo}</td>
+      <td style="padding:3px 8px">${r.wh}</td>
+      <td style="padding:3px 8px;text-align:right;font-weight:700">${N(r.qtd)}</td>
+    </tr>`).join('')}
+    ${resNotFound.length===0?'<tr><td colspan="4" style="padding:8px;text-align:center;color:#15803d;font-weight:700">✅ Todas as reservas têm produto correspondente no estoque</td></tr>':''}
+  </table>`;
+
+  el.innerHTML=idxTable+totTable+whTable+sampleTable+resDebugTable+resNotFoundTable+hdrTable;
 }
 
 async function boot(){
