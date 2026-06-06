@@ -842,32 +842,39 @@ function setFam(tabId,fam){
 }
 
 // ══ RENDER CATEGORY
+function getFamBase(fam){
+  // Remove sufixo '(MATÉRIA-PRIMA)' para comparar família base
+  return (fam||'').replace(/\s*\(MAT[ÉE]RIA-PRIMA\)/i,'').trim();
+}
+
 function renderCat(tabId){
   const q=(document.getElementById(tabId+'-q')?.value||'').toLowerCase();
   const wh=document.getElementById(tabId+'-wh')?.value||'';
   const famSel=document.getElementById(tabId+'-fam')?.value||'';
   const famPill=famFilters[tabId]||'';
+  const famActive=famPill||famSel; // família selecionada (pill ou select)
 
+  // Todos os registros da aba (sem filtro de família — MP sempre incluída)
   const items=ST.filter(r=>{
     if(getCatTab(r)!==tabId) return false;
     const mq=!q||r.codigo.toLowerCase().includes(q)||(r.nomenclatura||'').toLowerCase().includes(q)||(r.descricao||'').toLowerCase().includes(q);
     const mw=!wh||r.wh===wh;
-    const mf=!famSel||(r.familia||'')=== famSel;
+    // Família: produtos filtram por família exata; MP filtra por família base (ignora sufixo MATÉRIA-PRIMA)
+    const mf=!famActive
+      || (!r.isMP && (r.familia||'')=== famActive)
+      || (r.isMP && getFamBase(r.familia)===getFamBase(famActive));
     return mq&&mw&&mf;
   });
 
   const dd=dedup(items).sort((a,b)=>(a.nomenclatura||a.descricao||'').localeCompare(b.nomenclatura||b.descricao||''));
 
-  // Family pills for tabs that have them
+  // Family pills: apenas produtos (sem MP)
   if(document.getElementById(tabId+'-pills')){
     buildPills(tabId, dedup(ST.filter(r=>getCatTab(r)===tabId&&!r.isMP)));
   }
 
-  const fam=famPill||famSel;
-  const filtered=fam?dd.filter(r=>(r.familia||'')=== fam):dd;
-
-  const prod=filtered.filter(r=>!r.isMP);
-  const mp  =filtered.filter(r=>r.isMP);
+  const prod=dd.filter(r=>!r.isMP);
+  const mp  =dd.filter(r=>r.isMP);
 
   const cardsEl=document.getElementById(tabId+'-cards');
   const mpSec=document.getElementById(tabId+'-mp-sec');
@@ -1132,9 +1139,9 @@ function populateSelects(){
   const dirs=[...new Set(RES.map(r=>r.diretoria).filter(Boolean))].sort();
   const rd=document.getElementById('res-dir');
   if(rd) rd.innerHTML='<option value="">Todas as diretorias</option>'+dirs.map(d=>`<option value="${d}">${d}</option>`).join('');
-  // Families for inv and mp
+  // Families for inv and mp — excluir famílias de MP do select (MP aparece na seção inferior)
   ['inv','mp'].forEach(t=>{
-    const fams=[...new Set(ST.filter(r=>getCatTab(r)===t).map(r=>r.familia).filter(Boolean))].sort();
+    const fams=[...new Set(ST.filter(r=>getCatTab(r)===t&&!r.isMP).map(r=>r.familia).filter(Boolean))].sort();
     const sf=document.getElementById(t+'-fam');
     if(sf) sf.innerHTML='<option value="">Todas as famílias</option>'+fams.map(f=>`<option value="${f}">${f}</option>`).join('');
   });
