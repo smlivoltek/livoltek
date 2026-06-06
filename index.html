@@ -413,7 +413,11 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <select class="sel" id="mp-fam" onchange="renderCat('mp')"><option value="">Todas as famílias</option></select>
   </div>
   <div class="cgrid" id="mp-cards"></div>
-  <div style="font-size:10px;color:var(--txtm)"><span id="mp-cnt">0</span> SKUs de matéria-prima</div>
+  <div id="mp-mp-sec" style="display:none">
+    <div class="mp-sep"><div class="mp-sep-line"></div><span class="mp-sep-lbl">Matéria-Prima</span><div class="mp-sep-line"></div></div>
+    <div class="cgrid" id="mp-mp-cards"></div>
+  </div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="mp-cnt">0</span> SKUs · <span id="mp-mp-cnt">0</span> matéria-prima</div>
 </div>
 
 <!-- ══ RESERVAS COMERCIAIS ══ -->
@@ -761,18 +765,18 @@ function dedup(items){
 }
 
 // ══ CATEGORY ROUTING
+// MP sempre vai para 'mp' — garante que aparecem na seção correta
+// e não contaminam os totais de produto das outras abas
 function getCatTab(r){
-  // Usar exatamente o valor da coluna Família do CSV
+  if(r.isMP) return 'mp';
   const fam=(r.familia||'').toUpperCase().trim();
-  // Mapear família → aba
   if(fam.includes('INVERSOR'))          return 'inv';
   if(fam.includes('CARREGADOR'))        return 'ev';
   if(fam.includes('BATERIA')||fam.includes('BESS')) return 'bess';
   if(fam.includes('KIT SOLAR'))         return 'kit';
   if(fam.includes('STRING BOX'))        return 'strbox';
-  if(fam.includes('MOTOR'))             return 'div'; // Motor de Barco → Diversos
+  if(fam.includes('MOTOR'))             return 'div';
   if(fam.includes('DIVERSOS'))          return 'div';
-  // Sem família ou não mapeado → Diversos
   return 'div';
 }
 
@@ -901,6 +905,17 @@ function renderCat(tabId){
   const mpCards=document.getElementById(tabId+'-mp-cards');
   const cntEl=document.getElementById(tabId+'-cnt');
   const mpCntEl=document.getElementById(tabId+'-mp-cnt');
+
+  // Aba MP: todos os itens são MP — renderizar direto em mp-cards
+  if(tabId==='mp'){
+    if(cardsEl) cardsEl.innerHTML='';
+    if(mpSec) mpSec.style.display=mp.length?'block':'none';
+    if(mpCards) mpCards.innerHTML=mp.map(r=>pCard(r,true)).join('')||
+      `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm);font-size:13px">Nenhuma matéria-prima encontrada.</div>`;
+    if(cntEl) cntEl.textContent=mp.length;
+    if(mpCntEl) mpCntEl.textContent=mp.length;
+    return;
+  }
 
   if(cardsEl) cardsEl.innerHTML=prod.map(r=>pCard(r,false)).join('')||
     `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm);font-size:13px">Nenhum produto encontrado.</div>`;
@@ -1176,12 +1191,13 @@ function populateSelects(){
   const dirs=[...new Set(RES.map(r=>r.diretoria).filter(Boolean))].sort();
   const rd=document.getElementById('res-dir');
   if(rd) rd.innerHTML='<option value="">Todas as diretorias</option>'+dirs.map(d=>`<option value="${d}">${d}</option>`).join('');
-  // Families for inv and mp — excluir famílias de MP do select (MP aparece na seção inferior)
-  ['inv','mp'].forEach(t=>{
-    const fams=[...new Set(ST.filter(r=>getCatTab(r)===t&&!r.isMP).map(r=>r.familia).filter(Boolean))].sort();
-    const sf=document.getElementById(t+'-fam');
-    if(sf) sf.innerHTML='<option value="">Todas as famílias</option>'+fams.map(f=>`<option value="${f}">${f}</option>`).join('');
-  });
+  // Families para inv: apenas produtos (sem MP); para mp: apenas MPs
+  const invFams=[...new Set(ST.filter(r=>getCatTab(r)==='inv').map(r=>r.familia).filter(Boolean))].sort();
+  const sfInv=document.getElementById('inv-fam');
+  if(sfInv) sfInv.innerHTML='<option value="">Todas as famílias</option>'+invFams.map(f=>`<option value="${f}">${f}</option>`).join('');
+  const mpFams=[...new Set(ST.filter(r=>getCatTab(r)==='mp').map(r=>r.familia).filter(Boolean))].sort();
+  const sfMp=document.getElementById('mp-fam');
+  if(sfMp) sfMp.innerHTML='<option value="">Todas as famílias</option>'+mpFams.map(f=>`<option value="${f}">${f}</option>`).join('');
   // All tab categories
   const cats=[...new Set(ST.map(r=>r.familia||r.categoria).filter(Boolean))].sort();
   const ac=document.getElementById('all-cat');
