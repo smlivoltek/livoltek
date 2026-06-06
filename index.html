@@ -203,8 +203,87 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 /* ── WH TAG */
 .wt{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;display:inline-block}
 
-@media(max-width:1100px){.wh-grid{grid-template-columns:repeat(2,1fr)}.tops-grid,.tops-grid.tri{grid-template-columns:1fr 1fr}.k4{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:700px){.sb{display:none}.wh-grid{grid-template-columns:1fr 1fr}.cgrid{grid-template-columns:1fr}}
+@media(max-width:1100px){
+  .wh-grid{grid-template-columns:repeat(2,1fr)}
+  .tops-grid,.tops-grid.tri{grid-template-columns:1fr 1fr}
+  .k4{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ── MOBILE DRAWER SIDEBAR ── */
+.mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:199}
+.mob-overlay.open{display:block}
+#mob-menu-btn{display:none}
+
+@media(max-width:700px){
+  /* Sidebar → drawer off-canvas */
+  .sb{
+    position:fixed;left:0;top:0;bottom:0;z-index:200;
+    transform:translateX(-100%);transition:transform .25s ease;
+    width:240px;box-shadow:4px 0 24px rgba(0,0,0,.18)
+  }
+  .sb.mob-open{transform:translateX(0)}
+  #mob-menu-btn{display:flex}
+
+  /* Header */
+  .hdr{padding:0 .75rem;gap:8px}
+  .hdr-sub,.sbadge,.sync-lbl{display:none}
+  .hdr-title{font-size:12px}
+
+  /* Content */
+  .pg{padding:.75rem}
+
+  /* Grids → 1 coluna */
+  .wh-grid{grid-template-columns:1fr 1fr}
+  .tops-grid,.tops-grid.tri{grid-template-columns:1fr}
+  .cgrid{grid-template-columns:1fr}
+  .k4{grid-template-columns:1fr 1fr}
+
+  /* Categoria block */
+  .dcat-row{grid-template-columns:1fr auto;gap:8px;padding:.6rem .875rem}
+  .dcat-center{display:none}
+  .dcat-left{gap:6px}
+  .dcat-lbl{font-size:12px}
+  .dcat-val{font-size:14px}
+  .dcat-title{flex-wrap:wrap;gap:4px;padding:.625rem .875rem}
+  .dcat-total{margin-left:0;font-size:12px;width:100%}
+
+  /* Warehouse cards */
+  .wh-disp-val{font-size:22px}
+  .whcard{padding:.875rem 1rem}
+
+  /* Top tables */
+  .top-card{overflow-x:auto}
+  .top-tbl{min-width:280px;font-size:11px}
+  .top-hdr{font-size:11px}
+  .nm{max-width:120px;font-size:11px}
+
+  /* All products table */
+  .all-tbl-wrap{overflow-x:auto}
+
+  /* Pills horizontal scroll */
+  .fam-pills{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+  .fam-pills::-webkit-scrollbar{height:3px}
+  .fpill{flex-shrink:0}
+
+  /* Audit tables */
+  #audit-content table{font-size:11px}
+  #audit-content td,#audit-content th{padding:5px 8px}
+
+  /* Search bar */
+  .fb{flex-wrap:wrap;gap:6px}
+  .sbar{flex:1;min-width:120px}
+  .sel{font-size:11px}
+
+  /* PC cards */
+  .pc{font-size:12px}
+  .pc-nom{font-size:13px}
+}
+
+@media(max-width:380px){
+  .wh-grid{grid-template-columns:1fr}
+  .k4{grid-template-columns:1fr}
+  .wh-disp-val{font-size:20px}
+}
 
 /* ── Estoque por Categoria ── */
 .dcat-wrap{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);margin-bottom:1.25rem;overflow:hidden}
@@ -233,6 +312,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 <!-- HEADER -->
 <header class="hdr">
   <div class="hdr-l">
+    <button class="hico" id="mob-menu-btn" onclick="toggleMobMenu()" title="Menu" aria-label="Abrir menu"><i class="ti ti-menu-2"></i></button>
     <div class="logo">LV</div>
     <div>
       <div class="hdr-title">LIVOLTEK · Estoque Comercial Brasil</div>
@@ -248,6 +328,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   </div>
 </header>
 
+<div class="mob-overlay" id="mob-overlay" onclick="closeMobMenu()"></div>
 <div class="body">
 
 <!-- SIDEBAR -->
@@ -1622,6 +1703,16 @@ function setStatus(s){
 }
 
 // ══ NAVIGATION
+// ── Mobile menu
+function toggleMobMenu(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+  document.getElementById('mob-overlay').classList.toggle('open');
+}
+function closeMobMenu(){
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('mob-overlay').classList.remove('open');
+}
+
 function go(id){
   document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
@@ -1630,6 +1721,7 @@ function go(id){
   const tab=document.getElementById('tab-'+id);
   if(tab) tab.classList.add('on');
   document.getElementById('content').scrollTop=0;
+  closeMobMenu(); // fecha drawer ao navegar no mobile
 }
 
 // ══ EXPORT
