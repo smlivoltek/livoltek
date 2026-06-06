@@ -587,8 +587,12 @@ function parseEstoque(csv){
       wh = WH_NAMES[fl] || fl;
     }
     // Normalizar nomes conhecidos
-    if(wh.toLowerCase().includes('livoltek')||wh.toLowerCase().includes('fábrica')||wh.toLowerCase().includes('fabrica'))
+    const whL=wh.toLowerCase();
+    if(whL.includes('livoltek')||whL.includes('fábrica')||whL.includes('fabrica'))
       wh='Fábrica Livoltek';
+    else if(whL.includes('curitiba')) wh='Curitiba (Eletra)';
+    else if(whL.includes('fortaleza')) wh='Fortaleza (Eletra)';
+    else if(whL.includes('manaus')) wh='Manaus (Eletra)';
 
     const saldo   = pn(iSAL>=0 ? r[iSAL] : 0);
     const empenho = pn(iEMP>=0 ? r[iEMP] : 0);
@@ -1344,6 +1348,11 @@ async function boot(){
     }
   }
   if(!ST.length){showErr('Nenhum produto carregado. Verifique data/ESTOQUE.csv');return;}
+  // DEBUG: show Fábrica Livoltek items
+  const fabItems = ST.filter(r=>r.wh==='Fábrica Livoltek');
+  console.log('Fábrica items:', fabItems.length, '| sample cats:', [...new Set(fabItems.map(r=>r.familia))].join(', '));
+  const maoItems = ST.filter(r=>r.wh.includes('MAO')||r.wh.includes('mao'));
+  console.log('MAO items:', maoItems.length);
   // DEBUG: show first item
 
   applyReservas();
