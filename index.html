@@ -339,29 +339,67 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .dcat-val{font-family:'DM Mono',monospace;font-size:16px;font-weight:700;line-height:1}
 .dcat-detail{font-size:10px;color:var(--txtm);display:flex;gap:6px}
 
-/* ── RESERVAS: cards ── */
+/* ── RESERVAS COMERCIAIS ── */
+/* Banner informativo */
+.res-info-banner{display:flex;align-items:flex-start;gap:10px;padding:.875rem 1rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;font-size:12px;color:#1e40af;line-height:1.6;margin-bottom:.875rem}
+.res-info-banner i{font-size:16px;flex-shrink:0;margin-top:1px;color:#3b82f6}
+
+/* Painel de resumo */
+.res-sum-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+.res-sum-block{background:var(--surf);border:1px solid var(--brd);border-radius:10px;overflow:hidden}
+.res-sum-title{display:flex;align-items:center;gap:7px;padding:.625rem 1rem;font-size:11px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--brd);background:var(--bg)}
+
+/* Cards de armazém no resumo */
+.res-wh-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0}
+.res-wh-card{padding:.75rem 1rem;border-right:1px solid var(--brd);border-bottom:1px solid var(--brd)}
+.res-wh-card:nth-child(even){border-right:none}
+.res-wh-card:nth-last-child(-n+2){border-bottom:none}
+.res-wh-name{font-size:12px;font-weight:700;color:var(--txt)}
+.res-wh-sub{font-size:10px;color:var(--txtm);margin-bottom:.25rem}
+.res-wh-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;line-height:1}
+.res-wh-lbl{font-size:9px;color:var(--txtm);margin-top:2px;margin-bottom:6px}
+.res-wh-bar{height:4px;background:var(--brd);border-radius:3px;overflow:hidden}
+
+/* Maiores reservas por cliente */
+.res-top-list{padding:.5rem 0}
+.res-top-row{display:flex;align-items:center;gap:.75rem;padding:.4rem 1rem;border-bottom:1px solid var(--brd)}
+.res-top-row:last-child{border-bottom:none}
+.res-top-rank{font-size:10px;font-weight:700;color:var(--txtm);width:14px;text-align:center;flex-shrink:0}
+.res-top-cli{flex:1;font-size:13px;color:var(--txt);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.res-top-qtd{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--pur);flex-shrink:0}
+
+/* Cards de produto */
 .res-grid{display:flex;flex-direction:column;gap:.75rem;margin-top:.25rem}
 .rsc{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden}
 .rsc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:.875rem 1rem;border-bottom:1px solid var(--brd);background:var(--bg)}
 .rsc-prod-info{flex:1;min-width:0}
 .rsc-nom{font-size:13px;font-weight:700;color:var(--txt);line-height:1.35}
 .rsc-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm);margin-top:2px;display:flex;align-items:center;gap:8px}
-.rsc-totals{display:flex;flex-direction:column;align-items:flex-end;gap:.375rem;flex-shrink:0}
-.rsc-total-res{display:flex;flex-direction:column;align-items:flex-end}
-.rsc-total-lbl{font-size:9px;color:var(--txtm);text-transform:uppercase;letter-spacing:.04em}
-.rsc-total-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;line-height:1}
-.rsc-disp-tag{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;text-align:right}
-.rsc-rows{padding:.375rem 0}
+.rsc-whs-env{display:flex;flex-wrap:wrap;gap:4px}
+.rsc-totals{display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;flex-shrink:0}
+.rsc-kpi-lbl{font-size:9px;color:var(--txtm);text-transform:uppercase;letter-spacing:.04em}
+.rsc-kpi-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;line-height:1}
+.rsc-disp-tag{font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;text-align:right;margin-top:2px}
+
+/* Linhas de reserva dentro do card */
+.rsc-rows{padding:.25rem 0}
 .rsc-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem 1rem;border-bottom:1px solid var(--brd)}
 .rsc-row:last-child{border-bottom:none}
 .rsc-row-left{flex:1;min-width:0}
-.rsc-cliente{font-size:12px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rsc-meta{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:3px}
-.rsc-resp,.rsc-dir,.rsc-obs{font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
-.rsc-dir{background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:4px}
-.rsc-obs{max-width:200px}
+.rsc-cliente{font-size:13px;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rsc-meta{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:3px;align-items:center}
+.rsc-resp{font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:3px}
+.rsc-dir{font-size:10px;background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:4px}
+.rsc-obs{font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:3px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rsc-row-right{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
-.rsc-qtd{font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--pur)}
+.rsc-qtd{font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:var(--pur)}
+
+@media(max-width:700px){
+  .res-sum-grid{grid-template-columns:1fr}
+  .res-wh-grid{grid-template-columns:1fr 1fr}
+  .rsc-header{flex-direction:column;gap:.75rem}
+  .rsc-totals{flex-direction:row;align-items:center;justify-content:space-between;width:100%}
+}
 </style>
 </head>
 <body>
@@ -568,12 +606,22 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <!-- ══ RESERVAS COMERCIAIS ══ -->
 <div id="tab-res" class="tab">
-  <div class="fb">
-    <div class="sbar" style="flex:1;min-width:180px"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código, produto, responsável..." oninput="rRes()" autocomplete="off"></div>
+  <!-- Banner informativo -->
+  <div class="res-info-banner">
+    <i class="ti ti-info-circle"></i>
+    As Reservas Comerciais representam quantidades previamente planejadas e comprometidas pelas equipes comerciais.
+    Caso exista necessidade de negociação de estoque, esta tela permite identificar rapidamente o responsável pela reserva e o cliente associado.
+  </div>
+  <!-- Filtros -->
+  <div class="fb" style="margin-bottom:.625rem">
+    <div class="sbar" style="flex:1;min-width:180px"><i class="ti ti-search"></i><input id="res-q" placeholder="Produto, cliente, código, responsável..." oninput="rRes()" autocomplete="off"></div>
     <select class="sel" id="res-dir" onchange="rRes()"><option value="">Todas as diretorias</option></select>
     <select class="sel" id="res-arm" onchange="rRes()"><option value="">Todos os armazéns</option><option value="Curitiba">Curitiba</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option><option value="Fábrica">Fábrica</option></select>
   </div>
-  <div class="all-cnt-bar"><span id="res-cnt">0</span> reservas · <span id="res-prod-cnt">0</span> produtos</div>
+  <!-- Painéis de resumo: por armazém + maiores reservas -->
+  <div id="res-summary"></div>
+  <!-- Cards de produto -->
+  <div class="all-cnt-bar"><span id="res-prod-cnt">0</span> produtos · <span id="res-cnt">0</span> reservas comprometidas</div>
   <div id="res-cards" class="res-grid"></div>
 </div>
 
@@ -1273,6 +1321,7 @@ function rRes(){
   const q=(document.getElementById('res-q')?.value||'').toLowerCase();
   const dir=document.getElementById('res-dir')?.value||'';
   const arm=document.getElementById('res-arm')?.value||'';
+  const isFiltered = q||dir||arm;
 
   const rows=RES.filter(r=>{
     const stNom=(ST.find(s=>s.codigo===r.codigo)?.nomenclatura||'').toLowerCase();
@@ -1287,21 +1336,67 @@ function rRes(){
     return mq&&md&&ma;
   });
 
-  // Agrupar por código de produto
+  // ── Agrupar por produto
   const byCode={};
   rows.forEach(r=>{
-    if(!byCode[r.codigo]) byCode[r.codigo]={codigo:r.codigo,reservas:[],totalQtd:0};
+    if(!byCode[r.codigo]) byCode[r.codigo]={codigo:r.codigo,reservas:[],totalQtd:0,whs:new Set()};
     byCode[r.codigo].reservas.push(r);
     byCode[r.codigo].totalQtd+=r.qtd;
+    if(r.wh) byCode[r.codigo].whs.add(r.wh);
   });
   const grupos=Object.values(byCode).sort((a,b)=>b.totalQtd-a.totalQtd);
 
   document.getElementById('res-cnt').textContent=rows.length;
   document.getElementById('res-prod-cnt').textContent=grupos.length;
 
+  // ── Painel de resumo (só quando sem filtro ativo)
+  const sumEl=document.getElementById('res-summary');
+  if(!isFiltered){
+    // Por armazém
+    const totalGeral=RES.reduce((a,r)=>a+r.qtd,0);
+    const whSums=WH_LIST.map(w=>({w, qtd:RES.filter(r=>r.wh===w).reduce((a,r)=>a+r.qtd,0)}));
+    const whCards=whSums.map(ws=>{
+      const pct=totalGeral>0?Math.round(ws.qtd/totalGeral*100):0;
+      const col=WH_COLOR[ws.w]||'#64748b';
+      return`<div class="res-wh-card">
+        <div class="res-wh-name">${ws.w.split(' ')[0]}</div>
+        <div class="res-wh-sub">${ws.w.replace(/\s*\(.*\)/,'')}</div>
+        <div class="res-wh-val" style="color:${ws.qtd>0?'var(--pur)':'var(--txtm)'}">${fmt(ws.qtd)}</div>
+        <div class="res-wh-lbl">unidades comprometidas</div>
+        <div class="res-wh-bar"><div style="width:${pct}%;background:${col};height:100%;border-radius:3px;transition:width .4s"></div></div>
+      </div>`;
+    }).join('');
+
+    // Maiores reservas por cliente
+    const byCli={};
+    RES.forEach(r=>{if(r.cliente){byCli[r.cliente]=(byCli[r.cliente]||0)+r.qtd;}});
+    const topCli=Object.entries(byCli).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const topRows=topCli.map(([cli,qtd],i)=>`
+      <div class="res-top-row">
+        <span class="res-top-rank">${i+1}</span>
+        <span class="res-top-cli">${cli}</span>
+        <span class="res-top-qtd">${fmt(qtd)} <span style="font-size:10px;font-weight:400;opacity:.7">un.</span></span>
+      </div>`).join('');
+
+    sumEl.innerHTML=`
+      <div class="res-sum-grid">
+        <div class="res-sum-block">
+          <div class="res-sum-title"><i class="ti ti-building-warehouse"></i> Compromisso por Armazém</div>
+          <div class="res-wh-grid">${whCards}</div>
+        </div>
+        <div class="res-sum-block">
+          <div class="res-sum-title"><i class="ti ti-trophy"></i> Maiores Reservas por Cliente</div>
+          <div class="res-top-list">${topRows}</div>
+        </div>
+      </div>`;
+  } else {
+    sumEl.innerHTML='';
+  }
+
+  // ── Cards de produto
   const el=document.getElementById('res-cards');
   if(!grupos.length){
-    el.innerHTML=`<div class="all-mob-empty"><i class="ti ti-bookmark-off"></i><div>Nenhuma reserva encontrada</div></div>`;
+    el.innerHTML=`<div class="all-mob-empty" style="color:var(--txtm)"><i class="ti ti-bookmark-off"></i><div>Nenhuma reserva encontrada</div></div>`;
     return;
   }
 
@@ -1309,43 +1404,57 @@ function rRes(){
     const st=ST.find(s=>s.codigo===g.codigo);
     const nom=st?.nomenclatura||st?.descricao||g.codigo;
     const familia=st?.familia||'';
-    // Saldo disponível total do produto
     const dispTotal=dedup(ST.filter(s=>s.codigo===g.codigo)).reduce((a,r)=>a+r._disp,0);
-    const dispCol=dispTotal>g.totalQtd?'var(--grn-d)':dispTotal>0?'var(--amb-d)':'var(--red)';
-    const dispLabel=dispTotal>g.totalQtd?'Cobre a reserva':dispTotal>0?'Cobre parcialmente':'Sem estoque';
-    const dispBg=dispTotal>g.totalQtd?'var(--grn-pale)':dispTotal>0?'var(--amb-pale)':'var(--red-pale)';
 
-    // Linhas de reserva individuais
-    const resRows=g.reservas.map(r=>{
-      const w=r.wh||'—';
-      const wColor=WH_COLOR[w]||'#64748b';
-      return`<div class="rsc-row">
-        <div class="rsc-row-left">
-          <div class="rsc-cliente">${r.cliente||'—'}</div>
-          <div class="rsc-meta">
-            ${r.responsavel?`<span class="rsc-resp"><i class="ti ti-user"></i> ${r.responsavel}</span>`:''}
-            ${r.diretoria?`<span class="rsc-dir">${r.diretoria}</span>`:''}
-            ${r.obs?`<span class="rsc-obs" title="${r.obs}"><i class="ti ti-message"></i> ${r.obs}</span>`:''}
+    // Status de cobertura — linguagem comercial, sem alarme
+    const cobre=dispTotal>=g.totalQtd;
+    const parcial=dispTotal>0&&dispTotal<g.totalQtd;
+    const dispLabel=cobre?'Cobre o compromisso':parcial?'Cobertura parcial':'Sem disponível';
+    const dispCol=cobre?'var(--grn-d)':parcial?'#b45309':'#64748b';
+    const dispBg=cobre?'var(--grn-pale)':parcial?'var(--amb-pale)':'#f1f5f9';
+
+    // Armazéns envolvidos
+    const whsEnv=[...g.whs].map(w=>`<span class="wt" style="color:${WH_COLOR[w]||'#64748b'};background:${WH_COLOR[w]||'#64748b'}1a;font-size:9px">${w.split(' ')[0]}</span>`).join(' ');
+
+    // Tabela de clientes: linha por reserva
+    const resRows=g.reservas
+      .sort((a,b)=>b.qtd-a.qtd)
+      .map(r=>{
+        const w=r.wh||'—';
+        const wColor=WH_COLOR[w]||'#64748b';
+        return`<div class="rsc-row">
+          <div class="rsc-row-left">
+            <div class="rsc-cliente">${r.cliente||'—'}</div>
+            <div class="rsc-meta">
+              ${r.responsavel?`<span class="rsc-resp"><i class="ti ti-user"></i>${r.responsavel}</span>`:''}
+              ${r.diretoria?`<span class="rsc-dir">${r.diretoria}</span>`:''}
+              ${r.obs?`<span class="rsc-obs" title="${r.obs}"><i class="ti ti-message"></i>${r.obs.length>30?r.obs.slice(0,30)+'…':r.obs}</span>`:''}
+            </div>
           </div>
-        </div>
-        <div class="rsc-row-right">
-          <span class="wt" style="color:${wColor};background:${wColor}1a;font-size:10px">${w.split(' ')[0]}</span>
-          <span class="rsc-qtd">${fmt(r.qtd)}</span>
-        </div>
-      </div>`;
-    }).join('');
+          <div class="rsc-row-right">
+            <span class="wt" style="color:${wColor};background:${wColor}1a;font-size:9px">${w.split(' ')[0]}</span>
+            <span class="rsc-qtd">${fmt(r.qtd)}</span>
+          </div>
+        </div>`;
+      }).join('');
 
     return`<div class="rsc">
       <div class="rsc-header">
         <div class="rsc-prod-info">
           <div class="rsc-nom">${nom}</div>
           <div class="rsc-code">${g.codigo}<span class="amc-fam">${familia}</span></div>
+          <div class="rsc-whs-env" style="margin-top:5px">${whsEnv}</div>
         </div>
         <div class="rsc-totals">
-          <div class="rsc-total-res"><span class="rsc-total-lbl">Total Reservado</span><span class="rsc-total-val" style="color:var(--pur)">${fmt(g.totalQtd)}</span></div>
-          <div class="rsc-disp-tag" style="color:${dispCol};background:${dispBg}">
-            ${fmt(dispTotal)} disp. <span style="font-size:9px;opacity:.8">${dispLabel}</span>
+          <div style="text-align:right">
+            <div class="rsc-kpi-lbl">Comprometido</div>
+            <div class="rsc-kpi-val" style="color:var(--pur)">${fmt(g.totalQtd)}</div>
           </div>
+          <div style="text-align:right">
+            <div class="rsc-kpi-lbl">Disponível</div>
+            <div class="rsc-kpi-val" style="color:${dispCol}">${fmt(dispTotal)}</div>
+          </div>
+          <div class="rsc-disp-tag" style="color:${dispCol};background:${dispBg}">${dispLabel}</div>
         </div>
       </div>
       <div class="rsc-rows">${resRows}</div>
