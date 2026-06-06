@@ -1348,11 +1348,6 @@ async function boot(){
     }
   }
   if(!ST.length){showErr('Nenhum produto carregado. Verifique data/ESTOQUE.csv');return;}
-  // DEBUG: show Fábrica Livoltek items
-  const fabItems = ST.filter(r=>r.wh==='Fábrica Livoltek');
-  console.log('Fábrica items:', fabItems.length, '| sample cats:', [...new Set(fabItems.map(r=>r.familia))].join(', '));
-  const maoItems = ST.filter(r=>r.wh.includes('MAO')||r.wh.includes('mao'));
-  console.log('MAO items:', maoItems.length);
   // DEBUG: show first item
 
   applyReservas();
