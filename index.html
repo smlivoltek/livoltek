@@ -205,6 +205,26 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 @media(max-width:1100px){.wh-grid{grid-template-columns:repeat(2,1fr)}.tops-grid,.tops-grid.tri{grid-template-columns:1fr 1fr}.k4{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.sb{display:none}.wh-grid{grid-template-columns:1fr 1fr}.cgrid{grid-template-columns:1fr}}
+
+/* ── Estoque por Categoria ── */
+.dcat-wrap{background:var(--surf);border:1px solid var(--brd);border-radius:var(--rl);margin-bottom:1.25rem;overflow:hidden}
+.dcat-title{display:flex;align-items:center;gap:8px;padding:.75rem 1.25rem;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--txtm);text-transform:uppercase;border-bottom:1px solid var(--brd);background:var(--bg)}
+.dcat-total{margin-left:auto;font-size:13px;font-weight:400;color:var(--txt);letter-spacing:0}
+.dcat-total strong{font-family:'DM Mono',monospace;font-size:15px;color:var(--pri)}
+.dcat-body{padding:.25rem 0}
+.dcat-row{display:grid;grid-template-columns:200px 1fr 160px;align-items:center;gap:16px;padding:.55rem 1.25rem;cursor:pointer;transition:background .12s;border-bottom:1px solid var(--brd)}
+.dcat-row:last-child{border-bottom:none}
+.dcat-row:hover{background:var(--bg)}
+.dcat-left{display:flex;align-items:center;gap:8px;min-width:0}
+.dcat-ico{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.dcat-lbl{font-size:13px;font-weight:600;color:var(--txt);white-space:nowrap}
+.dcat-skus{font-size:10px;color:var(--txtm);white-space:nowrap;margin-left:4px}
+.dcat-center{min-width:0}
+.dcat-bar-track{height:6px;background:var(--brd);border-radius:3px;overflow:hidden}
+.dcat-bar-fill{height:100%;border-radius:3px;transition:width .4s ease}
+.dcat-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.dcat-val{font-family:'DM Mono',monospace;font-size:16px;font-weight:700;line-height:1}
+.dcat-detail{font-size:10px;color:var(--txtm);display:flex;gap:6px}
 </style>
 </head>
 <body>
@@ -294,8 +314,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <!-- ══ DASHBOARD ══ -->
 <div id="tab-dash" class="tab on">
-  <!-- KPIs superiores: GT1, GT3, Produtos, SKUs -->
-  <div class="krow k4" id="dash-kpis"></div>
+  <!-- Estoque Disponível por Categoria -->
+  <div id="dash-cat-block"></div>
   <!-- Armazéns -->
   <div class="wh-grid" id="wh-cards"></div>
   <!-- Top 10 tables -->
@@ -919,45 +939,63 @@ function rAll(){
 
 // ══ DASHBOARD
 function rDash(){
-  const prod=dedup(ST.filter(r=>!r.isMP));
+  // ── Categorias para o bloco superior
+  const CAT_DEFS = [
+    {tab:'inv',    label:'Inversores',       ico:'ti-solar-panel',        col:'var(--pri)',    bg:'var(--pri-pale)'},
+    {tab:'ev',     label:'Carregadores EV',  ico:'ti-car',                col:'var(--grn-d)',  bg:'var(--grn-pale)'},
+    {tab:'bess',   label:'BESS / Baterias',  ico:'ti-battery-charging',   col:'var(--amb-d)',  bg:'var(--amb-pale)'},
+    {tab:'kit',    label:'Kit Solar',        ico:'ti-sun',                col:'#d97706',       bg:'#fef3c7'},
+    {tab:'strbox', label:'String Box',       ico:'ti-plug-connected',     col:'var(--blu)',    bg:'#dbeafe'},
+    {tab:'div',    label:'Diversos',         ico:'ti-apps',               col:'#7c3aed',       bg:'#ede9fe'},
+    {tab:'mp',     label:'Matéria-Prima',    ico:'ti-building-factory-2', col:'var(--red)',    bg:'var(--red-pale)'},
+  ];
 
-  // GT1 / GT3 KPI cards
-  const gt1=prod.filter(r=>(r.familia||'').toUpperCase().includes('GT1')||(r.nomenclatura||'').toUpperCase().includes('GT1'));
-  const gt3=prod.filter(r=>(r.familia||'').toUpperCase().includes('GT3')||(r.nomenclatura||'').toUpperCase().includes('GT3'));
-  const gt1Disp=gt1.reduce((a,r)=>a+r._disp,0);
-  const gt3Disp=gt3.reduce((a,r)=>a+r._disp,0);
-  const totalDisp=prod.reduce((a,r)=>a+r._disp,0);
-  const totalSKU=prod.length;
+  // Calcular disp por categoria: saldo - empenho - reserva (já em r.disp por linha)
+  const catData = CAT_DEFS.map(def => {
+    const rows = ST.filter(r => getCatTab(r) === def.tab);
+    const disp = rows.reduce((a,r) => a + r.disp, 0);
+    const sal  = rows.reduce((a,r) => a + r.saldo, 0);
+    const emp  = rows.reduce((a,r) => a + r.empenho, 0);
+    const res  = rows.reduce((a,r) => a + r.reserva, 0);
+    const skus = new Set(rows.map(r => r.codigo)).size;
+    return {...def, disp, sal, emp, res, skus};
+  });
 
-  document.getElementById('dash-kpis').innerHTML=`
-    <div class="kpi kb">
-      <div class="ki"><i class="ti ti-packages"></i></div>
-      <div class="kl">Total Disponível</div>
-      <div class="kv">${fmt(totalDisp)}</div>
-      <div class="ks">disponível para venda</div>
-    </div>
-    <div class="kpi kb">
-      <div class="ki"><i class="ti ti-list"></i></div>
-      <div class="kl">Total de SKUs</div>
-      <div class="kv">${totalSKU}</div>
-      <div class="ks">produtos ativos</div>
-    </div>
-    <div class="kpi kp">
-      <div class="ki"><i class="ti ti-bookmark"></i></div>
-      <div class="kl">Total Reservado</div>
-      <div class="kv">${fmt(RES.reduce((a,r)=>a+r.qtd,0))}</div>
-      <div class="ks">comprometido</div>
-    </div>
-    <div class="kpi ka">
-      <div class="ki"><i class="ti ti-lock"></i></div>
-      <div class="kl">Em Separação</div>
-      <div class="kv">${fmt(prod.reduce((a,r)=>a+r._emp,0))}</div>
-      <div class="ks">pedidos lançados</div>
+  const totalDisp = catData.reduce((a,c) => a + c.disp, 0);
+
+  // Bloco: título + barra de proporção + linha por categoria
+  const catRows = catData.map(c => {
+    const pct = totalDisp > 0 ? Math.round(c.disp / totalDisp * 100) : 0;
+    const dispCol = c.disp > 0 ? c.col : 'var(--txtm)';
+    return `<div class="dcat-row" onclick="go('${c.tab}')">
+      <div class="dcat-left">
+        <span class="dcat-ico" style="background:${c.bg};color:${c.col}"><i class="ti ${c.ico}"></i></span>
+        <span class="dcat-lbl">${c.label}</span>
+        <span class="dcat-skus">${c.skus} SKUs</span>
+      </div>
+      <div class="dcat-center">
+        <div class="dcat-bar-track"><div class="dcat-bar-fill" style="width:${pct}%;background:${c.col}"></div></div>
+      </div>
+      <div class="dcat-right">
+        <span class="dcat-val" style="color:${dispCol}">${fmt(c.disp)}</span>
+        <span class="dcat-detail">${c.emp>0?`<span style="color:var(--amb-d)">−${fmt(c.emp)} sep.</span> `:''} ${c.res>0?`<span style="color:var(--pur)">−${fmt(c.res)} res.</span>`:''}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('dash-cat-block').innerHTML = `
+    <div class="dcat-wrap">
+      <div class="dcat-title">
+        <i class="ti ti-chart-bar" style="color:var(--pri)"></i>
+        ESTOQUE DISPONÍVEL POR CATEGORIA
+        <span class="dcat-total">Total: <strong>${fmt(totalDisp)}</strong></span>
+      </div>
+      <div class="dcat-body">${catRows}</div>
     </div>`;
 
   // Warehouse cards
   document.getElementById('wh-cards').innerHTML=WH_LIST.map(w=>{
-    const it=ST.filter(r=>r.wh===w&&!r.isMP);
+    const it=ST.filter(r=>r.wh===w);
     const wDisp=it.reduce((a,r)=>a+r.disp,0);
     const wSal=it.reduce((a,r)=>a+r.saldo,0);
     const wSKU=[...new Set(it.map(r=>r.codigo))].length;
@@ -1003,7 +1041,6 @@ function rDash(){
 let dashGtFilter='', dashWhFilter='';
 function filterDash(gt, btn){
   dashGtFilter=dashGtFilter===gt?'':gt;
-  document.querySelectorAll('#dash-kpis .kpi.clickable').forEach(k=>k.classList.remove('on'));
   if(dashGtFilter) btn.classList.add('on');
   // Navigate to inversores tab with filter
   if(dashGtFilter){
