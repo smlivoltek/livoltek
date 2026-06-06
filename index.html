@@ -338,6 +338,30 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .dcat-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px}
 .dcat-val{font-family:'DM Mono',monospace;font-size:16px;font-weight:700;line-height:1}
 .dcat-detail{font-size:10px;color:var(--txtm);display:flex;gap:6px}
+
+/* ── RESERVAS: cards ── */
+.res-grid{display:flex;flex-direction:column;gap:.75rem;margin-top:.25rem}
+.rsc{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden}
+.rsc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:.875rem 1rem;border-bottom:1px solid var(--brd);background:var(--bg)}
+.rsc-prod-info{flex:1;min-width:0}
+.rsc-nom{font-size:13px;font-weight:700;color:var(--txt);line-height:1.35}
+.rsc-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm);margin-top:2px;display:flex;align-items:center;gap:8px}
+.rsc-totals{display:flex;flex-direction:column;align-items:flex-end;gap:.375rem;flex-shrink:0}
+.rsc-total-res{display:flex;flex-direction:column;align-items:flex-end}
+.rsc-total-lbl{font-size:9px;color:var(--txtm);text-transform:uppercase;letter-spacing:.04em}
+.rsc-total-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;line-height:1}
+.rsc-disp-tag{font-family:'DM Mono',monospace;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;text-align:right}
+.rsc-rows{padding:.375rem 0}
+.rsc-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem 1rem;border-bottom:1px solid var(--brd)}
+.rsc-row:last-child{border-bottom:none}
+.rsc-row-left{flex:1;min-width:0}
+.rsc-cliente{font-size:12px;font-weight:600;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rsc-meta{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:3px}
+.rsc-resp,.rsc-dir,.rsc-obs{font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
+.rsc-dir{background:#e0f2fe;color:#0369a1;padding:1px 6px;border-radius:4px}
+.rsc-obs{max-width:200px}
+.rsc-row-right{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.rsc-qtd{font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--pur)}
 </style>
 </head>
 <body>
@@ -545,14 +569,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 <!-- ══ RESERVAS COMERCIAIS ══ -->
 <div id="tab-res" class="tab">
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código, responsável..." oninput="rRes()"></div>
+    <div class="sbar" style="flex:1;min-width:180px"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código, produto, responsável..." oninput="rRes()" autocomplete="off"></div>
     <select class="sel" id="res-dir" onchange="rRes()"><option value="">Todas as diretorias</option></select>
     <select class="sel" id="res-arm" onchange="rRes()"><option value="">Todos os armazéns</option><option value="Curitiba">Curitiba</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option><option value="Fábrica">Fábrica</option></select>
   </div>
-  <div class="tcard"><div class="tw"><table class="tbl">
-    <thead><tr><th>Cliente</th><th>Nomenclatura</th><th>Código</th><th class="r">Reserva</th><th>Armazém</th><th>Diretoria</th><th>Responsável</th><th>Observação</th></tr></thead>
-    <tbody id="res-tbl"></tbody>
-  </table></div><div class="tc-foot"><span id="res-cnt">0</span> registros</div></div>
+  <div class="all-cnt-bar"><span id="res-cnt">0</span> reservas · <span id="res-prod-cnt">0</span> produtos</div>
+  <div id="res-cards" class="res-grid"></div>
 </div>
 
 <!-- ══ OPORTUNIDADES & ATENÇÃO ══ -->
@@ -1251,31 +1273,84 @@ function rRes(){
   const q=(document.getElementById('res-q')?.value||'').toLowerCase();
   const dir=document.getElementById('res-dir')?.value||'';
   const arm=document.getElementById('res-arm')?.value||'';
+
   const rows=RES.filter(r=>{
-    const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||(r.nome||'').toLowerCase().includes(q)||(r.responsavel||'').toLowerCase().includes(q);
+    const stNom=(ST.find(s=>s.codigo===r.codigo)?.nomenclatura||'').toLowerCase();
+    const mq=!q
+      ||r.cliente.toLowerCase().includes(q)
+      ||r.codigo.toLowerCase().includes(q)
+      ||stNom.includes(q)
+      ||(r.responsavel||'').toLowerCase().includes(q)
+      ||(r.obs||'').toLowerCase().includes(q);
     const md=!dir||r.diretoria===dir;
     const ma=!arm||(r.wh||'').toLowerCase().includes(arm.toLowerCase());
     return mq&&md&&ma;
   });
 
-  // Main table
-  document.getElementById('res-tbl').innerHTML=rows.map(r=>{
-    const st=ST.find(s=>s.codigo===r.codigo);
-    const nom=tr(st?.nomenclatura||st?.descricao||r.codigo,42);
-    const w=r.wh||'—';
-    const wShort=w.split(' ')[0];
-    return`<tr>
-      <td style="font-weight:500;font-size:12px">${r.cliente}</td>
-      <td style="font-size:12px">${nom}</td>
-      <td class="mono">${r.codigo}</td>
-      <td class="r" style="font-weight:700;color:var(--pur)">${fmt(r.qtd)}</td>
-      <td style="font-size:11px"><span class="wt" style="color:${WH_COLOR[w]||'#888'};background:${WH_COLOR[w]||'#888'}1a">${wShort}</span></td>
-      <td style="font-size:11px;color:var(--txt2)">${r.diretoria||'—'}</td>
-      <td style="font-size:11px;color:var(--txt2)">${r.responsavel||'—'}</td>
-      <td style="font-size:10px;color:var(--txtm)">${r.obs||'—'}</td>
-    </tr>`;
-  }).join('');
+  // Agrupar por código de produto
+  const byCode={};
+  rows.forEach(r=>{
+    if(!byCode[r.codigo]) byCode[r.codigo]={codigo:r.codigo,reservas:[],totalQtd:0};
+    byCode[r.codigo].reservas.push(r);
+    byCode[r.codigo].totalQtd+=r.qtd;
+  });
+  const grupos=Object.values(byCode).sort((a,b)=>b.totalQtd-a.totalQtd);
+
   document.getElementById('res-cnt').textContent=rows.length;
+  document.getElementById('res-prod-cnt').textContent=grupos.length;
+
+  const el=document.getElementById('res-cards');
+  if(!grupos.length){
+    el.innerHTML=`<div class="all-mob-empty"><i class="ti ti-bookmark-off"></i><div>Nenhuma reserva encontrada</div></div>`;
+    return;
+  }
+
+  el.innerHTML=grupos.map(g=>{
+    const st=ST.find(s=>s.codigo===g.codigo);
+    const nom=st?.nomenclatura||st?.descricao||g.codigo;
+    const familia=st?.familia||'';
+    // Saldo disponível total do produto
+    const dispTotal=dedup(ST.filter(s=>s.codigo===g.codigo)).reduce((a,r)=>a+r._disp,0);
+    const dispCol=dispTotal>g.totalQtd?'var(--grn-d)':dispTotal>0?'var(--amb-d)':'var(--red)';
+    const dispLabel=dispTotal>g.totalQtd?'Cobre a reserva':dispTotal>0?'Cobre parcialmente':'Sem estoque';
+    const dispBg=dispTotal>g.totalQtd?'var(--grn-pale)':dispTotal>0?'var(--amb-pale)':'var(--red-pale)';
+
+    // Linhas de reserva individuais
+    const resRows=g.reservas.map(r=>{
+      const w=r.wh||'—';
+      const wColor=WH_COLOR[w]||'#64748b';
+      return`<div class="rsc-row">
+        <div class="rsc-row-left">
+          <div class="rsc-cliente">${r.cliente||'—'}</div>
+          <div class="rsc-meta">
+            ${r.responsavel?`<span class="rsc-resp"><i class="ti ti-user"></i> ${r.responsavel}</span>`:''}
+            ${r.diretoria?`<span class="rsc-dir">${r.diretoria}</span>`:''}
+            ${r.obs?`<span class="rsc-obs" title="${r.obs}"><i class="ti ti-message"></i> ${r.obs}</span>`:''}
+          </div>
+        </div>
+        <div class="rsc-row-right">
+          <span class="wt" style="color:${wColor};background:${wColor}1a;font-size:10px">${w.split(' ')[0]}</span>
+          <span class="rsc-qtd">${fmt(r.qtd)}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    return`<div class="rsc">
+      <div class="rsc-header">
+        <div class="rsc-prod-info">
+          <div class="rsc-nom">${nom}</div>
+          <div class="rsc-code">${g.codigo}<span class="amc-fam">${familia}</span></div>
+        </div>
+        <div class="rsc-totals">
+          <div class="rsc-total-res"><span class="rsc-total-lbl">Total Reservado</span><span class="rsc-total-val" style="color:var(--pur)">${fmt(g.totalQtd)}</span></div>
+          <div class="rsc-disp-tag" style="color:${dispCol};background:${dispBg}">
+            ${fmt(dispTotal)} disp. <span style="font-size:9px;opacity:.8">${dispLabel}</span>
+          </div>
+        </div>
+      </div>
+      <div class="rsc-rows">${resRows}</div>
+    </div>`;
+  }).join('');
 }
 
 // ══ ALERTAS
