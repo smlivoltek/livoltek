@@ -1094,148 +1094,154 @@ function populateSelects(){
 function rAudit(){
   const el=document.getElementById('audit-content');
   if(!el) return;
-  const idx=window._AUDIT_IDX||{};
   const N=n=>Math.round(n).toLocaleString('pt-BR');
 
-  // 1. Índices das colunas encontradas
-  const idxTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px">
-    <tr style="background:#1E3A5F;color:#fff"><th colspan="2" style="padding:6px 10px;text-align:left;font-size:13px">1. ÍNDICES DE COLUNAS ENCONTRADOS</th></tr>
-    ${Object.entries(idx).map(([k,v])=>`<tr style="border-bottom:1px solid #e2e8f0">
-      <td style="padding:4px 10px;color:#475569">${k}</td>
-      <td style="padding:4px 10px;font-weight:700;color:${v===-1?'#dc2626':'#15803d'}">${v===-1?'NÃO ENCONTRADO':'Coluna '+v}</td>
-    </tr>`).join('')}
-  </table>`;
+  // ── Totais gerais
+  const totalReg = ST.length;
+  const totalSKU = new Set(ST.map(r=>r.codigo)).size;
+  const sumSal   = ST.reduce((a,r)=>a+r.saldo,0);
+  const sumEmp   = ST.reduce((a,r)=>a+r.empenho,0);
+  const sumRes   = RES.reduce((a,r)=>a+r.qtd,0);
+  const sumDisp  = ST.reduce((a,r)=>a+r.disp,0);
 
-  // 2. Totais brutos
-  const totalRaw = _rawEstoqueRows;
-  const totalLoaded = ST.length;
-  const totalRes = RES.length;
-  const skusUnicos = new Set(ST.map(r=>r.codigo)).size;
-  const sumSal = ST.reduce((a,r)=>a+r.saldo,0);
-  const sumEmp = ST.reduce((a,r)=>a+r.empenho,0);
-  const sumRes = RES.reduce((a,r)=>a+r.qtd,0);
-  const sumDisp= ST.reduce((a,r)=>a+r.disp,0);
+  // ── Por armazém
+  const whData = WH_LIST.map(w=>{
+    const items = ST.filter(r=>r.wh===w);
+    const skus  = new Set(items.map(r=>r.codigo)).size;
+    const sal   = items.reduce((a,r)=>a+r.saldo,0);
+    const emp   = items.reduce((a,r)=>a+r.empenho,0);
+    const res   = items.reduce((a,r)=>a+r.reserva,0);
+    const disp  = items.reduce((a,r)=>a+r.disp,0);
+    return {w, recs:items.length, skus, sal, emp, res, disp};
+  });
 
-  const totTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px">
-    <tr style="background:#1E3A5F;color:#fff"><th colspan="2" style="padding:6px 10px;text-align:left;font-size:13px">2. TOTAIS GERAIS</th></tr>
-    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">Linhas brutas no CSV (sem header)</td><td style="padding:4px 10px;font-weight:700">${N(totalRaw)}</td></tr>
-    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">Registros carregados (após filtro ARMZ=7)</td><td style="padding:4px 10px;font-weight:700">${N(totalLoaded)}</td></tr>
-    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">Registros filtrados/descartados</td><td style="padding:4px 10px;font-weight:700;color:#dc2626">${N(totalRaw-totalLoaded)}</td></tr>
-    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">SKUs únicos (código distinto)</td><td style="padding:4px 10px;font-weight:700">${N(skusUnicos)}</td></tr>
-    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px">Registros de Reservas carregados</td><td style="padding:4px 10px;font-weight:700">${N(totalRes)}</td></tr>
-    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px;font-weight:600">SALDO TOTAL (soma SALDO EM ESTOQUE)</td><td style="padding:4px 10px;font-weight:700;color:#1E3A5F">${N(sumSal)}</td></tr>
-    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px;font-weight:600">EM SEPARAÇÃO TOTAL</td><td style="padding:4px 10px;font-weight:700;color:#b45309">${N(sumEmp)}</td></tr>
-    <tr style="border-bottom:1px solid #e2e8f0"><td style="padding:4px 10px;font-weight:600">RESERVAS TOTAL (soma Qtdade)</td><td style="padding:4px 10px;font-weight:700;color:#7c3aed">${N(sumRes)}</td></tr>
-    <tr><td style="padding:4px 10px;font-weight:600">DISPONÍVEL TOTAL (saldo−emp−reserva)</td><td style="padding:4px 10px;font-weight:700;color:#15803d">${N(sumDisp)}</td></tr>
-  </table>`;
+  const s = (v,ref)=>{
+    if(ref===null) return '';
+    const ok=Math.round(v)===Math.round(ref);
+    return ok
+      ? `<span style="color:#15803d;font-weight:700">✅ ${N(v)}</span>`
+      : `<span style="color:#dc2626;font-weight:700">❌ ${N(v)}</span>`;
+  };
 
-  // 3. Por armazém
-  const whRows=WH_LIST.map(w=>{
-    const items=ST.filter(r=>r.wh===w);
-    const recs=items.length;
-    const skus=new Set(items.map(r=>r.codigo)).size;
-    const sal=items.reduce((a,r)=>a+r.saldo,0);
-    const emp=items.reduce((a,r)=>a+r.empenho,0);
-    const res=items.reduce((a,r)=>a+r.reserva,0);
-    const disp=items.reduce((a,r)=>a+r.disp,0);
-    const resRaw=RES.filter(r=>r.wh===w).reduce((a,r)=>a+r.qtd,0);
-    return`<tr style="border-bottom:1px solid #e2e8f0">
-      <td style="padding:4px 10px;font-weight:600">${w}</td>
-      <td style="padding:4px 10px;text-align:right">${N(recs)}</td>
-      <td style="padding:4px 10px;text-align:right">${N(skus)}</td>
-      <td style="padding:4px 10px;text-align:right;font-weight:700;color:#1E3A5F">${N(sal)}</td>
-      <td style="padding:4px 10px;text-align:right;color:#b45309">${N(emp)}</td>
-      <td style="padding:4px 10px;text-align:right;color:#7c3aed">${N(res)}</td>
-      <td style="padding:4px 10px;text-align:right;color:#7c3aed;font-style:italic;font-size:10px">(raw: ${N(resRaw)})</td>
-      <td style="padding:4px 10px;text-align:right;font-weight:700;color:#15803d">${N(disp)}</td>
+  // ── 1. Resumo Geral
+  const resumo=`
+  <div style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:#1E3A5F;padding:8px 12px;background:#e8eef6;border-radius:8px 8px 0 0;border:1px solid #c7d7ed">RESUMO GERAL</div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-top:none">
+      <tr style="background:#f8fafc"><th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Indicador</th><th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Dashboard</th></tr>
+      <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 12px;font-size:13px">Estoque Total</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:14px">${N(sumSal)}</td></tr>
+      <tr style="border-top:1px solid #f1f5f9;background:#fafbfc"><td style="padding:7px 12px;font-size:13px">Reserva Total</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:14px;color:#7c3aed">${N(sumRes)}</td></tr>
+      <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 12px;font-size:13px">Em Separação</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:14px;color:#b45309">${N(sumEmp)}</td></tr>
+      <tr style="border-top:1px solid #f1f5f9;background:#fafbfc"><td style="padding:7px 12px;font-size:13px;font-weight:700">Disponível para Venda</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:16px;color:#15803d">${N(sumDisp)}</td></tr>
+      <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 12px;font-size:13px">Registros Carregados</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px">${N(totalReg)}</td></tr>
+      <tr style="border-top:1px solid #f1f5f9;background:#fafbfc"><td style="padding:7px 12px;font-size:13px">SKUs Únicos (códigos distintos)</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px">${N(totalSKU)}</td></tr>
+    </table>
+  </div>`;
+
+  // ── 2. Conferência por Armazém
+  const confRows = whData.map(d=>`
+    <tr style="border-top:1px solid #f1f5f9">
+      <td style="padding:7px 12px;font-size:13px;font-weight:600">${d.w}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace">${N(d.sal)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#7c3aed">${d.res>0?N(d.res):'—'}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#b45309">${d.emp>0?N(d.emp):'—'}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${N(d.disp)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#64748b">${N(d.skus)}</td>
+    </tr>`).join('');
+
+  const totalRow=`
+    <tr style="border-top:2px solid #cbd5e1;background:#f8fafc">
+      <td style="padding:7px 12px;font-size:13px;font-weight:700">TOTAL</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700">${N(sumSal)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#7c3aed">${N(sumRes)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#b45309">${N(sumEmp)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${N(sumDisp)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#64748b">${N(totalSKU)}</td>
+    </tr>`;
+
+  const conferencia=`
+  <div style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:#1E3A5F;padding:8px 12px;background:#e8eef6;border-radius:8px 8px 0 0;border:1px solid #c7d7ed">CONFERÊNCIA POR ARMAZÉM</div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-top:none">
+      <tr style="background:#f8fafc">
+        <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Armazém</th>
+        <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Estoque</th>
+        <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase">Reserva</th>
+        <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#b45309;text-transform:uppercase">Separação</th>
+        <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase">Disponível</th>
+        <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">SKUs</th>
+      </tr>
+      ${confRows}${totalRow}
+    </table>
+  </div>`;
+
+  // ── 3. Validação — usar valores de referência da aba Conferência do Google Sheets
+  // Referência: você pode atualizar esses valores manualmente quando a planilha mudar
+  // Ou deixar em branco (null) para não validar
+  const REF = {
+    sal:  null,  // ex: 345325
+    res:  null,  // ex: 845
+    emp:  null,  // ex: 226
+    disp: null,  // ex: 345099
+    skus: null,  // ex: 390
+  };
+
+  const validRows=[
+    {label:'Estoque Total',    val:sumSal,  ref:REF.sal},
+    {label:'Reserva Total',    val:sumRes,  ref:REF.res},
+    {label:'Em Separação',     val:sumEmp,  ref:REF.emp},
+    {label:'Disponível',       val:sumDisp, ref:REF.disp},
+    {label:'SKUs Únicos',      val:totalSKU,ref:REF.skus},
+  ];
+
+  const validHtml=validRows.map(r=>{
+    const status = r.ref===null
+      ? `<span style="color:#94a3b8">— referência não configurada</span>`
+      : Math.round(r.val)===Math.round(r.ref)
+        ? `<span style="color:#15803d;font-weight:700">✅ OK</span>`
+        : `<span style="color:#dc2626;font-weight:700">❌ Divergência</span>`;
+    return`<tr style="border-top:1px solid #f1f5f9">
+      <td style="padding:7px 12px;font-size:13px">${r.label}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace">${N(r.val)}</td>
+      <td style="padding:7px 12px;text-align:center">${status}</td>
     </tr>`;
   }).join('');
 
-  const whTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px">
-    <tr style="background:#1E3A5F;color:#fff">
-      <th colspan="8" style="padding:6px 10px;text-align:left;font-size:13px">3. POR ARMAZÉM</th>
-    </tr>
-    <tr style="background:#f8fafc;font-size:10px;font-weight:700;color:#64748b">
-      <td style="padding:4px 10px">ARMAZÉM</td>
-      <td style="padding:4px 10px;text-align:right">REGISTROS</td>
-      <td style="padding:4px 10px;text-align:right">SKUs</td>
-      <td style="padding:4px 10px;text-align:right">SALDO</td>
-      <td style="padding:4px 10px;text-align:right">EM SEP.</td>
-      <td style="padding:4px 10px;text-align:right">RESERVA</td>
-      <td style="padding:4px 10px;text-align:right">RES.RAW</td>
-      <td style="padding:4px 10px;text-align:right">DISPONÍVEL</td>
-    </tr>
-    ${whRows}
-  </table>`;
+  const validacao=`
+  <div style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:#1E3A5F;padding:8px 12px;background:#e8eef6;border-radius:8px 8px 0 0;border:1px solid #c7d7ed">VALIDAÇÃO</div>
+    <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-top:none">
+      <tr style="background:#f8fafc">
+        <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Indicador</th>
+        <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Dashboard</th>
+        <th style="padding:6px 12px;text-align:center;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Status</th>
+      </tr>
+      ${validHtml}
+    </table>
+    <div style="padding:8px 12px;font-size:11px;color:#94a3b8;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+      Para ativar a validação automática, atualize os valores REF no código com os totais da aba Conferência do Google Sheets.
+    </div>
+  </div>`;
 
-  // 4. Primeiros 10 itens carregados (amostra)
-  const sample=ST.slice(0,10);
-  const sampleTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px;font-size:11px">
-    <tr style="background:#1E3A5F;color:#fff"><th colspan="7" style="padding:6px 10px;text-align:left;font-size:13px">4. AMOSTRA — PRIMEIROS 10 REGISTROS CARREGADOS</th></tr>
-    <tr style="background:#f8fafc;font-size:9px;font-weight:700;color:#64748b">
-      <td style="padding:3px 8px">CODIGO</td><td style="padding:3px 8px">ARMAZÉM</td>
-      <td style="padding:3px 8px;text-align:right">SALDO</td><td style="padding:3px 8px;text-align:right">EMP.</td>
-      <td style="padding:3px 8px;text-align:right">RESERVA</td><td style="padding:3px 8px;text-align:right">DISP.</td>
-      <td style="padding:3px 8px">NOMENCLATURA</td>
-    </tr>
-    ${sample.map(r=>`<tr style="border-bottom:1px solid #f1f5f9">
-      <td style="padding:3px 8px;font-size:10px">${r.codigo}</td>
-      <td style="padding:3px 8px;font-size:10px">${r.wh}</td>
-      <td style="padding:3px 8px;text-align:right;font-weight:700;color:${r.saldo>0?'#1E3A5F':'#dc2626'}">${N(r.saldo)}</td>
-      <td style="padding:3px 8px;text-align:right">${N(r.empenho)}</td>
-      <td style="padding:3px 8px;text-align:right;color:#7c3aed">${N(r.reserva)}</td>
-      <td style="padding:3px 8px;text-align:right;font-weight:700;color:#15803d">${N(r.disp)}</td>
-      <td style="padding:3px 8px;font-size:10px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.nomenclatura||r.descricao}</td>
-    </tr>`).join('')}
-  </table>`;
+  // ── 4. Divergências
+  const divs = validRows.filter(r=>r.ref!==null && Math.round(r.val)!==Math.round(r.ref));
+  const divergencias = divs.length===0
+    ? `<div style="margin-bottom:20px;padding:12px 16px;background:#dcfce7;border:1px solid #bbf7d0;border-radius:8px;color:#15803d;font-weight:600;font-size:13px">✅ Nenhuma divergência encontrada</div>`
+    : `<div style="margin-bottom:20px">
+        <div style="font-size:14px;font-weight:700;color:#dc2626;padding:8px 12px;background:#fee2e2;border-radius:8px 8px 0 0;border:1px solid #fca5a5">DIVERGÊNCIAS ENCONTRADAS</div>
+        <div style="border:1px solid #fca5a5;border-top:none;border-radius:0 0 8px 8px;background:#fff">
+          ${divs.map(r=>`<div style="padding:10px 16px;border-bottom:1px solid #fee2e2">
+            <div style="font-weight:600;margin-bottom:4px">${r.label}</div>
+            <div style="font-size:12px;color:#dc2626">❌ Dashboard: <strong>${N(r.val)}</strong></div>
+            <div style="font-size:12px;color:#dc2626">❌ Referência: <strong>${N(r.ref)}</strong></div>
+            <div style="font-size:12px;color:#64748b">Diferença: ${N(Math.abs(r.val-r.ref))}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
 
-  // 5. Cabeçalhos lidos
-  const hdrTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px;font-size:11px">
-    <tr style="background:#1E3A5F;color:#fff"><th colspan="2" style="padding:6px 10px;text-align:left;font-size:13px">5. CABEÇALHOS DO CSV (todos)</th></tr>
-    ${_rawEstoqueHeaders.map((h,i)=>`<tr style="border-bottom:1px solid #f1f5f9">
-      <td style="padding:3px 8px;color:#64748b;width:40px">${i}</td>
-      <td style="padding:3px 8px">${h}</td>
-    </tr>`).join('')}
-  </table>`;
-
-  // 6. Reservas — debug de matching
-  const resMatchOk=RES.filter(r=>WH_LIST.includes(r.wh));
-  const resMatchFail=RES.filter(r=>!WH_LIST.includes(r.wh));
-  const resDebugTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px;font-size:11px">
-    <tr style="background:#1E3A5F;color:#fff"><th colspan="4" style="padding:6px 10px;text-align:left;font-size:13px">6. RESERVAS — DEBUG DE MATCHING (${resMatchOk.length} ok · ${resMatchFail.length} sem match)</th></tr>
-    <tr style="background:#f8fafc;font-size:9px;font-weight:700;color:#64748b">
-      <td style="padding:3px 8px">CLIENTE</td><td style="padding:3px 8px">CÓDIGO</td>
-      <td style="padding:3px 8px">WH RESOLVIDO</td><td style="padding:3px 8px;text-align:right">QTD</td>
-    </tr>
-    ${resMatchFail.map(r=>`<tr style="background:#fff1f2;border-bottom:1px solid #fecdd3">
-      <td style="padding:3px 8px;color:#dc2626">${r.cliente}</td>
-      <td style="padding:3px 8px;font-size:10px">${r.codigo}</td>
-      <td style="padding:3px 8px;color:#dc2626;font-weight:700">"${r.wh}" ← NÃO RECONHECIDO</td>
-      <td style="padding:3px 8px;text-align:right;font-weight:700">${N(r.qtd)}</td>
-    </tr>`).join('')}
-    ${resMatchFail.length===0?'<tr><td colspan="4" style="padding:8px;text-align:center;color:#15803d;font-weight:700">✅ Todos os armazéns de reservas reconhecidos</td></tr>':''}
-  </table>`;
-
-  // 7. Reservas não aplicadas (produto não encontrado no estoque carregado)
-  const stCodes=new Set(ST.map(r=>r.codigo.toUpperCase()));
-  const resNotFound=RES.filter(r=>!stCodes.has(r.codigo.toUpperCase()));
-  const resNotFoundTable=`<table style="border-collapse:collapse;width:100%;margin-bottom:20px;font-size:11px">
-    <tr style="background:#1E3A5F;color:#fff"><th colspan="4" style="padding:6px 10px;text-align:left;font-size:13px">7. RESERVAS SEM PRODUTO NO ESTOQUE (${resNotFound.length} registros · ${resNotFound.reduce((a,r)=>a+r.qtd,0)} unidades perdidas)</th></tr>
-    <tr style="background:#f8fafc;font-size:9px;font-weight:700;color:#64748b">
-      <td style="padding:3px 8px">CLIENTE</td><td style="padding:3px 8px">CÓDIGO</td>
-      <td style="padding:3px 8px">ARMAZÉM</td><td style="padding:3px 8px;text-align:right">QTD</td>
-    </tr>
-    ${resNotFound.map(r=>`<tr style="background:#fff1f2;border-bottom:1px solid #fecdd3">
-      <td style="padding:3px 8px;color:#dc2626">${r.cliente}</td>
-      <td style="padding:3px 8px;font-size:10px;color:#dc2626;font-weight:700">${r.codigo}</td>
-      <td style="padding:3px 8px">${r.wh}</td>
-      <td style="padding:3px 8px;text-align:right;font-weight:700">${N(r.qtd)}</td>
-    </tr>`).join('')}
-    ${resNotFound.length===0?'<tr><td colspan="4" style="padding:8px;text-align:center;color:#15803d;font-weight:700">✅ Todas as reservas têm produto correspondente no estoque</td></tr>':''}
-  </table>`;
-
-  el.innerHTML=idxTable+totTable+whTable+sampleTable+resDebugTable+resNotFoundTable+hdrTable;
+  el.innerHTML=resumo+conferencia+validacao+divergencias;
 }
+
 
 async function boot(){
   setStatus('loading');
