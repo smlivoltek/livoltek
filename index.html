@@ -600,9 +600,7 @@ function parseEstoque(csv){
     const codigo = String(r[iCOD]||'').trim();
     if(!codigo) continue;
     const fl   = String(r[iFL]||'').trim();
-    const armz = String(r[iARMZ]||'').trim();
-    const isEletra = ['10108','10102','10106'].includes(fl);
-    if(isEletra && armz!=='7') continue;
+    // Sem filtro de ARMZ — planilha já contém apenas registros comerciais
 
     const armLabel = iARM>=0?String(r[iARM]||'').trim():'';
     // Resolver WH: prioridade para Armazém Dashboard, depois FL
@@ -733,21 +731,17 @@ function dedup(items){
 
 // ══ CATEGORY ROUTING
 function getCatTab(r){
-  const fam=(r.familia||'').toUpperCase();
-  const cat=(r.categoria||'').toUpperCase();
-  const desc=(r.nomenclatura||r.descricao||'').toUpperCase();
-  // Matéria-prima: vai para a aba da sua família (não aba separada)
-  // CABO → Diversos (não Kit Solar)
-  if(fam==='CABO') return 'div';
-  if(fam.includes('STRING BOX')||fam.includes('COMBINER')||desc.includes('STRING BOX')) return 'strbox';
-  // Inversores: inclui matéria-prima de inversor
-  if(fam.includes('INVERSOR')||cat.includes('INVERSOR')||desc.includes('INVERSOR')) return 'inv';
-  // Carregadores: inclui matéria-prima de carregador
-  if(fam.includes('CARREGADOR')||cat.includes('CARREGADOR')||desc.includes('CARREGADOR VE')) return 'ev';
-  if(fam.includes('BESS')||fam.includes('BATERIA')||cat.includes('BESS')||cat.includes('BATERIA')) return 'bess';
-  if(fam.includes('PLACA')||fam.includes('MÓDULO')||fam.includes('MODULO')||
-     fam.includes('CABO FOTOV')||fam.includes('ESTRUTURA')||fam.includes('TELHADO')||
-     fam.includes('SOLO')||fam.includes('CONECTOR')||cat.includes('KIT')) return 'kit';
+  // Usar exatamente o valor da coluna Família do CSV
+  const fam=(r.familia||'').toUpperCase().trim();
+  // Mapear família → aba
+  if(fam.includes('INVERSOR'))          return 'inv';
+  if(fam.includes('CARREGADOR'))        return 'ev';
+  if(fam.includes('BATERIA')||fam.includes('BESS')) return 'bess';
+  if(fam.includes('KIT SOLAR'))         return 'kit';
+  if(fam.includes('STRING BOX'))        return 'strbox';
+  if(fam.includes('MOTOR'))             return 'div'; // Motor de Barco → Diversos
+  if(fam.includes('DIVERSOS'))          return 'div';
+  // Sem família ou não mapeado → Diversos
   return 'div';
 }
 
@@ -814,7 +808,13 @@ function buildPills(tabId, items){
     return b[1].disp-a[1].disp;
   }).forEach(([f,v])=>{
     const on=cur===f;
-    const sl=f.replace(/^INVERSOR - /i,'').replace(/^CARREGADOR - /i,'').replace(/^BATERIA - /i,'')||f;
+    const sl=f.replace(/^INVERSOR\s*[-–]\s*/i,'')
+              .replace(/^CARREGADOR\s*[-–]\s*/i,'')
+              .replace(/^BATERIA\s*[-–]\s*/i,'')
+              .replace(/^BESS\s*[-–]\s*/i,'')
+              .replace(/^KIT SOLAR\s*[-–]\s*/i,'')
+              .replace(/^STRING BOX\s*[-–]\s*/i,'')
+              ||f;
     html+=`<div class="fpill${on?' on':''}" onclick="setFam('${tabId}','${f.replace(/'/g,"\\'")}')">
       <span class="fp-lbl">${sl}</span>
       <span class="fp-val">${fmt(v.disp)}</span>
