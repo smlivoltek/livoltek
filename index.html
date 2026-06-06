@@ -613,6 +613,15 @@ function parseEstoque(csv){
     items.push({codigo, nomenclatura:nomFinal, descricao,
                 categoria, familia, wh, saldo, empenho, reserva:0, disp:0, isMP});
   }
+  // DEBUG Fábrica MP
+  const fabMP = items.filter(r=>r.wh==='Fábrica Livoltek'&&r.isMP);
+  const fabProd = items.filter(r=>r.wh==='Fábrica Livoltek'&&!r.isMP);
+  console.log('Fábrica PROD:', fabProd.length, '| Fábrica MP:', fabMP.length);
+  if(fabMP.length>0) console.log('MP sample:', JSON.stringify({cat:fabMP[0].categoria,fam:fabMP[0].familia,isMP:fabMP[0].isMP}));
+  if(fabMP.length===0){
+    const fabAll=items.filter(r=>r.wh==='Fábrica Livoltek');
+    console.log('All Fábrica cats:', [...new Set(fabAll.map(r=>r.categoria))]);
+  }
   return items;
 }
 
