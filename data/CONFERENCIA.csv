@@ -1,6 +1,6 @@
 Armazém,Total Estoque,Total Reservado,em Separação,Total Disponível,SKUs Únicos,Status
-Curitiba (Eletra),  164.142 ,  - ,  1 ,  164.141 ,  123 ,🟢 BASE VALIDADA
-Fortaleza (Eletra),  164.545 ,  - ,  105 ,  164.440 ,  188 ,🟢 BASE VALIDADA
+Curitiba (Eletra),  164.142 ,  250 ,  1 ,  164.141 ,  123 ,🟢 BASE VALIDADA
+Fortaleza (Eletra),  164.545 ,  595 ,  105 ,  164.440 ,  188 ,🟢 BASE VALIDADA
 Manaus (Eletra),  12.718 ,  - ,  120 ,  12.598 ,  59 ,🟢 BASE VALIDADA
 Fábrica Livoltek,  3.920 ,  - ,  - ,  3.920 ,  1 ,🟢 BASE VALIDADA
-TOTAL,  345.325 ,  - ,  226 ,  345.099 ,  371 ,🟢 BASE VALIDADA
+TOTAL,  345.325 ,  845 ,  226 ,  345.099 ,  371 ,🟢 BASE VALIDADA
