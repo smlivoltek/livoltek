@@ -214,6 +214,33 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .mob-overlay.open{display:block}
 #mob-menu-btn{display:none}
 
+/* ── TODOS: botão "Com estoque" */
+.all-cnt-bar{font-size:11px;color:var(--txtm);margin:.375rem 0 .5rem;padding:0 2px}
+.all-stock-btn{display:flex;align-items:center;gap:5px;height:30px;padding:0 10px;border:1px solid var(--brd);border-radius:7px;background:var(--surf);color:var(--txt2);font-size:11px;font-family:inherit;cursor:pointer;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.all-stock-btn:hover{border-color:var(--pri);color:var(--pri)}
+.all-stock-btn.active{background:var(--grn-pale);border-color:var(--grn-d);color:var(--grn-d);font-weight:600}
+
+/* ── TODOS: mobile cards */
+.all-mob-grid{display:none;flex-direction:column;gap:.625rem}
+.all-mob-empty{padding:3rem 1rem;text-align:center;color:var(--txtm);font-size:14px;display:flex;flex-direction:column;align-items:center;gap:.5rem}
+.all-mob-empty i{font-size:2rem}
+.amc{background:var(--surf);border:1px solid var(--brd);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:.5rem;transition:box-shadow .15s}
+.amc:active{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.amc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem}
+.amc-nom{font-size:13px;font-weight:600;color:var(--txt);line-height:1.35;flex:1}
+.amc-disp{display:flex;flex-direction:column;align-items:flex-end;padding:.375rem .625rem;border-radius:8px;font-family:'DM Mono',monospace;font-size:20px;font-weight:700;line-height:1;flex-shrink:0}
+.amc-disp-lbl{font-family:inherit;font-size:9px;font-weight:500;margin-top:3px;text-align:right;opacity:.8}
+.amc-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:8px}
+.amc-fam{font-family:inherit;font-size:10px;color:var(--txtm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amc-wh-grid{display:flex;flex-wrap:wrap;gap:.375rem}
+.amc-wh-row{display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--brd);border-radius:6px;padding:3px 7px}
+.amc-wh-val{font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--txt)}
+.amc-tags{display:flex;flex-wrap:wrap;gap:.375rem}
+.amc-tag{display:flex;align-items:center;gap:3px;font-size:10px;border-radius:5px;padding:2px 7px}
+.amc-sep{background:var(--amb-pale);color:#b45309}
+.amc-res{background:#ede9fe;color:#7c3aed}
+.all-desk-only{display:block}
+
 @media(max-width:700px){
   /* Sidebar → drawer off-canvas */
   .sb{
@@ -224,6 +251,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   .sb.mob-open{transform:translateX(0)}
   #mob-menu-btn{display:flex}
 
+  /* Esconder Auditoria — não agrega valor em mobile */
+  #sb-audit{display:none}
+
   /* Header */
   .hdr{padding:0 .75rem;gap:8px}
   .hdr-sub,.sbadge,.sync-lbl{display:none}
@@ -232,7 +262,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   /* Content */
   .pg{padding:.75rem}
 
-  /* Grids → 1 coluna */
+  /* Grids */
   .wh-grid{grid-template-columns:1fr 1fr}
   .tops-grid,.tops-grid.tri{grid-template-columns:1fr}
   .cgrid{grid-template-columns:1fr}
@@ -251,32 +281,36 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   .wh-disp-val{font-size:22px}
   .whcard{padding:.875rem 1rem}
 
-  /* Top tables */
+  /* Top tables: scroll horizontal */
   .top-card{overflow-x:auto}
   .top-tbl{min-width:280px;font-size:11px}
-  .top-hdr{font-size:11px}
   .nm{max-width:120px;font-size:11px}
 
-  /* All products table */
-  .all-tbl-wrap{overflow-x:auto}
-
-  /* Pills horizontal scroll */
+  /* Pills scroll horizontal */
   .fam-pills{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch;padding-bottom:4px}
   .fam-pills::-webkit-scrollbar{height:3px}
   .fpill{flex-shrink:0}
-
-  /* Audit tables */
-  #audit-content table{font-size:11px}
-  #audit-content td,#audit-content th{padding:5px 8px}
 
   /* Search bar */
   .fb{flex-wrap:wrap;gap:6px}
   .sbar{flex:1;min-width:120px}
   .sel{font-size:11px}
+  .all-cnt-bar{font-size:10px}
+
+  /* Todos: ocultar tabela, mostrar cards */
+  .all-desk-only{display:none}
+  .all-mob-grid{display:flex}
 
   /* PC cards */
   .pc{font-size:12px}
   .pc-nom{font-size:13px}
+}
+
+@media(max-width:380px){
+  .wh-grid{grid-template-columns:1fr}
+  .k4{grid-template-columns:1fr}
+  .wh-disp-val{font-size:20px}
+  .amc-disp{font-size:17px}
 }
 
 @media(max-width:380px){
@@ -406,12 +440,19 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <!-- ══ TODOS ══ -->
 <div id="tab-todos" class="tab">
-  <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="all-q" placeholder="Nomenclatura ou código..." oninput="rAll()"></div>
+  <div class="fb" id="all-filters">
+    <div class="sbar" style="flex:1;min-width:180px"><i class="ti ti-search"></i><input id="all-q" placeholder="Produto, código ou família..." oninput="rAll()" autocomplete="off" autocorrect="off" spellcheck="false"></div>
     <select class="sel" id="all-wh" onchange="rAll()"><option value="">Todos os armazéns</option></select>
     <select class="sel" id="all-cat" onchange="rAll()"><option value="">Todas categorias</option></select>
+    <button class="all-stock-btn" id="all-stock-btn" onclick="toggleStockFilter()" title="Somente produtos com estoque disponível">
+      <i class="ti ti-filter"></i> Com estoque
+    </button>
   </div>
-  <div class="tcard"><div class="tw"><table class="tbl">
+  <div class="all-cnt-bar"><span id="all-cnt">0</span> produtos</div>
+  <!-- Mobile: cards -->
+  <div id="all-cards-mob" class="all-mob-grid"></div>
+  <!-- Desktop: tabela -->
+  <div class="tcard all-desk-only"><div class="tw"><table class="tbl">
     <thead><tr><th>Nomenclatura</th><th>Código</th><th>Família</th><th>Armazém</th><th class="r">Estoque Total</th><th class="r">Em Sep.</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r" style="color:var(--grn-d)">Disponível</th></tr></thead>
     <tbody id="all-tbl"></tbody>
   </table></div><div class="tc-foot"><span id="all-cnt">0</span> produtos</div></div>
@@ -1007,18 +1048,31 @@ function renderCat(tabId){
 }
 
 // ══ TODOS
+let allStockOnly = false;
+function toggleStockFilter(){
+  allStockOnly = !allStockOnly;
+  const btn = document.getElementById('all-stock-btn');
+  if(btn) btn.classList.toggle('active', allStockOnly);
+  rAll();
+}
+
 function rAll(){
   const q=(document.getElementById('all-q')?.value||'').toLowerCase();
   const wh=document.getElementById('all-wh')?.value||'';
   const cat=document.getElementById('all-cat')?.value||'';
   const dd=dedup(ST.filter(r=>{
-    const mq=!q||r.codigo.toLowerCase().includes(q)||(r.nomenclatura||'').toLowerCase().includes(q);
+    const mq=!q||r.codigo.toLowerCase().includes(q)||(r.nomenclatura||'').toLowerCase().includes(q)||(r.descricao||'').toLowerCase().includes(q)||(r.familia||'').toLowerCase().includes(q);
     const mw=!wh||r.wh===wh;
     const mc=!cat||(r.categoria||'').toUpperCase().includes(cat)||(r.familia||'').toUpperCase().includes(cat);
     return mq&&mw&&mc;
-  })).sort((a,b)=>b._disp-a._disp);
+  })).sort((a,b)=>b._disp-a._disp)
+    .filter(r=>!allStockOnly||r._disp>0);
+
   document.getElementById('all-cnt').textContent=dd.length;
-  document.getElementById('all-tbl').innerHTML=dd.map(r=>{
+
+  // ── Desktop: tabela
+  const tbl = document.getElementById('all-tbl');
+  if(tbl) tbl.innerHTML=dd.map(r=>{
     const dispCol=r._disp>20?'var(--grn-d)':r._disp>=1?'var(--amb-d)':'var(--red)';
     return`<tr>
       <td style="font-weight:500">${tr(r.nomenclatura||r.descricao,45)}</td>
@@ -1030,6 +1084,43 @@ function rAll(){
       <td class="r" style="color:${r._res>0?'var(--pur)':'var(--txtm)'}">${r._res>0?fmt(r._res):'—'}</td>
       <td class="r" style="font-weight:700;color:${dispCol}">${fmt(r._disp)}</td>
     </tr>`;
+  }).join('');
+
+  // ── Mobile: cards
+  const mob = document.getElementById('all-cards-mob');
+  if(!mob) return;
+  if(!dd.length){
+    mob.innerHTML=`<div class="all-mob-empty"><i class="ti ti-mood-empty"></i><div>Nenhum produto encontrado</div></div>`;
+    return;
+  }
+  mob.innerHTML=dd.map(r=>{
+    const disp=r._disp;
+    const dispCol=disp>20?'var(--grn-d)':disp>=1?'var(--amb-d)':'var(--red)';
+    const dispLabel=disp>20?'Disponível':disp>=1?'Pouco estoque':'Sem estoque';
+    const dispBg=disp>20?'var(--grn-pale)':disp>=1?'var(--amb-pale)':'var(--red-pale)';
+
+    // Saldo por armazém (apenas onde há saldo)
+    const whRows=Object.entries(r._byWH)
+      .filter(([,v])=>v>0)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([w,v])=>`<div class="amc-wh-row">
+        <span class="wt" style="color:${WH_COLOR[w]||'#64748b'};background:${(WH_COLOR[w]||'#64748b')}1a;font-size:9px">${w.split(' ')[0]}</span>
+        <span class="amc-wh-val">${fmt(v)}</span>
+      </div>`).join('');
+
+    const extras=[];
+    if(r._emp>0) extras.push(`<span class="amc-tag amc-sep"><i class="ti ti-lock"></i> ${fmt(r._emp)} sep.</span>`);
+    if(r._res>0) extras.push(`<span class="amc-tag amc-res"><i class="ti ti-bookmark"></i> ${fmt(r._res)} res.</span>`);
+
+    return`<div class="amc">
+      <div class="amc-top">
+        <div class="amc-nom">${r.nomenclatura||r.descricao||'—'}</div>
+        <div class="amc-disp" style="color:${dispCol};background:${dispBg}">${fmt(disp)}<span class="amc-disp-lbl">${dispLabel}</span></div>
+      </div>
+      <div class="amc-code">${r.codigo}<span class="amc-fam">${r.familia||''}</span></div>
+      <div class="amc-wh-grid">${whRows||'<span style="font-size:11px;color:var(--txtm)">Sem saldo</span>'}</div>
+      ${extras.length?`<div class="amc-tags">${extras.join('')}</div>`:''}
+    </div>`;
   }).join('');
 }
 
