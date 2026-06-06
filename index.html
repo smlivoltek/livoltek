@@ -611,11 +611,13 @@ function parseEstoque(csv){
 
 function parseConferencia(csv){
   // Colunas reais: Armazém, Total Estoque, Total Reservado, em Separação, Total Disponível, SKUs Únicos, Status
-  const parsed = Papa.parse(csv.replace(/^﻿/,''),{header:true,skipEmptyLines:true,transformHeader:h=>h.trim()});
+  const parsed = Papa.parse(csv.replace(/^\uFEFF/,''),{header:true,skipEmptyLines:true,transformHeader:h=>h.trim()});
   const ref = {sal:0, res:0, emp:0, disp:0, skus:0, porWH:{}};
   parsed.data.forEach(r=>{
-    const arm  = String(r['Armazém']||r['Armazem']||'').trim();
+    const arm = String(r['Armazém']||r['Armazem']||'').trim();
     if(!arm) return;
+    // Ignorar linha de TOTAL — usar apenas linhas de armazém
+    if(arm.toUpperCase()==='TOTAL') return;
     const sal  = pn(r['Total Estoque']||0);
     const res  = pn(r['Total Reservado']||0);
     const emp  = pn(r['em Separação']||r['Em Separação']||r['em Separacao']||0);
@@ -1281,7 +1283,43 @@ function rAudit(){
         </div>
       </div>`;
 
-  el.innerHTML=resumo+conferencia+validacao+divergencias;
+  // ── 5. Reservas sem produto no estoque carregado
+  const stCodes = new Set(ST.map(r=>r.codigo.toUpperCase()));
+  const semProd = RES.filter(r=>!stCodes.has(r.codigo.toUpperCase()));
+  const semProdTotal = semProd.reduce((a,r)=>a+r.qtd,0);
+
+  const semProdBlock = semProd.length===0
+    ? ''
+    : `<div style="margin-bottom:20px">
+        <div style="font-size:14px;font-weight:700;color:#92400e;padding:8px 12px;background:#fffbeb;border-radius:8px 8px 0 0;border:1px solid #fcd34d">
+          ⚠️ RESERVAS SEM PRODUTO NO ESTOQUE — ${semProd.length} reserva${semProd.length>1?'s':''} · ${N(semProdTotal)} unidades não subtraídas do disponível
+        </div>
+        <div style="border:1px solid #fcd34d;border-top:none;border-radius:0 0 8px 8px;background:#fff">
+          <div style="padding:8px 12px;font-size:11px;color:#92400e;border-bottom:1px solid #fef3c7">
+            Esses produtos possuem reserva ativa mas <strong>não foram encontrados no estoque comercial</strong>. O disponível do dashboard não desconta essas reservas — por isso existe divergência no total de Disponível.
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr style="background:#fffbeb">
+              <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase">Cliente</th>
+              <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase">Código</th>
+              <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase">Armazém</th>
+              <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase">Qtd Reservada</th>
+            </tr>
+            ${semProd.map(r=>`<tr style="border-top:1px solid #fef3c7">
+              <td style="padding:6px 12px;font-weight:500">${r.cliente}</td>
+              <td style="padding:6px 12px;font-family:'DM Mono',monospace;font-size:11px;color:#dc2626;font-weight:700">${r.codigo}</td>
+              <td style="padding:6px 12px;font-size:11px;color:#64748b">${r.wh||'—'}</td>
+              <td style="padding:6px 12px;text-align:right;font-weight:700;color:#92400e">${N(r.qtd)}</td>
+            </tr>`).join('')}
+            <tr style="border-top:2px solid #fcd34d;background:#fffbeb">
+              <td colspan="3" style="padding:6px 12px;font-weight:700;font-size:12px">TOTAL NÃO CONTABILIZADO</td>
+              <td style="padding:6px 12px;text-align:right;font-weight:700;color:#dc2626;font-size:13px">${N(semProdTotal)}</td>
+            </tr>
+          </table>
+        </div>
+      </div>`;
+
+  el.innerHTML=resumo+conferencia+validacao+divergencias+semProdBlock;
 }
 
 
