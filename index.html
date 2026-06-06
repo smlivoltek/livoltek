@@ -610,30 +610,20 @@ function parseEstoque(csv){
 }
 
 function parseConferencia(csv){
-  // Colunas: Armazém, Estoque, Reserva, Separação, Disponível, SKUs
-  const parsed = Papa.parse(csv.replace(/^﻿/,''),{header:true,skipEmptyLines:true});
+  // Colunas reais: Armazém, Total Estoque, Total Reservado, em Separação, Total Disponível, SKUs Únicos, Status
+  const parsed = Papa.parse(csv.replace(/^﻿/,''),{header:true,skipEmptyLines:true,transformHeader:h=>h.trim()});
   const ref = {sal:0, res:0, emp:0, disp:0, skus:0, porWH:{}};
   parsed.data.forEach(r=>{
-    const arm = String(r['Armazém']||r['Armazem']||r['ARMAZEM']||'').trim();
-    const sal  = pn(r['Estoque']||r['Total Estoque']||r['ESTOQUE']||0);
-    const res  = pn(r['Reserva']||r['Total Reservado']||r['RESERVA']||0);
-    const emp  = pn(r['Separação']||r['Separacao']||r['em Separação']||r['Em Separação']||0);
-    const disp = pn(r['Disponível']||r['Total Disponível']||r['DISPONIVEL']||0);
-    const skus = pn(r['SKUs']||r['Skus']||r['skus']||0);
-    if(arm.toUpperCase()==='TOTAL'||arm===''){ 
-      // Linha de total
-      if(sal>0) ref.sal=sal;
-      if(res>0) ref.res=res;
-      if(emp>0) ref.emp=emp;
-      if(disp>0) ref.disp=disp;
-      if(skus>0) ref.skus=skus;
-    } else {
-      ref.porWH[arm]={sal,res,emp,disp,skus};
-      ref.sal +=sal; ref.res+=res; ref.emp+=emp; ref.disp+=disp;
-    }
+    const arm  = String(r['Armazém']||r['Armazem']||'').trim();
+    if(!arm) return;
+    const sal  = pn(r['Total Estoque']||0);
+    const res  = pn(r['Total Reservado']||0);
+    const emp  = pn(r['em Separação']||r['Em Separação']||r['em Separacao']||0);
+    const disp = pn(r['Total Disponível']||r['Total Disponivel']||0);
+    const skus = pn(r['SKUs Únicos']||r['SKUs Unicos']||r['SKUs']||0);
+    ref.porWH[arm]={sal,res,emp,disp,skus};
+    ref.sal +=sal; ref.res+=res; ref.emp+=emp; ref.disp+=disp; ref.skus+=skus;
   });
-  // Se não teve linha TOTAL, somar das linhas de armazém
-  if(ref.skus===0) ref.skus=Object.values(ref.porWH).reduce((a,r)=>a+r.skus,0);
   return ref;
 }
 
@@ -1155,11 +1145,14 @@ function rAudit(){
   const whData = WH_LIST.map(w=>{
     const items = ST.filter(r=>r.wh===w);
     const skus  = new Set(items.map(r=>r.codigo)).size;
+    const recs  = items.length;
     const sal   = items.reduce((a,r)=>a+r.saldo,0);
     const emp   = items.reduce((a,r)=>a+r.empenho,0);
     const res   = items.reduce((a,r)=>a+r.reserva,0);
     const disp  = items.reduce((a,r)=>a+r.disp,0);
-    return {w, recs:items.length, skus, sal, emp, res, disp};
+    // Reserva do CSV de reservas para esse armazém (para conferência)
+    const resRef = RES.filter(r=>r.wh===w).reduce((a,r)=>a+r.qtd,0);
+    return {w, recs, skus, sal, emp, res, disp, resRef};
   });
 
   const s = (v,ref)=>{
@@ -1180,21 +1173,30 @@ function rAudit(){
       <tr style="border-top:1px solid #f1f5f9;background:#fafbfc"><td style="padding:7px 12px;font-size:13px">Reserva Total</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:14px;color:#7c3aed">${N(sumRes)}</td></tr>
       <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 12px;font-size:13px">Em Separação</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:14px;color:#b45309">${N(sumEmp)}</td></tr>
       <tr style="border-top:1px solid #f1f5f9;background:#fafbfc"><td style="padding:7px 12px;font-size:13px;font-weight:700">Disponível para Venda</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;font-size:16px;color:#15803d">${N(sumDisp)}</td></tr>
-      <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 12px;font-size:13px">Registros Carregados</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px">${N(totalReg)}</td></tr>
+      <tr style="border-top:1px solid #f1f5f9"><td style="padding:7px 12px;font-size:13px">Registros (linhas carregadas)</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px">${N(totalReg)}</td></tr>
       <tr style="border-top:1px solid #f1f5f9;background:#fafbfc"><td style="padding:7px 12px;font-size:13px">SKUs Únicos (códigos distintos)</td><td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:13px">${N(totalSKU)}</td></tr>
     </table>
   </div>`;
 
   // ── 2. Conferência por Armazém
-  const confRows = whData.map(d=>`
-    <tr style="border-top:1px solid #f1f5f9">
+  const confRows = whData.map(d=>{
+    // Comparar com referência por armazém se disponível
+    const ref=REF_DATA?.porWH?.[d.w];
+    const salOk=!ref||Math.round(d.sal)===Math.round(ref.sal);
+    const resOk=!ref||Math.round(d.resRef)===Math.round(ref.res);
+    const empOk=!ref||Math.round(d.emp)===Math.round(ref.emp);
+    const dispOk=!ref||Math.round(d.disp)===Math.round(ref.disp);
+    const skuOk=!ref||Math.round(d.recs)===Math.round(ref.skus);
+    const ok=(v,pass)=>pass?`${N(v)}`:`<span style="color:#dc2626;font-weight:700">${N(v)} ❌</span>`;
+    return`<tr style="border-top:1px solid #f1f5f9">
       <td style="padding:7px 12px;font-size:13px;font-weight:600">${d.w}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace">${N(d.sal)}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#7c3aed">${d.res>0?N(d.res):'—'}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#b45309">${d.emp>0?N(d.emp):'—'}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${N(d.disp)}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#64748b">${N(d.skus)}</td>
-    </tr>`).join('');
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace">${ok(d.sal,salOk)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#7c3aed">${d.resRef>0?ok(d.resRef,resOk):'—'}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#b45309">${d.emp>0?ok(d.emp,empOk):'—'}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${ok(d.disp,dispOk)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#64748b">${ok(d.recs,skuOk)}</td>
+    </tr>`;
+  }).join('');
 
   const totalRow=`
     <tr style="border-top:2px solid #cbd5e1;background:#f8fafc">
@@ -1203,7 +1205,7 @@ function rAudit(){
       <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#7c3aed">${N(sumRes)}</td>
       <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#b45309">${N(sumEmp)}</td>
       <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${N(sumDisp)}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#64748b">${N(totalSKU)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#64748b">${N(totalReg)}</td>
     </tr>`;
 
   const conferencia=`
@@ -1225,12 +1227,13 @@ function rAudit(){
   // ── 3. Validação — comparar com aba Conferência do Google Sheets
   const REF = REF_DATA || {sal:null,res:null,emp:null,disp:null,skus:null};
 
+  // SKUs: usar total de registros para bater com CONT.SES da planilha
   const validRows=[
-    {label:'Estoque Total',    val:sumSal,  ref:REF.sal},
-    {label:'Reserva Total',    val:sumRes,  ref:REF.res},
-    {label:'Em Separação',     val:sumEmp,  ref:REF.emp},
-    {label:'Disponível',       val:sumDisp, ref:REF.disp},
-    {label:'SKUs Únicos',      val:totalSKU,ref:REF.skus},
+    {label:'Estoque Total',           val:sumSal,   ref:REF.sal},
+    {label:'Reserva Total',           val:sumRes,   ref:REF.res},
+    {label:'Em Separação',            val:sumEmp,   ref:REF.emp},
+    {label:'Disponível',              val:sumDisp,  ref:REF.disp},
+    {label:'SKUs (registros)',         val:totalReg, ref:REF.skus},
   ];
 
   const validHtml=validRows.map(r=>{
