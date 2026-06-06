@@ -1380,7 +1380,121 @@ function rAudit(){
         </div>
       </div>`;
 
-  el.innerHTML=resumo+conferencia+validacao+divergencias+semProdBlock;
+  // ── DIVERGÊNCIAS DE CÁLCULO
+  // Para cada produto: Esperado = saldo - empenho - reserva (já calculado em r.disp)
+  // Comparar com o que o dashboard exibe (r.disp também — são o mesmo campo)
+  // A divergência real acontece quando o cálculo manual difere do r.disp,
+  // ou seja: (saldo - empenho - reserva) !== disp armazenado no objeto.
+  // Também verifica por armazém: soma esperada vs soma exibida.
+
+  // Nível produto: identificar registros onde disp !== max(0, saldo - empenho - reserva)
+  const prodDivs = ST.map(r=>{
+    const esperado = Math.max(0, r.saldo - r.empenho - r.reserva);
+    const exibido  = r.disp;
+    const diff     = Math.round(exibido) - Math.round(esperado);
+    return {...r, _esp: esperado, _exib: exibido, _diff: diff};
+  }).filter(r => r._diff !== 0);
+
+  // Nível armazém: comparar soma esperada vs soma exibida
+  const whDivs = WH_LIST.map(w=>{
+    const rows = ST.filter(r=>r.wh===w);
+    const esperado = rows.reduce((a,r)=>a + Math.max(0, r.saldo - r.empenho - r.reserva), 0);
+    const exibido  = rows.reduce((a,r)=>a + r.disp, 0);
+    const diff     = Math.round(exibido) - Math.round(esperado);
+    return {w, esperado, exibido, diff};
+  }).filter(d => d.diff !== 0);
+
+  // Total geral
+  const totalEsperado = ST.reduce((a,r)=>a + Math.max(0, r.saldo - r.empenho - r.reserva), 0);
+  const totalExibido  = ST.reduce((a,r)=>a + r.disp, 0);
+  const totalDiff     = Math.round(totalExibido) - Math.round(totalEsperado);
+
+  const noDivs = whDivs.length === 0 && prodDivs.length === 0 && totalDiff === 0;
+
+  const whDivRows = whDivs.map(d=>`
+    <tr style="border-top:1px solid #fecaca">
+      <td style="padding:7px 12px;font-size:13px;font-weight:600">${d.w}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace">${N(d.esperado)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#15803d;font-weight:700">${N(d.exibido)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${d.diff>0?'#dc2626':'#7c3aed'}">${d.diff>0?'+':''}${N(d.diff)}</td>
+    </tr>`).join('');
+
+  const prodDivRows = prodDivs.slice(0,50).map(r=>`
+    <tr style="border-top:1px solid #fecaca">
+      <td style="padding:6px 10px;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;color:#dc2626">${r.codigo}</td>
+      <td style="padding:6px 10px;font-size:11px;color:#1e293b;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.nomenclatura||r.descricao||'—'}</td>
+      <td style="padding:6px 10px;font-size:11px;color:#64748b">${r.wh}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${N(r.saldo)}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:#b45309">${r.empenho>0?N(r.empenho):'—'}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:#7c3aed">${r.reserva>0?N(r.reserva):'—'}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${N(r._esp)}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:#15803d;font-weight:700">${N(r._exib)}</td>
+      <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:${r._diff>0?'#dc2626':'#7c3aed'}">${r._diff>0?'+':''}${N(r._diff)}</td>
+    </tr>`).join('');
+
+  const divCalcBlock = noDivs
+    ? `<div style="margin-bottom:20px;padding:14px 18px;background:#dcfce7;border:1px solid #bbf7d0;border-radius:10px;color:#15803d;font-weight:700;font-size:14px;display:flex;align-items:center;gap:10px">
+        <i class="ti ti-circle-check" style="font-size:20px"></i>
+        <div>
+          <div>✅ Nenhuma divergência de cálculo encontrada.</div>
+          <div style="font-weight:400;font-size:12px;margin-top:3px;color:#166534">Disponível Exibido = Saldo − Em Separação − Reservas para todos os ${ST.length} registros e ${WH_LIST.length} armazéns.</div>
+        </div>
+      </div>`
+    : `<div style="margin-bottom:20px">
+        <div style="font-size:14px;font-weight:700;color:#991b1b;padding:10px 14px;background:#fee2e2;border-radius:10px 10px 0 0;border:1px solid #fca5a5;display:flex;align-items:center;gap:8px">
+          <i class="ti ti-alert-triangle" style="font-size:16px"></i>
+          DIVERGÊNCIAS DE CÁLCULO
+          <span style="margin-left:auto;font-size:12px;font-weight:400">Disponível Esperado = Saldo − Separação − Reservas</span>
+        </div>
+        <div style="border:1px solid #fca5a5;border-top:none;border-radius:0 0 10px 10px;overflow:hidden">
+
+          ${whDivs.length>0?`
+          <div style="padding:8px 14px;font-size:11px;font-weight:700;color:#991b1b;background:#fff5f5;border-bottom:1px solid #fecaca;text-transform:uppercase;letter-spacing:.05em">Por Armazém</div>
+          <table style="width:100%;border-collapse:collapse;background:#fff">
+            <tr style="background:#fff5f5">
+              <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase">Armazém</th>
+              <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Esperado</th>
+              <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase">Exibido</th>
+              <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase">Diferença</th>
+            </tr>
+            ${whDivRows}
+            <tr style="border-top:2px solid #fca5a5;background:#fff5f5">
+              <td style="padding:7px 12px;font-weight:700;font-size:13px">TOTAL GERAL</td>
+              <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700">${N(totalEsperado)}</td>
+              <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${N(totalExibido)}</td>
+              <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${totalDiff!==0?'#dc2626':'#15803d'}">${totalDiff>0?'+':''}${N(totalDiff)}</td>
+            </tr>
+          </table>` : ''}
+
+          ${prodDivs.length>0?`
+          <div style="padding:8px 14px;font-size:11px;font-weight:700;color:#991b1b;background:#fff5f5;border-bottom:1px solid #fecaca;border-top:1px solid #fecaca;text-transform:uppercase;letter-spacing:.05em">
+            Produtos com Divergência (${prodDivs.length}${prodDivs.length>50?' — exibindo primeiros 50':''})
+          </div>
+          <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;background:#fff;font-size:12px">
+            <tr style="background:#fff5f5">
+              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase">Código</th>
+              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Produto</th>
+              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Armazém</th>
+              <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Saldo</th>
+              <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;color:#b45309;text-transform:uppercase">Sep.</th>
+              <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase">Res.</th>
+              <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;color:#1e293b;text-transform:uppercase">Esperado</th>
+              <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase">Exibido</th>
+              <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase">Dif.</th>
+            </tr>
+            ${prodDivRows}
+          </table>
+          </div>` : ''}
+
+          <div style="padding:8px 14px;font-size:11px;color:#991b1b;background:#fff5f5;border-top:1px solid #fecaca">
+            <b>Como interpretar:</b> Diferença positiva (+) = Dashboard exibe <em>mais</em> do que o cálculo espera. Diferença negativa (−) = Dashboard exibe <em>menos</em>.
+            Causas comuns: reserva aplicada em armazém errado, produto com código duplicado, ou saldo zerado com reserva ativa.
+          </div>
+        </div>
+      </div>`;
+
+  el.innerHTML=divCalcBlock+resumo+conferencia+validacao+divergencias+semProdBlock;
 }
 
 
