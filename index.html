@@ -1245,13 +1245,14 @@ function rAudit(){
   // ── 3. Validação — comparar com aba Conferência do Google Sheets
   const REF = REF_DATA || {sal:null,res:null,emp:null,disp:null,skus:null};
 
-  // SKUs: usar total de registros para bater com CONT.SES da planilha
+  // SKUs: duas linhas separadas — registros (linhas CSV) e SKUs únicos (códigos distintos)
   const validRows=[
-    {label:'Estoque Total',           val:sumSal,   ref:REF.sal},
-    {label:'Reserva Total',           val:sumRes,   ref:REF.res},
-    {label:'Em Separação',            val:sumEmp,   ref:REF.emp},
-    {label:'Disponível',              val:sumDisp,  ref:REF.disp},
-    {label:'SKUs (registros)',         val:totalReg, ref:REF.skus},
+    {label:'Estoque Total',              val:sumSal,   ref:REF.sal},
+    {label:'Reserva Total',             val:sumRes,   ref:REF.res},
+    {label:'Em Separação',              val:sumEmp,   ref:REF.emp},
+    {label:'Disponível',                val:sumDisp,  ref:REF.disp},
+    {label:'Registros no CSV (linhas)', val:totalReg, ref:REF.skus},
+    {label:'SKUs Únicos (códigos)',     val:totalSKU, ref:null},
   ];
 
   const validHtml=validRows.map(r=>{
@@ -1279,7 +1280,7 @@ function rAudit(){
       ${validHtml}
     </table>
     <div style="padding:8px 12px;font-size:11px;color:#94a3b8;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
-      Para ativar a validação automática, atualize os valores REF no código com os totais da aba Conferência do Google Sheets.
+      <b>Registros no CSV</b> = total de linhas (mesmo produto em armazéns diferentes conta múltiplas vezes) — validado contra CONFERENCIA.csv.  <b>SKUs Únicos</b> = códigos distintos no CSV — valor informativo, sem referência de validação.
     </div>
   </div>`;
 
