@@ -398,39 +398,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <!-- ══ RESERVAS COMERCIAIS ══ -->
 <div id="tab-res" class="tab">
-  <div class="res-banner">
-    <strong>Reservas Comerciais</strong> representam planejamentos previamente alinhados pelas diretorias comerciais. O objetivo desta tela é dar visibilidade sobre a utilização do estoque e facilitar negociações internas quando necessário.
-  </div>
-  <div class="krow k4">
-    <div class="kpi kp"><div class="ki"><i class="ti ti-bookmark"></i></div><div class="kl">Total Reservado</div><div class="kv" id="r-tot">—</div></div>
-    <div class="kpi kb"><div class="ki"><i class="ti ti-building"></i></div><div class="kl">Diretoria com Maior Reserva</div><div id="r-dir" style="font-size:12px;font-weight:600;margin-top:4px;line-height:1.3">—</div></div>
-    <div class="kpi kg"><div class="ki"><i class="ti ti-star"></i></div><div class="kl">Produto Mais Reservado</div><div id="r-prod" style="font-size:12px;font-weight:600;margin-top:4px;line-height:1.3">—</div></div>
-    <div class="kpi ka"><div class="ki"><i class="ti ti-user"></i></div><div class="kl">Vendedor com Maior Reserva</div><div id="r-vend" style="font-size:12px;font-weight:600;margin-top:4px;line-height:1.3">—</div></div>
-  </div>
-  <!-- Impacto Comercial -->
-  <div class="tcard" style="margin-bottom:1rem">
-    <div class="tc-hdr"><span style="display:flex;align-items:center;gap:5px"><i class="ti ti-chart-pie"></i> Impacto Comercial — % do Estoque Comprometido por Família</span></div>
-    <div class="tw"><table class="tbl">
-      <thead><tr><th>Família</th><th class="r">Estoque Total</th><th class="r" style="color:var(--pur)">Reserva</th><th class="r">% Comprometido</th></tr></thead>
-      <tbody id="r-impact"></tbody>
-    </table></div>
-  </div>
-  <!-- Produtos Compartilhados -->
-  <div class="tcard" style="margin-bottom:1rem">
-    <div class="tc-hdr"><span style="display:flex;align-items:center;gap:5px"><i class="ti ti-share-2"></i> Produtos Compartilhados — reservados por mais de uma diretoria</span></div>
-    <div class="tw"><table class="tbl">
-      <thead><tr><th>Nomenclatura</th><th>Código</th><th class="r">Reserva Total</th><th>Diretorias</th></tr></thead>
-      <tbody id="r-shared"></tbody>
-    </table></div>
-  </div>
-  <!-- Tabela principal -->
   <div class="fb">
     <div class="sbar"><i class="ti ti-search"></i><input id="res-q" placeholder="Cliente, código, responsável..." oninput="rRes()"></div>
     <select class="sel" id="res-dir" onchange="rRes()"><option value="">Todas as diretorias</option></select>
     <select class="sel" id="res-arm" onchange="rRes()"><option value="">Todos os armazéns</option><option value="Curitiba">Curitiba</option><option value="Fortaleza">Fortaleza</option><option value="Manaus">Manaus</option><option value="Fábrica">Fábrica</option></select>
   </div>
   <div class="tcard"><div class="tw"><table class="tbl">
-    <thead><tr><th>Cliente</th><th>Nomenclatura</th><th>Código</th><th>Reserva</th><th>Armazém</th><th>Diretoria</th><th>Responsável</th><th>Observação</th></tr></thead>
+    <thead><tr><th>Cliente</th><th>Nomenclatura</th><th>Código</th><th class="r">Reserva</th><th>Armazém</th><th>Diretoria</th><th>Responsável</th><th>Observação</th></tr></thead>
     <tbody id="res-tbl"></tbody>
   </table></div><div class="tc-foot"><span id="res-cnt">0</span> registros</div></div>
 </div>
@@ -1010,66 +984,24 @@ function rRes(){
   const dir=document.getElementById('res-dir')?.value||'';
   const arm=document.getElementById('res-arm')?.value||'';
   const rows=RES.filter(r=>{
-    const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||(r.nome||'').toLowerCase().includes(q);
+    const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||(r.nome||'').toLowerCase().includes(q)||(r.responsavel||'').toLowerCase().includes(q);
     const md=!dir||r.diretoria===dir;
-    const ma=!arm||r.obs.toLowerCase().includes(arm.toLowerCase());
+    const ma=!arm||(r.wh||'').toLowerCase().includes(arm.toLowerCase());
     return mq&&md&&ma;
   });
-
-  const tot=RES.reduce((a,r)=>a+r.qtd,0);
-  document.getElementById('r-tot').textContent=fmt(tot);
-
-  const byDir={},byProd={},byVend={};
-  RES.forEach(r=>{
-    byDir[r.diretoria]=(byDir[r.diretoria]||0)+r.qtd;
-    byProd[r.codigo]=(byProd[r.codigo]||0)+r.qtd;
-    byVend[r.responsavel]=(byVend[r.responsavel]||0)+r.qtd;
-  });
-  const tDir=Object.entries(byDir).sort((a,b)=>b[1]-a[1])[0];
-  const tProd=Object.entries(byProd).sort((a,b)=>b[1]-a[1])[0];
-  const tVend=Object.entries(byVend).sort((a,b)=>b[1]-a[1])[0];
-  if(tDir) document.getElementById('r-dir').textContent=`${tDir[0]} (${fmt(tDir[1])} un.)`;
-  if(tProd){
-    const st=ST.find(s=>s.codigo===tProd[0]);
-    document.getElementById('r-prod').textContent=`${st?.nomenclatura||tProd[0]} — ${fmt(tProd[1])} un.`;
-  }
-  if(tVend) document.getElementById('r-vend').textContent=`${tVend[0]} (${fmt(tVend[1])} un.)`;
-
-  // Impact table
-  const famRes={};
-  RES.forEach(r=>{
-    const st=ST.find(s=>s.codigo===r.codigo);
-    const f=(st?.familia)||'Outros';
-    if(!famRes[f]) famRes[f]={res:0,sal:0};
-    famRes[f].res+=r.qtd;
-  });
-  ST.forEach(s=>{const f=s.familia||'Outros';if(!famRes[f]) famRes[f]={res:0,sal:0};famRes[f].sal+=s.saldo;});
-  document.getElementById('r-impact').innerHTML=Object.entries(famRes).filter(([,v])=>v.res>0).sort((a,b)=>b[1].res-a[1].res).map(([f,v])=>{
-    const pct=v.sal>0?((v.res/v.sal)*100).toFixed(1):0;
-    const col=pct>80?'var(--red)':pct>50?'var(--amb-d)':'var(--grn-d)';
-    return`<tr><td style="font-weight:500">${f}</td><td class="r">${fmt(v.sal)}</td><td class="r" style="color:var(--pur);font-weight:700">${fmt(v.res)}</td><td class="r" style="font-weight:700;color:${col}">${pct}%</td></tr>`;
-  }).join('');
-
-  // Shared products
-  const codDir={};
-  RES.forEach(r=>{if(!codDir[r.codigo])codDir[r.codigo]=new Set();codDir[r.codigo].add(r.diretoria);});
-  const shared=Object.entries(codDir).filter(([,dirs])=>dirs.size>1).sort((a,b)=>(byProd[b[0]]||0)-(byProd[a[0]]||0)).slice(0,10);
-  document.getElementById('r-shared').innerHTML=shared.map(([cod,dirs])=>{
-    const st=ST.find(s=>s.codigo===cod);
-    return`<tr><td style="font-weight:500">${st?.nomenclatura||cod}</td><td class="mono">${cod}</td><td class="r" style="color:var(--pur);font-weight:700">${fmt(byProd[cod]||0)}</td><td style="font-size:10px">${[...dirs].join(', ')}</td></tr>`;
-  }).join('');
 
   // Main table
   document.getElementById('res-tbl').innerHTML=rows.map(r=>{
     const st=ST.find(s=>s.codigo===r.codigo);
+    const nom=tr(st?.nomenclatura||st?.descricao||r.codigo,42);
     const w=r.wh||'—';
     const wShort=w.split(' ')[0];
     return`<tr>
       <td style="font-weight:500;font-size:12px">${r.cliente}</td>
-      <td style="font-size:12px">${tr(st?.nomenclatura||st?.descricao||r.codigo,38)}</td>
+      <td style="font-size:12px">${nom}</td>
       <td class="mono">${r.codigo}</td>
       <td class="r" style="font-weight:700;color:var(--pur)">${fmt(r.qtd)}</td>
-      <td style="font-size:10px"><span class="wt" style="color:${WH_COLOR[w]||'#888'};background:${WH_COLOR[w]||'#888'}1a">${wShort}</span></td>
+      <td style="font-size:11px"><span class="wt" style="color:${WH_COLOR[w]||'#888'};background:${WH_COLOR[w]||'#888'}1a">${wShort}</span></td>
       <td style="font-size:11px;color:var(--txt2)">${r.diretoria||'—'}</td>
       <td style="font-size:11px;color:var(--txt2)">${r.responsavel||'—'}</td>
       <td style="font-size:10px;color:var(--txtm)">${r.obs||'—'}</td>
