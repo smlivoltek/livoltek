@@ -601,7 +601,10 @@ function parseEstoque(csv){
     const familia     = String(iFAM>=0 ?r[iFAM]||'':'').trim();
     const nomenclatura= String(iNOM>=0 ?r[iNOM]||'':'').trim();
     const tp = String(r[iTP]||'').trim().toUpperCase();
-    const isMP = categoria.includes('MATÉR')||categoria.includes('MATER')||
+    // isMP: normalizar string para comparação sem acentos
+    const catNorm = categoria.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const isMP = catNorm.includes('MATERIA')||catNorm.includes('MATER')||
+                 categoria.includes('MATÉR')||categoria.includes('MATÉRIA')||
                  (!categoria && tp==='MP');
 
     // Se Nomenclatura vazia, usar DESCRICAO (do TOTVS)
