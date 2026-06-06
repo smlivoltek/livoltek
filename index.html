@@ -1256,23 +1256,42 @@ function rAudit(){
     </table>
   </div>`;
 
+  // ── Reservas cruzadas: reservadas em WH X mas saldo está em WH Y
+  // lkpWH já montado em applyReservas — reconstruir aqui para auditoria
+  const resCruzadas = [];
+  const stByCode = {};
+  ST.forEach(r=>{
+    const c=r.codigo.toUpperCase();
+    if(!stByCode[c]) stByCode[c]={};
+    stByCode[c][r.wh]=(stByCode[c][r.wh]||0)+r.saldo;
+  });
+  RES.forEach(r=>{
+    if(!r.wh || !WH_LIST.includes(r.wh)) return;
+    const c=r.codigo.toUpperCase();
+    const salNoWH=(stByCode[c]&&stByCode[c][r.wh])||0;
+    if(salNoWH < r.qtd){
+      const salTotal=Object.values(stByCode[c]||{}).reduce((a,v)=>a+v,0);
+      resCruzadas.push({...r, salNoWH, salTotal, falta: r.qtd - salNoWH});
+    }
+  });
+
   // ── 2. Conferência por Armazém
   const confRows = whData.map(d=>{
-    // Comparar com referência por armazém se disponível
-    const ref=REF_DATA?.porWH?.[d.w];
-    const salOk=!ref||Math.round(d.sal)===Math.round(ref.sal);
-    const resOk=!ref||Math.round(d.resRef)===Math.round(ref.res);
-    const empOk=!ref||Math.round(d.emp)===Math.round(ref.emp);
-    const dispOk=!ref||Math.round(d.disp)===Math.round(ref.disp);
-    const skuOk=!ref||Math.round(d.recs)===Math.round(ref.skus);
-    const ok=(v,pass)=>pass?`${N(v)}`:`<span style="color:#dc2626;font-weight:700">${N(v)} ❌</span>`;
+    // Disponível esperado = Estoque − Reserva aplicada (r.reserva) − Separação
+    // Reserva aplicada pode diferir de resRef (CSV) quando há reservas cruzadas
+    const dispEsperado = Math.round(d.sal - d.res - d.emp);
+    const dispReal     = Math.round(d.disp);
+    const dispOkCalc   = dispEsperado === dispReal;
+    // Nota: divergência entre dispEsperado e dispReal indica reserva aplicada em WH diferente
+    const resNota = d.resRef !== d.res
+      ? `<span style="font-size:10px;color:#92400e" title="Reserva no CSV: ${N(d.resRef)} | Reserva aplicada: ${N(d.res)}">⚠️</span>` : '';
     return`<tr style="border-top:1px solid #f1f5f9">
       <td style="padding:7px 12px;font-size:13px;font-weight:600">${d.w}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace">${ok(d.sal,salOk)}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#7c3aed">${d.resRef>0?ok(d.resRef,resOk):'—'}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#b45309">${d.emp>0?ok(d.emp,empOk):'—'}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${ok(d.disp,dispOk)}</td>
-      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#64748b">${ok(d.recs,skuOk)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace">${N(d.sal)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#7c3aed">${d.resRef>0?N(d.resRef):'—'} ${resNota}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#b45309">${d.emp>0?N(d.emp):'—'}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#15803d">${N(d.disp)}</td>
+      <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;color:#64748b">${N(d.recs)}</td>
     </tr>`;
   }).join('');
 
@@ -1286,6 +1305,41 @@ function rAudit(){
       <td style="padding:7px 12px;text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:#64748b">${N(totalReg)}</td>
     </tr>`;
 
+  // ── Bloco reservas cruzadas
+  const resCruzBlock = resCruzadas.length === 0 ? '' : `
+  <div style="margin-bottom:20px">
+    <div style="font-size:14px;font-weight:700;color:#92400e;padding:10px 14px;background:#fffbeb;border-radius:10px 10px 0 0;border:1px solid #fcd34d;display:flex;align-items:center;gap:8px">
+      <i class="ti ti-alert-triangle"></i>
+      RESERVAS COM ARMAZÉM SEM SALDO SUFICIENTE — ${resCruzadas.length} ocorrência${resCruzadas.length>1?'s':''}
+      <span style="margin-left:auto;font-size:11px;font-weight:400">O disponível do armazém indicado NÃO desconta essas reservas</span>
+    </div>
+    <div style="border:1px solid #fcd34d;border-top:none;border-radius:0 0 10px 10px;overflow:hidden">
+      <div style="padding:8px 14px;font-size:11px;color:#92400e;background:#fffbeb;border-bottom:1px solid #fef3c7">
+        <b>Causa:</b> reserva registrada em um armazém, mas o produto está fisicamente em outro. 
+        O dashboard aplica a reserva onde o produto tem saldo — por isso o disponível do armazém indicado parece maior que o esperado.
+        <b>Ação recomendada:</b> corrigir o armazém da reserva no RESERVAS.csv.
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <tr style="background:#fffbeb">
+          <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase">Código</th>
+          <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase">Armazém da Reserva</th>
+          <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase">Qtd Reservada</th>
+          <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Saldo no WH</th>
+          <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase">Sem cobertura</th>
+          <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase">Saldo Total (todos WH)</th>
+        </tr>
+        ${resCruzadas.map(r=>`<tr style="border-top:1px solid #fef3c7">
+          <td style="padding:6px 10px;font-family:'DM Mono',monospace;font-weight:700;color:#dc2626;font-size:11px">${r.codigo}</td>
+          <td style="padding:6px 10px;font-size:11px;color:#64748b">${r.wh}</td>
+          <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;color:#7c3aed;font-weight:700">${N(r.qtd)}</td>
+          <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace">${N(r.salNoWH)}</td>
+          <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;color:#dc2626;font-weight:700">${N(r.falta)}</td>
+          <td style="padding:6px 10px;text-align:right;font-family:'DM Mono',monospace;color:#15803d">${N(r.salTotal)}</td>
+        </tr>`).join('')}
+      </table>
+    </div>
+  </div>`;
+
   const conferencia=`
   <div style="margin-bottom:20px">
     <div style="font-size:14px;font-weight:700;color:#1E3A5F;padding:8px 12px;background:#e8eef6;border-radius:8px 8px 0 0;border:1px solid #c7d7ed">CONFERÊNCIA POR ARMAZÉM</div>
@@ -1293,14 +1347,19 @@ function rAudit(){
       <tr style="background:#f8fafc">
         <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Armazém</th>
         <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Estoque</th>
-        <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase">Reserva</th>
+        <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#7c3aed;text-transform:uppercase">Reserva CSV</th>
         <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#b45309;text-transform:uppercase">Separação</th>
         <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#15803d;text-transform:uppercase">Disponível</th>
         <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">SKUs</th>
       </tr>
       ${confRows}${totalRow}
     </table>
-  </div>`;
+    <div style="padding:7px 12px;font-size:11px;color:#64748b;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px">
+      <b>Reserva CSV</b> = soma das reservas registradas naquele armazém no RESERVAS.csv.
+      ⚠️ = reserva aplicada em outro armazém por falta de saldo — veja bloco abaixo.
+    </div>
+  </div>
+  ${resCruzBlock}`;
 
   // ── 3. Validação — comparar com aba Conferência do Google Sheets
   const REF = REF_DATA || {sal:null,res:null,emp:null,disp:null,skus:null};
