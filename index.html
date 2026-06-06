@@ -371,28 +371,35 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 /* Cards de produto */
 .res-grid{display:flex;flex-direction:column;gap:.75rem;margin-top:.25rem}
 .rsc{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden}
-.rsc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:.875rem 1rem;border-bottom:1px solid var(--brd);background:var(--bg)}
-.rsc-prod-info{flex:1;min-width:0}
-.rsc-nom{font-size:13px;font-weight:700;color:var(--txt);line-height:1.35}
+.rsc-header{padding:.875rem 1rem;border-bottom:1px solid var(--brd);background:var(--bg)}
+.rsc-prod-info{margin-bottom:.625rem}
+.rsc-nom{font-size:14px;font-weight:700;color:var(--txt);line-height:1.35}
 .rsc-code{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm);margin-top:2px;display:flex;align-items:center;gap:8px}
-.rsc-whs-env{display:flex;flex-wrap:wrap;gap:4px}
-.rsc-totals{display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;flex-shrink:0}
-.rsc-kpi-lbl{font-size:9px;color:var(--txtm);text-transform:uppercase;letter-spacing:.04em}
-.rsc-kpi-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:700;line-height:1}
-.rsc-disp-tag{font-size:10px;font-weight:600;padding:3px 8px;border-radius:6px;text-align:right;margin-top:2px}
+.rsc-whs-env{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.rsc-totals{display:flex;align-items:center;gap:0;border:1px solid var(--brd);border-radius:8px;overflow:hidden;background:var(--surf)}
+.rsc-kpi{flex:1;padding:.5rem .75rem;border-right:1px solid var(--brd);text-align:center}
+.rsc-kpi:last-child{border-right:none}
+.rsc-kpi-lbl{font-size:9px;color:var(--txtm);text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.rsc-kpi-val{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;line-height:1.2}
+.rsc-disp-tag{font-size:10px;font-weight:600;padding:.4rem .75rem;border-right:none;flex:none;white-space:nowrap}
 
 /* Linhas de reserva dentro do card */
 .rsc-rows{padding:.25rem 0}
-.rsc-row{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem 1rem;border-bottom:1px solid var(--brd)}
+.rsc-row{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:.75rem;padding:.5rem 1rem;border-bottom:1px solid var(--brd)}
 .rsc-row:last-child{border-bottom:none}
-.rsc-row-left{flex:1;min-width:0}
+.rsc-row-left{min-width:0}
 .rsc-cliente{font-size:13px;font-weight:600;color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rsc-meta{display:flex;flex-wrap:wrap;gap:.375rem;margin-top:3px;align-items:center}
-.rsc-resp{font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:3px}
-.rsc-dir{font-size:10px;background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:4px}
-.rsc-obs{font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:3px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.rsc-row-right{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
-.rsc-qtd{font-family:'DM Mono',monospace;font-size:16px;font-weight:700;color:var(--pur)}
+.rsc-meta{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:2px;align-items:center}
+.rsc-resp{font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:3px;white-space:nowrap}
+.rsc-dir{font-size:10px;background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:4px;white-space:nowrap}
+.rsc-obs{font-size:10px;color:var(--txtm);display:flex;align-items:center;gap:3px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rsc-row-right{display:contents}
+.rsc-qtd{font-family:'DM Mono',monospace;font-size:15px;font-weight:700;color:var(--pur);text-align:right}
+@media(max-width:700px){
+  .rsc-row{grid-template-columns:1fr auto}
+  .rsc-row .wt{display:none}
+  .rsc-resp{display:none}
+}
 
 @media(max-width:700px){
   .res-sum-grid{grid-template-columns:1fr}
@@ -400,6 +407,44 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   .rsc-header{flex-direction:column;gap:.75rem}
   .rsc-totals{flex-direction:row;align-items:center;justify-content:space-between;width:100%}
 }
+
+/* ── RESERVAS: Modo Diretoria ── */
+.res-dir-resumo{background:var(--surf);border:1px solid #bfdbfe;border-radius:12px;overflow:hidden;margin-bottom:1rem}
+.res-dir-tag{display:flex;align-items:center;gap:8px;padding:.75rem 1.125rem;font-size:13px;font-weight:700;color:#1e40af;background:#eff6ff;border-bottom:1px solid #bfdbfe;letter-spacing:.02em;text-transform:uppercase}
+.res-dir-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #bfdbfe}
+.res-dir-kpi{padding:.875rem 1.125rem;border-right:1px solid #bfdbfe}
+.res-dir-kpi:last-child{border-right:none}
+.res-dir-kpi-val{font-family:'DM Mono',monospace;font-size:26px;font-weight:700;line-height:1;color:var(--txt)}
+.res-dir-kpi-lbl{font-size:10px;color:var(--txtm);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+
+/* Card no modo diretoria */
+.rsc-dir-mode{}
+.rsc-dir-preview{padding:.625rem 1rem;border-top:1px solid var(--brd);background:var(--bg);display:flex;align-items:center;flex-wrap:wrap;gap:.75rem}
+.rsc-dir-meta{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.rsc-dir-ncli{font-size:11px;font-weight:600;color:var(--txt2);display:flex;align-items:center;gap:4px}
+.rsc-dir-sep{color:var(--txtm);font-size:12px}
+.rsc-top3{display:flex;flex-wrap:wrap;gap:.375rem;flex:1;min-width:0}
+.rsc-top-cli{display:flex;align-items:center;gap:6px;background:var(--surf);border:1px solid var(--brd);border-radius:6px;padding:3px 8px;font-size:11px;white-space:nowrap}
+.rsc-top-qtd-sm{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:var(--pur)}
+.rsc-btn-detail{display:flex;align-items:center;gap:6px;padding:.5rem 1rem;border:1px solid #bfdbfe;border-radius:8px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .15s;min-height:38px}
+.rsc-btn-detail:hover{background:#dbeafe;border-color:#93c5fd}
+.rsc-btn-detail.expanded{background:#dbeafe;border-color:#3b82f6}
+
+@media(max-width:700px){
+  .res-dir-kpis{grid-template-columns:1fr 1fr}
+  .res-dir-kpi{border-bottom:1px solid #bfdbfe}
+  .res-dir-kpi:nth-child(even){border-right:none}
+  .res-dir-kpi:nth-last-child(-n+2){border-bottom:none}
+  .res-dir-kpi-val{font-size:22px}
+  .rsc-dir-preview{flex-direction:column;align-items:flex-start;gap:.5rem}
+  .rsc-btn-detail{width:100%;justify-content:center;padding:.75rem 1rem;font-size:13px}
+  .rsc-top3{gap:.25rem}
+}
+
+.rsc-row-hdr{display:grid;grid-template-columns:1fr auto auto auto;gap:.75rem;padding:.375rem 1rem;background:var(--bg);border-bottom:1px solid var(--brd)}
+.rsc-row-hdr span{font-size:9px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:.05em}
+.rsc-row-hdr span:last-child{text-align:right}
+@media(max-width:700px){.rsc-row-hdr{grid-template-columns:1fr auto}.rsc-row-hdr span:nth-child(2),.rsc-row-hdr span:nth-child(3){display:none}}
 </style>
 </head>
 <body>
@@ -1317,26 +1362,103 @@ function filterByWH(wh, btn){
 }
 
 // ══ RESERVAS
+const resExpanded = new Set();
+function toggleResCard(codigo){
+  if(resExpanded.has(codigo)) resExpanded.delete(codigo);
+  else resExpanded.add(codigo);
+  rRes();
+}
+
+function buildResRow(r){
+  const w=r.wh||'—';
+  const wColor=WH_COLOR[w]||'#64748b';
+  const obs=r.obs?`<span class="rsc-obs" title="${r.obs}"><i class="ti ti-message"></i>${r.obs.length>28?r.obs.slice(0,28)+'…':r.obs}</span>`:'';
+  return`<div class="rsc-row">
+    <div class="rsc-cliente">${r.cliente||'—'}${obs?`<div class="rsc-meta">${obs}</div>`:''}</div>
+    <span class="rsc-resp">${r.responsavel||'—'}</span>
+    <span class="wt" style="color:${wColor};background:${wColor}1a;font-size:9px;white-space:nowrap">${w.split(' ')[0]}</span>
+    <span class="rsc-qtd">${fmt(r.qtd)}</span>
+  </div>`;
+}
+
+function buildProdCard(g, modoDiretoria){
+  const st=ST.find(s=>s.codigo===g.codigo);
+  const nom=st?.nomenclatura||st?.descricao||g.codigo;
+  const familia=st?.familia||'';
+  const dispTotal=dedup(ST.filter(s=>s.codigo===g.codigo)).reduce((a,r)=>a+r._disp,0);
+  const cobre=dispTotal>=g.totalQtd, parcial=dispTotal>0&&dispTotal<g.totalQtd;
+  const dispLabel=cobre?'Cobre o compromisso':parcial?'Cobertura parcial':'Sem disponível';
+  const dispCol=cobre?'var(--grn-d)':parcial?'#b45309':'#64748b';
+  const dispBg=cobre?'var(--grn-pale)':parcial?'var(--amb-pale)':'#f1f5f9';
+  const whsEnv=[...g.whs].map(w=>`<span class="wt" style="color:${WH_COLOR[w]||'#64748b'};background:${WH_COLOR[w]||'#64748b'}1a;font-size:9px">${w.split(' ')[0]}</span>`).join(' ');
+  const sortedRes=g.reservas.slice().sort((a,b)=>b.qtd-a.qtd);
+
+  const header=`
+    <div class="rsc-header">
+      <div class="rsc-prod-info">
+        <div class="rsc-nom">${nom}</div>
+        <div class="rsc-code">${g.codigo}<span class="amc-fam">${familia}</span></div>
+        <div class="rsc-whs-env">${whsEnv}</div>
+      </div>
+      <div class="rsc-totals">
+        <div class="rsc-kpi">
+          <div class="rsc-kpi-lbl">Comprometido</div>
+          <div class="rsc-kpi-val" style="color:var(--pur)">${fmt(g.totalQtd)}</div>
+        </div>
+        <div class="rsc-kpi">
+          <div class="rsc-kpi-lbl">Disponível</div>
+          <div class="rsc-kpi-val" style="color:${dispCol}">${fmt(dispTotal)}</div>
+        </div>
+        <div class="rsc-kpi rsc-disp-tag" style="color:${dispCol};background:${dispBg}">
+          ${dispLabel}
+        </div>
+      </div>
+    </div>`;
+
+  if(modoDiretoria){
+    const expanded=resExpanded.has(g.codigo);
+    const nCli=new Set(g.reservas.map(r=>r.cliente)).size;
+    const top3=sortedRes.slice(0,3).map(r=>`<div class="rsc-top-cli"><span>${r.cliente}</span><span class="rsc-top-qtd-sm">${fmt(r.qtd)}</span></div>`).join('');
+    return`<div class="rsc rsc-dir-mode">
+      ${header}
+      <div class="rsc-dir-preview">
+        <div class="rsc-dir-meta">
+          <span class="rsc-dir-ncli"><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''}</span>
+          <span class="rsc-dir-sep">·</span>
+          <span style="font-size:11px;color:var(--txtm)">Top reservas:</span>
+        </div>
+        <div class="rsc-top3">${top3}</div>
+        <button class="rsc-btn-detail${expanded?' expanded':''}" onclick="toggleResCard('${g.codigo}')">
+          <i class="ti ${expanded?'ti-chevron-up':'ti-list-details'}"></i>
+          ${expanded?'Ocultar reservas':'Ver Reservas'}
+        </button>
+      </div>
+      ${expanded?`<div class="rsc-rows">${sortedRes.map(buildResRow).join('')}</div>`:''}
+    </div>`;
+  }
+  const rowHeader=`<div class="rsc-row-hdr">
+    <span>Cliente</span>
+    <span>Responsável</span>
+    <span>Armazém</span>
+    <span style="text-align:right">Qtd.</span>
+  </div>`;
+  return`<div class="rsc">${header}<div class="rsc-rows">${rowHeader}${sortedRes.map(buildResRow).join('')}</div></div>`;
+}
+
 function rRes(){
   const q=(document.getElementById('res-q')?.value||'').toLowerCase();
   const dir=document.getElementById('res-dir')?.value||'';
   const arm=document.getElementById('res-arm')?.value||'';
-  const isFiltered = q||dir||arm;
+  const modoDiretoria=!!dir&&!q&&!arm;
 
   const rows=RES.filter(r=>{
     const stNom=(ST.find(s=>s.codigo===r.codigo)?.nomenclatura||'').toLowerCase();
-    const mq=!q
-      ||r.cliente.toLowerCase().includes(q)
-      ||r.codigo.toLowerCase().includes(q)
-      ||stNom.includes(q)
-      ||(r.responsavel||'').toLowerCase().includes(q)
-      ||(r.obs||'').toLowerCase().includes(q);
+    const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||stNom.includes(q)||(r.responsavel||'').toLowerCase().includes(q)||(r.obs||'').toLowerCase().includes(q);
     const md=!dir||r.diretoria===dir;
     const ma=!arm||(r.wh||'').toLowerCase().includes(arm.toLowerCase());
     return mq&&md&&ma;
   });
 
-  // ── Agrupar por produto
   const byCode={};
   rows.forEach(r=>{
     if(!byCode[r.codigo]) byCode[r.codigo]={codigo:r.codigo,reservas:[],totalQtd:0,whs:new Set()};
@@ -1349,35 +1471,57 @@ function rRes(){
   document.getElementById('res-cnt').textContent=rows.length;
   document.getElementById('res-prod-cnt').textContent=grupos.length;
 
-  // ── Painel de resumo (só quando sem filtro ativo)
   const sumEl=document.getElementById('res-summary');
-  if(!isFiltered){
-    // Por armazém
+
+  if(modoDiretoria){
+    const totalQtd=rows.reduce((a,r)=>a+r.qtd,0);
+    const whsDir=[...new Set(rows.filter(r=>r.wh).map(r=>r.wh))];
+    const whTags=whsDir.map(w=>`<span class="wt" style="color:${WH_COLOR[w]||'#64748b'};background:${WH_COLOR[w]||'#64748b'}1a">${w.split(' ')[0]}</span>`).join(' ');
+    const byCli={};
+    rows.forEach(r=>{if(r.cliente) byCli[r.cliente]=(byCli[r.cliente]||0)+r.qtd;});
+    const topCli=Object.entries(byCli).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const topRows=topCli.map(([cli,qtd],i)=>`
+      <div class="res-top-row">
+        <span class="res-top-rank">${i+1}</span>
+        <span class="res-top-cli">${cli}</span>
+        <span class="res-top-qtd">${fmt(qtd)}<span style="font-size:10px;font-weight:400;opacity:.7"> un.</span></span>
+      </div>`).join('');
+    sumEl.innerHTML=`
+      <div class="res-dir-resumo">
+        <div class="res-dir-tag"><i class="ti ti-building-community"></i>${dir}</div>
+        <div class="res-dir-kpis">
+          <div class="res-dir-kpi"><div class="res-dir-kpi-val">${grupos.length}</div><div class="res-dir-kpi-lbl">Produtos com Reserva</div></div>
+          <div class="res-dir-kpi"><div class="res-dir-kpi-val">${rows.length}</div><div class="res-dir-kpi-lbl">Reservas Comerciais</div></div>
+          <div class="res-dir-kpi"><div class="res-dir-kpi-val" style="color:var(--pur)">${fmt(totalQtd)}</div><div class="res-dir-kpi-lbl">Qtd. Comprometida</div></div>
+          <div class="res-dir-kpi"><div class="res-dir-kpi-lbl" style="margin-bottom:6px">Armazéns Envolvidos</div><div style="display:flex;flex-wrap:wrap;gap:4px">${whTags||'<span style="color:var(--txtm);font-size:12px">—</span>'}</div></div>
+        </div>
+        ${topCli.length?`<div class="res-sum-block">
+          <div class="res-sum-title"><i class="ti ti-trophy"></i> Maiores Reservas — ${dir}</div>
+          <div class="res-top-list">${topRows}</div>
+        </div>`:''}
+      </div>`;
+  } else if(!q&&!dir&&!arm){
     const totalGeral=RES.reduce((a,r)=>a+r.qtd,0);
-    const whSums=WH_LIST.map(w=>({w, qtd:RES.filter(r=>r.wh===w).reduce((a,r)=>a+r.qtd,0)}));
+    const whSums=WH_LIST.map(w=>({w,qtd:RES.filter(r=>r.wh===w).reduce((a,r)=>a+r.qtd,0)}));
     const whCards=whSums.map(ws=>{
       const pct=totalGeral>0?Math.round(ws.qtd/totalGeral*100):0;
       const col=WH_COLOR[ws.w]||'#64748b';
       return`<div class="res-wh-card">
         <div class="res-wh-name">${ws.w.split(' ')[0]}</div>
-        <div class="res-wh-sub">${ws.w.replace(/\s*\(.*\)/,'')}</div>
+        <div class="res-wh-sub">${ws.w.replace(/\s*\([^)]*\)/g,'')}</div>
         <div class="res-wh-val" style="color:${ws.qtd>0?'var(--pur)':'var(--txtm)'}">${fmt(ws.qtd)}</div>
         <div class="res-wh-lbl">unidades comprometidas</div>
         <div class="res-wh-bar"><div style="width:${pct}%;background:${col};height:100%;border-radius:3px;transition:width .4s"></div></div>
       </div>`;
     }).join('');
-
-    // Maiores reservas por cliente
     const byCli={};
-    RES.forEach(r=>{if(r.cliente){byCli[r.cliente]=(byCli[r.cliente]||0)+r.qtd;}});
-    const topCli=Object.entries(byCli).sort((a,b)=>b[1]-a[1]).slice(0,6);
-    const topRows=topCli.map(([cli,qtd],i)=>`
+    RES.forEach(r=>{if(r.cliente) byCli[r.cliente]=(byCli[r.cliente]||0)+r.qtd;});
+    const topRows=Object.entries(byCli).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([cli,qtd],i)=>`
       <div class="res-top-row">
         <span class="res-top-rank">${i+1}</span>
         <span class="res-top-cli">${cli}</span>
-        <span class="res-top-qtd">${fmt(qtd)} <span style="font-size:10px;font-weight:400;opacity:.7">un.</span></span>
+        <span class="res-top-qtd">${fmt(qtd)}<span style="font-size:10px;font-weight:400;opacity:.7"> un.</span></span>
       </div>`).join('');
-
     sumEl.innerHTML=`
       <div class="res-sum-grid">
         <div class="res-sum-block">
@@ -1393,75 +1537,13 @@ function rRes(){
     sumEl.innerHTML='';
   }
 
-  // ── Cards de produto
   const el=document.getElementById('res-cards');
   if(!grupos.length){
     el.innerHTML=`<div class="all-mob-empty" style="color:var(--txtm)"><i class="ti ti-bookmark-off"></i><div>Nenhuma reserva encontrada</div></div>`;
     return;
   }
-
-  el.innerHTML=grupos.map(g=>{
-    const st=ST.find(s=>s.codigo===g.codigo);
-    const nom=st?.nomenclatura||st?.descricao||g.codigo;
-    const familia=st?.familia||'';
-    const dispTotal=dedup(ST.filter(s=>s.codigo===g.codigo)).reduce((a,r)=>a+r._disp,0);
-
-    // Status de cobertura — linguagem comercial, sem alarme
-    const cobre=dispTotal>=g.totalQtd;
-    const parcial=dispTotal>0&&dispTotal<g.totalQtd;
-    const dispLabel=cobre?'Cobre o compromisso':parcial?'Cobertura parcial':'Sem disponível';
-    const dispCol=cobre?'var(--grn-d)':parcial?'#b45309':'#64748b';
-    const dispBg=cobre?'var(--grn-pale)':parcial?'var(--amb-pale)':'#f1f5f9';
-
-    // Armazéns envolvidos
-    const whsEnv=[...g.whs].map(w=>`<span class="wt" style="color:${WH_COLOR[w]||'#64748b'};background:${WH_COLOR[w]||'#64748b'}1a;font-size:9px">${w.split(' ')[0]}</span>`).join(' ');
-
-    // Tabela de clientes: linha por reserva
-    const resRows=g.reservas
-      .sort((a,b)=>b.qtd-a.qtd)
-      .map(r=>{
-        const w=r.wh||'—';
-        const wColor=WH_COLOR[w]||'#64748b';
-        return`<div class="rsc-row">
-          <div class="rsc-row-left">
-            <div class="rsc-cliente">${r.cliente||'—'}</div>
-            <div class="rsc-meta">
-              ${r.responsavel?`<span class="rsc-resp"><i class="ti ti-user"></i>${r.responsavel}</span>`:''}
-              ${r.diretoria?`<span class="rsc-dir">${r.diretoria}</span>`:''}
-              ${r.obs?`<span class="rsc-obs" title="${r.obs}"><i class="ti ti-message"></i>${r.obs.length>30?r.obs.slice(0,30)+'…':r.obs}</span>`:''}
-            </div>
-          </div>
-          <div class="rsc-row-right">
-            <span class="wt" style="color:${wColor};background:${wColor}1a;font-size:9px">${w.split(' ')[0]}</span>
-            <span class="rsc-qtd">${fmt(r.qtd)}</span>
-          </div>
-        </div>`;
-      }).join('');
-
-    return`<div class="rsc">
-      <div class="rsc-header">
-        <div class="rsc-prod-info">
-          <div class="rsc-nom">${nom}</div>
-          <div class="rsc-code">${g.codigo}<span class="amc-fam">${familia}</span></div>
-          <div class="rsc-whs-env" style="margin-top:5px">${whsEnv}</div>
-        </div>
-        <div class="rsc-totals">
-          <div style="text-align:right">
-            <div class="rsc-kpi-lbl">Comprometido</div>
-            <div class="rsc-kpi-val" style="color:var(--pur)">${fmt(g.totalQtd)}</div>
-          </div>
-          <div style="text-align:right">
-            <div class="rsc-kpi-lbl">Disponível</div>
-            <div class="rsc-kpi-val" style="color:${dispCol}">${fmt(dispTotal)}</div>
-          </div>
-          <div class="rsc-disp-tag" style="color:${dispCol};background:${dispBg}">${dispLabel}</div>
-        </div>
-      </div>
-      <div class="rsc-rows">${resRows}</div>
-    </div>`;
-  }).join('');
+  el.innerHTML=grupos.map(g=>buildProdCard(g,modoDiretoria)).join('');
 }
-
 // ══ ALERTAS
 function rAlrt(){
   const PROD_CATS=['inv','ev','bess','kit','strbox'];
