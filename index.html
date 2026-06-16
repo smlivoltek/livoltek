@@ -1894,13 +1894,27 @@ function buildProdCard(g, modoDiretoria){
       ${expanded?`<div class="rsc-rows">${sortedRes.map(buildResRow).join('')}</div>`:''}
     </div>`;
   }
+  // Modo default: colapsar por padrão, expandir ao clicar (mesmo mecanismo do modo diretoria)
+  const expanded=resExpanded.has(g.codigo);
+  const nCli=new Set(g.reservas.map(r=>r.cliente)).size;
   const rowHeader=`<div class="rsc-row-hdr">
     <span>Cliente</span>
     <span>Responsável</span>
     <span>Armazém</span>
     <span style="text-align:right">Qtd.</span>
   </div>`;
-  return`<div class="rsc">${header}<div class="rsc-rows">${rowHeader}${sortedRes.map(buildResRow).join('')}</div></div>`;
+  const detailBlock=expanded?`<div class="rsc-rows">${rowHeader}${sortedRes.map(buildResRow).join('')}</div>`:'';
+  return`<div class="rsc">
+    ${header}
+    <div class="rsc-dir-preview">
+      <span class="rsc-dir-ncli"><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''} · ${fmt(g.totalQtd)} un. comprometidas</span>
+      <button class="rsc-btn-detail${expanded?' expanded':''}" onclick="toggleResCard('${g.codigo}')">
+        <i class="ti ${expanded?'ti-chevron-up':'ti-list-details'}"></i>
+        ${expanded?'Ocultar reservas':'Ver Reservas'}
+      </button>
+    </div>
+    ${detailBlock}
+  </div>`;
 }
 
 function rRes(){
