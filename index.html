@@ -777,7 +777,7 @@ let WH_MAP = {};
 // No modo legado, permanecem com os valores fixos abaixo.
 const WH_NAMES = {
   '10108':'Curitiba (Eletra)','10102':'Fortaleza (Eletra)','10106':'Manaus (Eletra)',
-  '1010':'Fábrica Livoltek','10100':'Fábrica Livoltek',
+  '1010':'Fábrica Livoltek',
   'MAO-LIV':'Fábrica Livoltek','MAOLIV':'Fábrica Livoltek',
   'mao-liv':'Fábrica Livoltek','Fábrica Livoltek':'Fábrica Livoltek',
   'Fabrica Livoltek':'Fábrica Livoltek','LIVOLTEK':'Fábrica Livoltek',
@@ -2648,44 +2648,52 @@ async function boot(){
 
     // 4. Reservas — Google Sheets (opcional, não bloqueia)
     // config.json usa reservas_url direta (suporta planilhas diferentes)
-    if(cfg.reservas_url){
-      prog('Carregando Reservas (Google Sheets)...');
+    // 4 & 5. Reservas + Separação — fetch com timeout 8s, não bloqueia se falhar
+    const fetchComTimeout = async (url, segundos=8) => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(()=>ctrl.abort(), segundos*1000);
       try{
-        const r=await fetch(cfg.reservas_url,{cache:'no-store'});
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        RES=parseReservasSheets(await r.text());
+        const r = await fetch(url, {cache:'no-store', signal:ctrl.signal});
+        clearTimeout(timer);
+        if(!r.ok) throw new Error('HTTP '+r.status+
+          (r.status===403?' — planilha não está pública (compartilhamento "Qualquer pessoa com o link")':''));
+        return await r.text();
+      }catch(e){
+        clearTimeout(timer);
+        throw e.name==='AbortError' ? new Error('Timeout após '+segundos+'s') : e;
+      }
+    };
+
+    if(cfg.reservas_url){
+      prog('Carregando Reservas...');
+      try{
+        RES = parseReservasSheets(await fetchComTimeout(cfg.reservas_url));
       }catch(e){
         SRC_ALERTS.push({
           fonte:'Reservas (Google Sheets)',
-          msg:`Não foi possível carregar: ${e.message}. Usando fallback local se disponível.`,
+          msg:e.message+'. Usando RESERVAS.csv local como fallback.',
           ts:new Date()
         });
-        // Fallback para RESERVAS.csv local
         try{
-          const rb=await fetch('data/RESERVAS.csv',{cache:'no-store'});
+          const rb=await fetch('data/reserva.csv',{cache:'no-store'});
           if(rb.ok){ RES=parseReservas(await rb.text()); SRC_TS.reservas=new Date(); }
         }catch(e2){}
       }
     } else {
-      // Sem URL configurada — tentar RESERVAS.csv local
       try{
-        const r=await fetch('data/RESERVAS.csv',{cache:'no-store'});
+        const r=await fetch('data/reserva.csv',{cache:'no-store'});
         if(r.ok){ RES=parseReservas(await r.text()); SRC_TS.reservas=new Date(); }
       }catch(e){}
     }
 
-    // 5. Separação/Faturados — Google Sheets (opcional, não bloqueia)
-    // Planilha separada da de reservas
     if(cfg.separacao_url){
-      prog('Carregando Pedidos em Separação (Google Sheets)...');
+      prog('Carregando Pedidos em Separação...');
       try{
-        const r=await fetch(cfg.separacao_url,{cache:'no-store'});
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        SEP=parseSeparacao(await r.text());
+        SEP = parseSeparacao(await fetchComTimeout(cfg.separacao_url));
       }catch(e){
         SRC_ALERTS.push({
-          fonte:'Pedidos em Separação / Faturados (Google Sheets)',
-          msg:`Não foi possível carregar: ${e.message}. Separação não aplicada.`,
+          fonte:'Pedidos em Separação (Google Sheets)',
+          msg:e.message,
           ts:new Date()
         });
       }
