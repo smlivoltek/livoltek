@@ -221,7 +221,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .all-stock-btn.active{background:var(--grn-pale);border-color:var(--grn-d);color:var(--grn-d);font-weight:600}
 
 /* ── TODOS: mobile cards */
-.all-mob-grid{display:none;flex-direction:column;gap:.625rem}
+.all-mob-grid{display:none;grid-template-columns:repeat(5,1fr);gap:.625rem;align-items:start}
 .all-mob-empty{padding:3rem 1rem;text-align:center;color:var(--txtm);font-size:14px;display:flex;flex-direction:column;align-items:center;gap:.5rem}
 .all-mob-empty i{font-size:2rem}
 .amc{background:var(--surf);border:1px solid var(--brd);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:.5rem;transition:box-shadow .15s}
@@ -241,6 +241,15 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .amc-res{background:#ede9fe;color:#7c3aed}
 .all-desk-only{display:block}
 
+@media(max-width:1400px){
+  .all-mob-grid,.res-grid{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:1100px){
+  .all-mob-grid,.res-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:750px){
+  .all-mob-grid,.res-grid{grid-template-columns:repeat(2,1fr)}
+}
 @media(max-width:700px){
   /* Sidebar → drawer off-canvas */
   .sb{
@@ -299,7 +308,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
   /* Todos: ocultar tabela, mostrar cards */
   .all-desk-only{display:none}
-  .all-mob-grid{display:flex}
+  .all-mob-grid{display:grid}
 
   /* PC cards */
   .pc{font-size:12px}
@@ -311,6 +320,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   .k4{grid-template-columns:1fr}
   .wh-disp-val{font-size:20px}
   .amc-disp{font-size:17px}
+  .all-mob-grid,.res-grid{grid-template-columns:1fr}
 }
 
 @media(max-width:380px){
@@ -369,7 +379,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .res-top-qtd{font-family:'DM Mono',monospace;font-size:14px;font-weight:700;color:var(--pur);flex-shrink:0}
 
 /* Cards de produto */
-.res-grid{display:flex;flex-direction:column;gap:.75rem;margin-top:.25rem}
+.res-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.75rem;align-items:start;margin-top:.25rem}
 .rsc{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden}
 .rsc-header{padding:.875rem 1rem;border-bottom:1px solid var(--brd);background:var(--bg)}
 .rsc-prod-info{margin-bottom:.625rem}
@@ -482,7 +492,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .rsc2-top-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--txt2)}
 
 /* ── pc2: card de produto (Todos + Reservas) ── */
-.pc2{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin-bottom:.5rem}
+.pc2{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden}
 .pc2-top{padding:.75rem 1rem .375rem}
 .pc2-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
 .pc2-nom{font-size:13px;font-weight:700;color:var(--txt);line-height:1.35;flex:1}
