@@ -1,5 +1,5 @@
 {
   "warehouses": ["curitiba", "fortaleza", "manaus", "fabrica_manaus"],
-  "reservas_url": "https://docs.google.com/spreadsheets/d/15-0VcbsYA7IB1TRqsOsyDXrSat-qbyYTrJNB2SFsH4o/export?format=csv&gid=577818960",
-  "separacao_url": "https://docs.google.com/spreadsheets/d/1zEdVkwXbXGfI9IBYssZVfw-68x0oyRBk1zTwEZ0URC4/export?format=csv&gid=577818960"
+  "reservas_url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3uDoajQWkalh8Tgks3Vl9G_hS8LHt19wtVmK33LydkfHE7fHBFVE4U3ajgbwVIpyaFiSLeOSYWGi5/pub?gid=577818960&single=true&output=csv",
+  "separacao_url": "https://docs.google.com/spreadsheets/d/e/2PACX-1vQvQso507Gyssr6sAGP3MHa_yR8JNI7ofd74mMAEkUL0Ioei5AN1c_aRSseHCoJZga2AuDuN4W9yvsZ/pub?gid=577818960&single=true&output=csv"
 }
