@@ -952,7 +952,10 @@ function parseReservas(csv){
     transformHeader:h=>h.trim().replace(/^\uFEFF/,'')});
   const result=[];
   parsed.data.forEach(r=>{
-    const codigo=String(r['Código']||r['Código']||r['Codigo']||r['CÓDIGO']||r['CODIGO']||r['C?digo']||'').trim().toUpperCase();
+    // Busca dinâmica: 'Código' pode vir com encoding variado
+    const _allKeys=Object.keys(r);
+    const _codKey=_allKeys.find(k=>k.replace(/[^A-Za-z]/g,'').toUpperCase()==='CODIGO')||'';
+    const codigo=String(r[_codKey]||r['Código']||r['Codigo']||r['CODIGO']||'').trim().toUpperCase();
     const qtd=pn(r['Qtdade']||r['Qtd']||r['QTD']||r['Quantidade']||r['QTDADE']||
                r['QUANTIDADE_RESERVADA']||0);
     const cancelado=String(r['Cancelado']||r['CANCELADO']||'').trim();
@@ -1115,10 +1118,12 @@ function parseEstoqueWH(csv, whCodigo){
   const all=parsed.data;
   if(!all.length) return [];
 
-  // Detectar linha de header (pular linhas de título antes do header real)
+  // Detectar linha de header — linha 0 pode ser título "Saldos em Estoque"
+  // Header real contém CODIGO, FL, ARMZ, SALDO EM ESTOQUE
   let hdrIdx=0;
   for(let i=0;i<Math.min(5,all.length);i++){
-    if(all[i].some(c=>norm(c)==='CODIGO'||norm(c)==='FL'||norm(c)==='SALDO EM ESTOQUE')){
+    const joined=all[i].join('|').toUpperCase();
+    if(joined.includes('CODIGO') && joined.includes('SALDO')){
       hdrIdx=i; break;
     }
   }
@@ -1199,29 +1204,33 @@ function parseEstoqueWH(csv, whCodigo){
 }
 
 function parseFabricaManaus(csv){
-  // estoque_fabrica_manaus.csv — formato TOPMANAGER (diferente do TOTVS)
+  // estoque_fabrica_manaus.csv — formato TOPMANAGER
   // Linha 0: total geral (ignorar)
-  // Linha 1: header — colunas relevantes: TOP=código interno, HEXING=código produto, Saldo Estoque
+  // Linha 1: header — [1]=TOP, [2]=HEXING(código), [6]=Coluna6(descrição), [13]=Saldo Estoque
   const cleanCsv=csv.replace(/^\uFEFF/,'');
   const parsed=Papa.parse(cleanCsv,{header:false,skipEmptyLines:false,delimiter:';'});
   const all=parsed.data;
+  if(all.length<2) return [];
 
-  // Linha 1 = header
-  const hdr=all[1]?all[1].map(h=>String(h).trim()):[];
+  // Linha 1 = header real
+  const hdr=all[1].map(h=>String(h).trim());
   const ci=makeCI(hdr);
-  const iHEXING = ci('HEXING');    // código do produto (chave principal)
-  const iTOP    = ci('TOP');       // código interno TOPMANAGER
-  const iSAL    = ci('Saldo Estoque','SALDO ESTOQUE','SALDO');
-  const iDESC   = ci('Coluna6','DESCRICAO','DESCRIÇÃO'); // col 6 = descrição
+
+  // Usar índice por nome com fallback por posição (posições confirmadas)
+  const iHEXING = ci('HEXING')      >= 0 ? ci('HEXING')      : 2;
+  const iSAL    = ci('Saldo Estoque','SALDO ESTOQUE') >= 0
+                  ? ci('Saldo Estoque','SALDO ESTOQUE') : 13;
+  const iDESC   = ci('Coluna6')     >= 0 ? ci('Coluna6')     : 6;
 
   const items=[];
   for(let i=2;i<all.length;i++){
     const r=all[i];
-    // HEXING pode estar vazio se a linha tem Coluna1 preenchido (linha de continuação)
+    if(!r || r.length < 3) continue;
+    // HEXING é o código comercial do produto
     const codigo=String(r[iHEXING]||'').trim().toUpperCase();
-    if(!codigo) continue;
-    const saldo=pn(iSAL>=0?r[iSAL]:0);
-    const descricao=String(iDESC>=0?r[iDESC]||'':'').trim();
+    if(!codigo || codigo==='HEXING') continue;
+    const saldo=pn(iSAL>=0 && r[iSAL] ? r[iSAL] : 0);
+    const descricao=String(iDESC>=0 && r[iDESC] ? r[iDESC] : '').trim();
     items.push({codigo,descricao,wh:'Fábrica Livoltek',saldo,empenho:0,
                 separacao:0,reserva:0,disp:0,
                 categoria:'',familia:'',nomenclatura:'',isMP:false,
