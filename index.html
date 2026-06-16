@@ -579,6 +579,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <button class="sbi" id="sb-div" onclick="go('div')">
       <i class="ti ti-category si"></i><span class="sn">Diversos · Others</span><span class="sc" id="sc-div">—</span>
     </button>
+    <button class="sbi" id="sb-mot" onclick="go('mot')">
+      <i class="ti ti-boat si"></i><span class="sn">Motor de Barco · Boat Motor</span><span class="sc" id="sc-mot">—</span>
+    </button>
 
   </div>
   <div class="sb-div"></div>
@@ -708,6 +711,16 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
   </div>
   <div class="cgrid" id="div-cards"></div>
   <div style="font-size:10px;color:var(--txtm)"><span id="div-cnt">0</span> produtos</div>
+</div>
+
+<!-- ══ MOTOR DE BARCO ══ -->
+<div id="tab-mot" class="tab">
+  <div class="fb">
+    <div class="sbar"><i class="ti ti-search"></i><input id="mot-q" placeholder="Nomenclatura ou código..." oninput="renderCat('mot')"></div>
+    <select class="sel" id="mot-wh" onchange="renderCat('mot')"><option value="">Todos os armazéns</option></select>
+  </div>
+  <div class="cgrid" id="mot-cards"></div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="mot-cnt">0</span> produtos</div>
 </div>
 
 <!-- ══ MATÉRIA-PRIMA ══ -->
@@ -1539,7 +1552,7 @@ function getCatTab(r){
   if(fam.includes('BATERIA')||fam.includes('BESS')) return 'bess';
   if(fam.includes('KIT SOLAR'))         return 'kit';
   if(fam.includes('STRING BOX'))        return 'strbox';
-  if(fam.includes('MOTOR'))             return 'div';
+  if(fam.includes('MOTOR'))             return 'mot';
   if(fam.includes('DIVERSOS'))          return 'div';
   return 'div';
 }
@@ -1811,6 +1824,7 @@ function rDash(){
     {tab:'kit',    label:'Kit Solar',        ico:'ti-sun',                col:'#d97706',       bg:'#fef3c7'},
     {tab:'strbox', label:'String Box',       ico:'ti-plug-connected',     col:'var(--blu)',    bg:'#dbeafe'},
     {tab:'div',    label:'Diversos',         ico:'ti-apps',               col:'#7c3aed',       bg:'#ede9fe'},
+    {tab:'mot',    label:'Motor de Barco',   ico:'ti-boat',               col:'#0369a1',       bg:'#dbeafe'},
     {tab:'mp',     label:'Matéria-Prima',    ico:'ti-building-factory-2', col:'var(--red)',    bg:'var(--red-pale)'},
   ];
 
@@ -2160,7 +2174,7 @@ function updateSidebar(){
       else if(REF_DATA.sal>0){auditBadge.textContent='✅';auditBadge.style.display='';auditBadge.style.background='#dcfce7';auditBadge.style.color='#15803d';}
     }
   }
-  const tabs=['inv','ev','bess','kit','strbox','div','mp'];
+  const tabs=['inv','ev','bess','kit','strbox','div','mot','mp'];
   tabs.forEach(t=>{
     const n=dedup(ST.filter(r=>getCatTab(r)===t)).length;
     const el=document.getElementById('sc-'+t);
@@ -2936,7 +2950,7 @@ async function boot(){
   }
   document.getElementById('sync-t').textContent=_ts;
   setStatus(SRC_ALERTS.length?'warn':'ok');
-  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div'].forEach(t=>renderCat(t));
+  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div','mot'].forEach(t=>renderCat(t));
   rRes(); rAlrt(); updateSidebar(); rAudit();
 }
 
