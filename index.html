@@ -1205,32 +1205,36 @@ function parseEstoqueWH(csv, whCodigo){
 
 function parseFabricaManaus(csv){
   // estoque_fabrica_manaus.csv — formato TOPMANAGER
-  // Linha 0: total geral (ignorar)
-  // Linha 1: header — [1]=TOP, [2]=HEXING(código), [6]=Coluna6(descrição), [13]=Saldo Estoque
+  // Estrutura confirmada com arquivo real:
+  //   Linha 0: totais gerais (ignorar)
+  //   Linha 1: header — [2]=HEXING(código produto), [6]=Coluna6(descrição), [13]=Saldo Estoque
+  //   Linhas 2+: dados
+  // Separador: ; | skipEmptyLines:true para não deslocar índices
   const cleanCsv=csv.replace(/^\uFEFF/,'');
-  const parsed=Papa.parse(cleanCsv,{header:false,skipEmptyLines:false,delimiter:';'});
-  const all=parsed.data;
+  const all=Papa.parse(cleanCsv,{header:false,skipEmptyLines:true,delimiter:';'}).data;
   if(all.length<2) return [];
 
-  // Linha 1 = header real
-  const hdr=all[1].map(h=>String(h).trim());
-  const ci=makeCI(hdr);
+  // Localizar linha de header (contém 'HEXING' e 'Saldo Estoque')
+  let hdrIdx=0;
+  for(let i=0;i<Math.min(5,all.length);i++){
+    const joined=all[i].join('|');
+    if(joined.includes('HEXING') && joined.includes('Saldo')){hdrIdx=i;break;}
+  }
+  const hdr=all[hdrIdx].map(h=>String(h).trim());
 
-  // Usar índice por nome com fallback por posição (posições confirmadas)
-  const iHEXING = ci('HEXING')      >= 0 ? ci('HEXING')      : 2;
-  const iSAL    = ci('Saldo Estoque','SALDO ESTOQUE') >= 0
-                  ? ci('Saldo Estoque','SALDO ESTOQUE') : 13;
-  const iDESC   = ci('Coluna6')     >= 0 ? ci('Coluna6')     : 6;
+  // Índices por nome com fallback por posição confirmada
+  const iHEXING = hdr.findIndex(h=>h==='HEXING')      >= 0 ? hdr.findIndex(h=>h==='HEXING')      : 2;
+  const iSAL    = hdr.findIndex(h=>h==='Saldo Estoque')>= 0 ? hdr.findIndex(h=>h==='Saldo Estoque'): 13;
+  const iDESC   = hdr.findIndex(h=>h==='Coluna6')      >= 0 ? hdr.findIndex(h=>h==='Coluna6')     : 6;
 
   const items=[];
-  for(let i=2;i<all.length;i++){
+  for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
-    if(!r || r.length < 3) continue;
-    // HEXING é o código comercial do produto
+    if(!r||r.length<3) continue;
     const codigo=String(r[iHEXING]||'').trim().toUpperCase();
-    if(!codigo || codigo==='HEXING') continue;
-    const saldo=pn(iSAL>=0 && r[iSAL] ? r[iSAL] : 0);
-    const descricao=String(iDESC>=0 && r[iDESC] ? r[iDESC] : '').trim();
+    if(!codigo) continue;
+    const saldo=pn(r[iSAL]||0);
+    const descricao=String(r[iDESC]||'').trim();
     items.push({codigo,descricao,wh:'Fábrica Livoltek',saldo,empenho:0,
                 separacao:0,reserva:0,disp:0,
                 categoria:'',familia:'',nomenclatura:'',isMP:false,
