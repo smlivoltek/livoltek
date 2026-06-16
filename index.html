@@ -2596,12 +2596,12 @@ async function boot(){
     // 1. Armazens.csv
     prog('Carregando Armazens.csv...');
     try{
-      const r=await fetch('data/Armazens.csv',{cache:'no-store'});
+      const r=await fetch('data/armazens.csv',{cache:'no-store'});
       if(!r.ok) throw new Error('HTTP '+r.status);
       WH_MAP=parseArmazens(await r.text());
       syncWHFromMap();
     }catch(e){
-      showErr('<b>data/Armazens.csv</b> não encontrado ou inválido. Este arquivo é obrigatório no modo novo.');
+      showErr('<b>data/armazens.csv</b> não encontrado ou inválido. Este arquivo é obrigatório no modo novo.');
       return;
     }
 
