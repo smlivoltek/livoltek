@@ -477,6 +477,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .amc2-res span:last-child{font-family:'DM Mono',monospace;font-weight:600}
 .amc2-total-row:first-child span:last-child{font-family:'DM Mono',monospace;font-weight:600;color:var(--txt)}
 .amc2-total-note{font-size:10px;color:var(--txtm);margin-top:4px;font-style:italic}
+
+.rsc2-top3{display:flex;flex-direction:column;gap:2px;flex:1}
+.rsc2-top-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--txt2)}
 </style>
 </head>
 <body>
@@ -1894,73 +1897,63 @@ function buildProdCard(g, modoDiretoria){
   const nom=st?.nomenclatura||st?.descricao||g.codigo;
   const familia=st?.familia||'';
   const dispTotal=dedup(ST.filter(s=>s.codigo===g.codigo)).reduce((a,r)=>a+r._disp,0);
-  const cobre=dispTotal>=g.totalQtd, parcial=dispTotal>0&&dispTotal<g.totalQtd;
+  const cobre=dispTotal>=g.totalQtd;
+  const parcial=dispTotal>0&&dispTotal<g.totalQtd;
   const dispLabel=cobre?'Cobre o compromisso':parcial?'Cobertura parcial':'Sem disponível';
   const dispCol=cobre?'var(--grn-d)':parcial?'#b45309':'#64748b';
-  const dispBg=cobre?'var(--grn-pale)':parcial?'var(--amb-pale)':'#f1f5f9';
-  const whsEnv=[...g.whs].map(w=>`<span class="wt" style="color:${WH_COLOR[w]||'#64748b'};background:${WH_COLOR[w]||'#64748b'}1a;font-size:9px">${w.split(' ')[0]}</span>`).join(' ');
   const sortedRes=g.reservas.slice().sort((a,b)=>b.qtd-a.qtd);
-
-  const header=`
-    <div class="rsc-header">
-      <div class="rsc-prod-info">
-        <div class="rsc-nom">${nom}</div>
-        <div class="rsc-code">${g.codigo}<span class="amc-fam">${familia}</span></div>
-        <div class="rsc-whs-env">${whsEnv}</div>
-      </div>
-      <div class="rsc-totals">
-        <div class="rsc-kpi">
-          <div class="rsc-kpi-lbl">Comprometido</div>
-          <div class="rsc-kpi-val" style="color:var(--pur)">${fmt(g.totalQtd)}</div>
-        </div>
-        <div class="rsc-kpi">
-          <div class="rsc-kpi-lbl">Disponível</div>
-          <div class="rsc-kpi-val" style="color:${dispCol}">${fmt(dispTotal)}</div>
-        </div>
-        <div class="rsc-kpi rsc-disp-tag" style="color:${dispCol};background:${dispBg}">
-          ${dispLabel}
-        </div>
-      </div>
-    </div>`;
-
-  if(modoDiretoria){
-    const expanded=resExpanded.has(g.codigo);
-    const nCli=new Set(g.reservas.map(r=>r.cliente)).size;
-    const top3=sortedRes.slice(0,3).map(r=>`<div class="rsc-top-cli"><span>${r.cliente}</span><span class="rsc-top-qtd-sm">${fmt(r.qtd)}</span></div>`).join('');
-    return`<div class="rsc rsc-dir-mode">
-      ${header}
-      <div class="rsc-dir-preview">
-        <div class="rsc-dir-meta">
-          <span class="rsc-dir-ncli"><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''}</span>
-          <span class="rsc-dir-sep">·</span>
-          <span style="font-size:11px;color:var(--txtm)">Top reservas:</span>
-        </div>
-        <div class="rsc-top3">${top3}</div>
-        <button class="rsc-btn-detail${expanded?' expanded':''}" onclick="toggleResCard('${g.codigo}')">
-          <i class="ti ${expanded?'ti-chevron-up':'ti-list-details'}"></i>
-          ${expanded?'Ocultar reservas':'Ver Reservas'}
-        </button>
-      </div>
-      ${expanded?`<div class="rsc-rows">${sortedRes.map(buildResRow).join('')}</div>`:''}
-    </div>`;
-  }
-  // Modo default: colapsar por padrão, expandir ao clicar (mesmo mecanismo do modo diretoria)
   const expanded=resExpanded.has(g.codigo);
   const nCli=new Set(g.reservas.map(r=>r.cliente)).size;
+
+  // Armazéns envolvidos
+  const whsEnv=[...g.whs].map(w=>
+    `<span class="amc2-pill" style="color:${WH_COLOR[w]||'#64748b'};background:${WH_COLOR[w]||'#64748b'}1a">${w.split(' ')[0]}</span>`
+  ).join(' ');
+
+  // Tabela de clientes (expandida)
   const rowHeader=`<div class="rsc-row-hdr">
-    <span>Cliente</span>
-    <span>Responsável</span>
-    <span>Armazém</span>
+    <span>Cliente</span><span>Responsável</span><span>Armazém</span>
     <span style="text-align:right">Qtd.</span>
   </div>`;
-  const detailBlock=expanded?`<div class="rsc-rows">${rowHeader}${sortedRes.map(buildResRow).join('')}</div>`:'';
-  return`<div class="rsc">
-    ${header}
-    <div class="rsc-dir-preview">
-      <span class="rsc-dir-ncli"><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''} · ${fmt(g.totalQtd)} un. comprometidas</span>
+  const detailBlock=expanded
+    ?`<div class="rsc-rows">${rowHeader}${sortedRes.map(buildResRow).join('')}</div>`
+    :'';
+
+  // Preview top-3 (modo diretoria) ou contador simples
+  const preview=modoDiretoria
+    ?`<div class="rsc2-top3">${sortedRes.slice(0,3).map(r=>`
+        <div class="rsc2-top-row"><span>${r.cliente}</span><span class="rsc-qtd" style="font-size:13px">${fmt(r.qtd)}</span></div>`
+      ).join('')}</div>`
+    :'';
+
+  return`<div class="amc2" style="margin-bottom:.625rem">
+    <div class="amc2-head">
+      <div class="amc2-info">
+        <div class="amc2-nom">${nom}</div>
+        <div class="amc2-meta">
+          <span class="amc2-cod">${g.codigo}</span>
+          ${familia?`<span class="amc2-pill" style="color:#64748b;background:#f1f5f9">${familia}</span>`:''}
+          ${whsEnv}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;flex-shrink:0">
+        <div style="text-align:right">
+          <div class="amc2-disp-lbl">COMPROMETIDO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:var(--pur)">${fmt(g.totalQtd)}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="amc2-disp-lbl">DISPONÍVEL</div>
+          <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:${dispCol}">${fmt(dispTotal)}</div>
+        </div>
+        <span style="font-size:10px;font-weight:600;color:${dispCol}">${dispLabel}</span>
+      </div>
+    </div>
+    <div style="padding:.5rem 1rem;border-top:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;gap:.75rem;background:var(--bg)">
+      <span style="font-size:11px;color:var(--txtm)"><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''} · ${fmt(g.totalQtd)} un.</span>
+      ${preview}
       <button class="rsc-btn-detail${expanded?' expanded':''}" onclick="toggleResCard('${g.codigo}')">
         <i class="ti ${expanded?'ti-chevron-up':'ti-list-details'}"></i>
-        ${expanded?'Ocultar reservas':'Ver Reservas'}
+        ${expanded?'Ocultar':'Ver Reservas'}
       </button>
     </div>
     ${detailBlock}
