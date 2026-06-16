@@ -480,6 +480,36 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 .rsc2-top3{display:flex;flex-direction:column;gap:2px;flex:1}
 .rsc2-top-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--txt2)}
+
+/* ── pc2: card de produto (Todos + Reservas) ── */
+.pc2{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin-bottom:.5rem}
+.pc2-top{padding:.75rem 1rem .375rem}
+.pc2-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
+.pc2-nom{font-size:13px;font-weight:700;color:var(--txt);line-height:1.35;flex:1}
+.pc2-pill{font-size:9px;font-weight:600;padding:2px 7px;border-radius:5px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.pc2-cod{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm);margin-top:3px}
+.pc2-disp-block{padding:.25rem 1rem .5rem}
+.pc2-disp-lbl{font-size:9px;font-weight:700;color:var(--grn-d);text-transform:uppercase;letter-spacing:.05em}
+.pc2-disp-val{font-family:'DM Mono',monospace;font-size:32px;font-weight:700;line-height:1}
+.pc2-wh-list{padding:.375rem 1rem .5rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:3px}
+.pc2-wh-row{display:flex;align-items:center;gap:7px}
+.pc2-wh-name{flex:1;font-size:12px;color:var(--txt2)}
+.pc2-wh-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--txt)}
+.pc2-no-stock{font-size:11px;color:var(--txtm)}
+.pc2-totals{padding:.375rem 1rem .5rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:3px}
+.pc2-total-row{display:flex;justify-content:space-between;font-size:12px;color:var(--txt2)}
+.pc2-total-row span:last-child{font-family:'DM Mono',monospace;font-weight:600;color:var(--txt)}
+.pc2-sep{color:var(--amb-d)!important}.pc2-sep span:last-child{color:var(--amb-d)!important}
+.pc2-res{color:var(--pur)!important}.pc2-res span:last-child{color:var(--pur)!important}
+.pc2-note{font-size:9px;color:var(--txtm);margin-top:2px;font-style:italic}
+.pc2-cli-toggle{display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem;border-top:1px solid var(--brd);font-size:11px;color:var(--txtm);cursor:pointer;background:var(--bg);user-select:none}
+.pc2-cli-toggle:hover{background:var(--brd)}
+.pc2-chevron{transition:transform .2s}
+.pc2-cli-toggle.open .pc2-chevron{transform:none}
+.pc2-cli-row{display:flex;justify-content:space-between;align-items:center;padding:5px 1rem;border-bottom:1px solid var(--brd);font-size:12px}
+.pc2-cli-row:last-child{border-bottom:none}
+.pc2-cli-nome{color:var(--txt);font-weight:500}
+.pc2-cli-qtd{font-family:'DM Mono',monospace;font-weight:700;color:var(--pur)}
 </style>
 </head>
 <body>
@@ -1705,47 +1735,58 @@ function rAll(){
     const res=r._res||0;
     const dispCol=disp>0?'var(--grn-d)':disp===0&&sal>0?'var(--amb-d)':'var(--red)';
 
-    // Saldo por armazém (apenas onde há saldo > 0)
-    const whList=Object.entries(r._byWH)
-      .filter(([,v])=>v>0)
-      .sort((a,b)=>b[1]-a[1]);
-
-    const whRows=whList.map(([w,v])=>`
-      <div class="amc2-wh-row">
-        <i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'};font-size:12px"></i>
-        <span class="amc2-wh-name">${w.replace(/\s*\(.*\)/,'')}</span>
-        <span class="amc2-wh-val">${fmt(v)}</span>
-      </div>`).join('');
-
-    // Pill de categoria
+    // Pill de família/categoria
     const catColor={'inv':'var(--pri)','ev':'var(--grn-d)','bess':'var(--amb-d)',
                     'kit':'#d97706','strbox':'var(--blu)','div':'#7c3aed','mp':'var(--red)'};
     const catTab=getCatTab(r);
     const catCol=catColor[catTab]||'#94a3b8';
-    const famLabel=(r.familia||'').replace(/\s*[-–]\s*(GT1|GT3|HP1|HP3).*/i,'').trim()||'';
+    const famLabel=r.familia||'';
 
-    return`<div class="amc2">
-      <div class="amc2-head">
-        <div class="amc2-info">
-          <div class="amc2-nom">${r.nomenclatura||r.descricao||'—'}</div>
-          <div class="amc2-desc">${r.descricao&&r.nomenclatura&&r.descricao!==r.nomenclatura?r.descricao.slice(0,60)+'…':''}</div>
-          <div class="amc2-meta">
-            <span class="amc2-cod">${r.codigo}</span>
-            ${famLabel?`<span class="amc2-pill" style="color:${catCol};background:${catCol}1a">${famLabel}</span>`:''}
-          </div>
+    // Saldo por armazém
+    const whRows=Object.entries(r._byWH)
+      .filter(([,v])=>v>0)
+      .sort((a,b)=>b[1]-a[1])
+      .map(([w,v])=>`<div class="pc2-wh-row">
+        <i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'}"></i>
+        <span class="pc2-wh-name">${w}</span>
+        <span class="pc2-wh-val">${fmt(v)}</span>
+      </div>`).join('');
+
+    // Clientes com reserva (para expandir)
+    const resClientes=RES.filter(rv=>rv.codigo===r.codigo&&!rv._cancelado);
+    const hasClientes=resClientes.length>0;
+    const cliKey='cli-'+r.codigo.replace(/[^a-z0-9]/gi,'');
+    const cliRows=resClientes.sort((a,b)=>b.qtd-a.qtd).map(rv=>`
+      <div class="pc2-cli-row">
+        <span class="pc2-cli-nome">${rv.cliente||'—'}</span>
+        <span class="pc2-cli-qtd">${fmt(rv.qtd)}</span>
+      </div>`).join('');
+
+    return`<div class="pc2">
+      <div class="pc2-top">
+        <div class="pc2-head">
+          <div class="pc2-nom">${r.nomenclatura||r.descricao||'—'}</div>
+          ${famLabel?`<span class="pc2-pill" style="color:${catCol};background:${catCol}1a">${famLabel}</span>`:''}
         </div>
-        <div class="amc2-disp-block">
-          <div class="amc2-disp-lbl">DISPONÍVEL PARA VENDA</div>
-          <div class="amc2-disp-val" style="color:${dispCol}">${fmt(disp)}</div>
-        </div>
+        <div class="pc2-cod">${r.codigo}</div>
       </div>
-      <div class="amc2-wh-list">${whRows||'<span class="amc2-no-stock">Sem saldo em estoque</span>'}</div>
-      ${sal>0?`<div class="amc2-totals">
-        <div class="amc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
-        ${sep>0?`<div class="amc2-total-row amc2-sep"><span><i class="ti ti-lock"></i> Em Separação</span><span>−${fmt(sep)}</span></div>`:''}
-        ${res>0?`<div class="amc2-total-row amc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>−${fmt(res)}</span></div>`:''}
-        ${sep>0||res>0?`<div class="amc2-total-note">Separação e Reserva já foram abatidas do disponível.</div>`:''}
-      </div>`:''}
+      <div class="pc2-disp-block">
+        <div class="pc2-disp-lbl">DISPONÍVEL PARA VENDA</div>
+        <div class="pc2-disp-val" style="color:${dispCol}">${fmt(disp)}</div>
+      </div>
+      <div class="pc2-wh-list">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
+      <div class="pc2-totals">
+        <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
+        ${sep>0?`<div class="pc2-total-row pc2-sep"><span><i class="ti ti-lock"></i> Em Separação</span><span>${fmt(sep)}</span></div>`:''}
+        ${res>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(res)}</span></div>`:''}
+        ${sep>0||res>0?`<div class="pc2-note">Separação e Reserva já foram abatidas do disponível.</div>`:''}
+      </div>
+      ${hasClientes?`
+      <div class="pc2-cli-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.style.display=this.classList.contains('open')?'block':'none'">
+        <i class="ti ti-users"></i> ${resClientes.length} cliente${resClientes.length>1?'s':''}
+        <i class="ti ti-chevron-down pc2-chevron"></i>
+      </div>
+      <div class="pc2-cli-list" style="display:none">${cliRows}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -1896,65 +1937,61 @@ function buildProdCard(g, modoDiretoria){
   const st=ST.find(s=>s.codigo===g.codigo);
   const nom=st?.nomenclatura||st?.descricao||g.codigo;
   const familia=st?.familia||'';
-  const dispTotal=dedup(ST.filter(s=>s.codigo===g.codigo)).reduce((a,r)=>a+r._disp,0);
-  const cobre=dispTotal>=g.totalQtd;
-  const parcial=dispTotal>0&&dispTotal<g.totalQtd;
-  const dispLabel=cobre?'Cobre o compromisso':parcial?'Cobertura parcial':'Sem disponível';
-  const dispCol=cobre?'var(--grn-d)':parcial?'#b45309':'#64748b';
+  const stRows=ST.filter(s=>s.codigo===g.codigo);
+  const sal=stRows.reduce((a,r)=>a+r.saldo,0);
+  const sep=stRows.reduce((a,r)=>a+r.separacao,0);
+  const dispTotal=dedup(stRows).reduce((a,r)=>a+r._disp,0);
+  const dispCol=dispTotal>0?'var(--grn-d)':dispTotal===0&&sal>0?'var(--amb-d)':'var(--red)';
   const sortedRes=g.reservas.slice().sort((a,b)=>b.qtd-a.qtd);
   const expanded=resExpanded.has(g.codigo);
   const nCli=new Set(g.reservas.map(r=>r.cliente)).size;
 
-  // Armazéns envolvidos
-  const whsEnv=[...g.whs].map(w=>
-    `<span class="amc2-pill" style="color:${WH_COLOR[w]||'#64748b'};background:${WH_COLOR[w]||'#64748b'}1a">${w.split(' ')[0]}</span>`
-  ).join(' ');
+  // Saldo por armazém
+  const whMap={};
+  stRows.forEach(r=>{whMap[r.wh]=(whMap[r.wh]||0)+r.saldo;});
+  const whRows=Object.entries(whMap)
+    .filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1])
+    .map(([w,v])=>`<div class="pc2-wh-row">
+      <i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'}"></i>
+      <span class="pc2-wh-name">${w}</span>
+      <span class="pc2-wh-val">${fmt(v)}</span>
+    </div>`).join('');
 
-  // Tabela de clientes (expandida)
+  // Tabela expandida de clientes
   const rowHeader=`<div class="rsc-row-hdr">
     <span>Cliente</span><span>Responsável</span><span>Armazém</span>
     <span style="text-align:right">Qtd.</span>
   </div>`;
   const detailBlock=expanded
-    ?`<div class="rsc-rows">${rowHeader}${sortedRes.map(buildResRow).join('')}</div>`
-    :'';
+    ?`<div class="rsc-rows">${rowHeader}${sortedRes.map(buildResRow).join('')}</div>`:'';
 
-  // Preview top-3 (modo diretoria) ou contador simples
-  const preview=modoDiretoria
-    ?`<div class="rsc2-top3">${sortedRes.slice(0,3).map(r=>`
-        <div class="rsc2-top-row"><span>${r.cliente}</span><span class="rsc-qtd" style="font-size:13px">${fmt(r.qtd)}</span></div>`
-      ).join('')}</div>`
-    :'';
+  // Família/categoria pill
+  const catColor={'inv':'var(--pri)','ev':'var(--grn-d)','bess':'var(--amb-d)',
+                  'kit':'#d97706','strbox':'var(--blu)','div':'#7c3aed','mp':'var(--red)'};
+  const catCol=catColor[getCatTab(st||{})]||'#94a3b8';
 
-  return`<div class="amc2" style="margin-bottom:.625rem">
-    <div class="amc2-head">
-      <div class="amc2-info">
-        <div class="amc2-nom">${nom}</div>
-        <div class="amc2-meta">
-          <span class="amc2-cod">${g.codigo}</span>
-          ${familia?`<span class="amc2-pill" style="color:#64748b;background:#f1f5f9">${familia}</span>`:''}
-          ${whsEnv}
-        </div>
+  return`<div class="pc2">
+    <div class="pc2-top">
+      <div class="pc2-head">
+        <div class="pc2-nom">${nom}</div>
+        ${familia?`<span class="pc2-pill" style="color:${catCol};background:${catCol}1a">${familia}</span>`:''}
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.25rem;flex-shrink:0">
-        <div style="text-align:right">
-          <div class="amc2-disp-lbl">COMPROMETIDO</div>
-          <div style="font-family:'DM Mono',monospace;font-size:24px;font-weight:700;color:var(--pur)">${fmt(g.totalQtd)}</div>
-        </div>
-        <div style="text-align:right">
-          <div class="amc2-disp-lbl">DISPONÍVEL</div>
-          <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:700;color:${dispCol}">${fmt(dispTotal)}</div>
-        </div>
-        <span style="font-size:10px;font-weight:600;color:${dispCol}">${dispLabel}</span>
-      </div>
+      <div class="pc2-cod">${g.codigo}</div>
     </div>
-    <div style="padding:.5rem 1rem;border-top:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;gap:.75rem;background:var(--bg)">
-      <span style="font-size:11px;color:var(--txtm)"><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''} · ${fmt(g.totalQtd)} un.</span>
-      ${preview}
-      <button class="rsc-btn-detail${expanded?' expanded':''}" onclick="toggleResCard('${g.codigo}')">
-        <i class="ti ${expanded?'ti-chevron-up':'ti-list-details'}"></i>
-        ${expanded?'Ocultar':'Ver Reservas'}
-      </button>
+    <div class="pc2-disp-block">
+      <div class="pc2-disp-lbl">DISPONÍVEL PARA VENDA</div>
+      <div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispTotal)}</div>
+    </div>
+    <div class="pc2-wh-list">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
+    <div class="pc2-totals">
+      <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
+      ${sep>0?`<div class="pc2-total-row pc2-sep"><span><i class="ti ti-lock"></i> Em Separação</span><span>${fmt(sep)}</span></div>`:''}
+      ${g.totalQtd>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(g.totalQtd)}</span></div>`:''}
+      ${sep>0||g.totalQtd>0?`<div class="pc2-note">Separação e Reserva já foram abatidas do disponível.</div>`:''}
+    </div>
+    <div class="pc2-cli-toggle${expanded?' open':''}" onclick="toggleResCard('${g.codigo}')">
+      <span><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''} · ${fmt(g.totalQtd)} un. comprometidas</span>
+      <i class="ti ${expanded?'ti-chevron-up':'ti-chevron-down'} pc2-chevron"></i>
     </div>
     ${detailBlock}
   </div>`;
