@@ -2804,9 +2804,23 @@ async function boot(){
   document.getElementById('ld-area').style.display='none';
   document.getElementById('mc').style.display='block';
   document.getElementById('btn-csv').disabled=false;
-  const now=new Date();
-  const ts=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('sync-t').textContent=ts;
+  // ── Timestamp: só atualiza se os dados mudaram
+  // Gera uma assinatura simples: total de registros + saldo total + total reservas
+  const _sig = ST.length+'|'+ST.reduce((a,r)=>a+r.saldo,0).toFixed(0)+'|'+RES.length+'|'+SEP.length;
+  const _sigKey = 'livoltek_data_sig';
+  const _tsKey  = 'livoltek_data_ts';
+  const _prevSig = localStorage.getItem(_sigKey)||'';
+  let _ts;
+  if(_sig !== _prevSig){
+    // Dados mudaram — atualizar timestamp e salvar assinatura
+    const now=new Date();
+    _ts=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+    try{localStorage.setItem(_sigKey,_sig);localStorage.setItem(_tsKey,_ts);}catch(e){}
+  } else {
+    // Dados iguais — usar timestamp anterior
+    _ts=localStorage.getItem(_tsKey)||'—';
+  }
+  document.getElementById('sync-t').textContent=_ts;
   setStatus(SRC_ALERTS.length?'warn':'ok');
   rDash(); rAll(); ['inv','ev','bess','kit','strbox','div'].forEach(t=>renderCat(t));
   rRes(); rAlrt(); updateSidebar(); rAudit();
