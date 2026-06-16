@@ -1209,14 +1209,19 @@ function parseFabricaManaus(csv){
 function parseReservasSheets(csv){
   // Google Sheets publicado como CSV — campos: CODIGO;CODIGO_ARMAZEM;QUANTIDADE_RESERVADA;MOTIVO;OBSERVACAO
   // Mantém compatibilidade com formato legado (Cliente;Codigo;Armazem;Qtdade...)
-  const parsed=Papa.parse(csv.replace(/^\uFEFF/,''),{
-    header:true,skipEmptyLines:true,
+  // Google Sheets pub CSV = vírgula; reserva.csv local = ponto-e-vírgula → auto-detect
+  const csvClean=csv.replace(/^\uFEFF/,'');
+  const detectedSep = csvClean.indexOf(';') !== -1 &&
+    (csvClean.indexOf(';') < (csvClean.indexOf(',') === -1 ? 99999 : csvClean.indexOf(',')))
+    ? ';' : ',';
+  const parsed=Papa.parse(csvClean,{
+    header:true,skipEmptyLines:true,delimiter:detectedSep,
     transformHeader:h=>h.trim().replace(/^\uFEFF/,'')
   });
   const result=[];
   parsed.data.forEach(r=>{
     const codigo=String(
-      r['CODIGO']||r['Código']||r['Codigo']||r['codigo']||''
+      r['CODIGO']||r['Código']||r['C\u00f3digo']||r['Codigo']||r['codigo']||r['C?digo']||''
     ).trim().toUpperCase();
     const qtd=pn(
       r['QUANTIDADE_RESERVADA']||r['Qtdade']||r['QTD']||r['Quantidade']||0
@@ -1247,8 +1252,12 @@ function parseReservasSheets(csv){
 
 function parseSeparacao(csv){
   // Google Sheets: NUMERO_PEDIDO;CODIGO;CODIGO_ARMAZEM;QUANTIDADE;CLIENTE;DATA_ENVIO_FATURAMENTO;OBSERVACAO
-  const parsed=Papa.parse(csv.replace(/^\uFEFF/,''),{
-    header:true,skipEmptyLines:true,
+  const csvClean2=csv.replace(/^\uFEFF/,'');
+  const detectedSep2 = csvClean2.indexOf(';') !== -1 &&
+    (csvClean2.indexOf(';') < (csvClean2.indexOf(',') === -1 ? 99999 : csvClean2.indexOf(',')))
+    ? ';' : ',';
+  const parsed=Papa.parse(csvClean2,{
+    header:true,skipEmptyLines:true,delimiter:detectedSep2,
     transformHeader:h=>h.trim().replace(/^\uFEFF/,'')
   });
   const result=[];
