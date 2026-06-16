@@ -1037,11 +1037,17 @@ function parseArmazens(csv){
     const regiao=String(r['REGIAO']||r['REGIÃO']||'').trim();
     if(!cod||!nome) return;
     // Construir nome dashboard: "Nome (Tipo)" se tipo diferente de Filial
-    // Normalizar tipo para comparação (encoding pode corromper 'Fábrica')
+    // Normalizar tipo — encoding pode corromper 'Fábrica'
     const tipoNorm = tipo.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-    const nomeDash = (tipoNorm&&tipoNorm!=='Filial')
-      ? `${nome} (${tipoNorm})`
-      : `${nome} (Eletra)`;
+    // Código 1010 = Fábrica Livoltek — nome fixo para garantir match com parseFabricaManaus
+    let nomeDash;
+    if(cod==='1010'||tipoNorm.toUpperCase().includes('FABRICA')||tipoNorm.toUpperCase().includes('F?BRICA')){
+      nomeDash='Fábrica Livoltek';
+    } else if(tipoNorm&&tipoNorm!=='Filial'){
+      nomeDash=`${nome} (${tipoNorm})`;
+    } else {
+      nomeDash=`${nome} (Eletra)`;
+    }
     map[cod]={nome:nomeDash,tipo,regiao,codigo:cod};
   });
   SRC_TS.armazens=new Date();
