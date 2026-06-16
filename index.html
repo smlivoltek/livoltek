@@ -715,12 +715,14 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <!-- ══ MOTOR DE BARCO ══ -->
 <div id="tab-mot" class="tab">
+  <div class="fam-pills" id="mot-pills"></div>
   <div class="fb">
-    <div class="sbar"><i class="ti ti-search"></i><input id="mot-q" placeholder="Nomenclatura ou código..." oninput="renderCat('mot')"></div>
+    <div class="sbar"><i class="ti ti-boat si"></i><input id="mot-q" placeholder="Nomenclatura ou código..." oninput="renderCat('mot')"></div>
     <select class="sel" id="mot-wh" onchange="renderCat('mot')"><option value="">Todos os armazéns</option></select>
   </div>
   <div class="cgrid" id="mot-cards"></div>
-  <div style="font-size:10px;color:var(--txtm)"><span id="mot-cnt">0</span> produtos</div>
+  <div id="mot-mp-sec" style="display:none"><div class="mp-sep"><div class="mp-sep-line"></div><span class="mp-sep-lbl">Matéria-Prima</span><div class="mp-sep-line"></div></div><div class="cgrid" id="mot-mp-cards"></div></div>
+  <div style="font-size:10px;color:var(--txtm)"><span id="mot-cnt">0</span> produtos · <span id="mot-mp-cnt">0</span> matéria-prima</div>
 </div>
 
 <!-- ══ MATÉRIA-PRIMA ══ -->
@@ -1542,18 +1544,20 @@ function dedup(items){
 }
 
 // ══ CATEGORY ROUTING
-// MP sempre vai para 'mp' — garante que aparecem na seção correta
-// e não contaminam os totais de produto das outras abas
+// MP vai para a aba da sua FAMÍLIA (aparece na seção inferior)
+// Isso permite ver MP de Inversores na aba Inversores, etc.
+// Só vai para 'mp' se não tiver família reconhecida
 function getCatTab(r){
-  if(r.isMP) return 'mp';
   const fam=(r.familia||'').toUpperCase().trim();
-  if(fam.includes('INVERSOR'))          return 'inv';
-  if(fam.includes('CARREGADOR'))        return 'ev';
+  if(fam.includes('INVERSOR'))                      return 'inv';
+  if(fam.includes('CARREGADOR'))                    return 'ev';
   if(fam.includes('BATERIA')||fam.includes('BESS')) return 'bess';
-  if(fam.includes('KIT SOLAR'))         return 'kit';
-  if(fam.includes('STRING BOX'))        return 'strbox';
-  if(fam.includes('MOTOR'))             return 'mot';
-  if(fam.includes('DIVERSOS'))          return 'div';
+  if(fam.includes('KIT SOLAR'))                     return 'kit';
+  if(fam.includes('STRING BOX'))                    return 'strbox';
+  if(fam.includes('MOTOR'))                         return 'mot';
+  if(fam.includes('DIVERSOS'))                      return 'div';
+  // MP sem família reconhecida → aba MP
+  if(r.isMP) return 'mp';
   return 'div';
 }
 
