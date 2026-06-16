@@ -1,0 +1,5 @@
+{
+  "warehouses": ["curitiba", "fortaleza", "manaus", "fabrica_manaus"],
+  "reservas_url": "https://docs.google.com/spreadsheets/d/15-0VcbsYA7IB1TRqsOsyDXrSat-qbyYTrJNB2SFsH4o/export?format=csv&gid=577818960",
+  "separacao_url": "https://docs.google.com/spreadsheets/d/1zEdVkwXbXGfI9IBYssZVfw-68x0oyRBk1zTwEZ0URC4/export?format=csv&gid=577818960"
+}
