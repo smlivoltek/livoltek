@@ -2563,6 +2563,24 @@ function rAudit(){
 
 
 
+function setStatus(s){
+  const d=document.getElementById('sdot'),t=document.getElementById('stxt');
+  if(!d) return;
+  d.className='dot';
+  if(s==='ok'){d.classList.add('dot-g');t.textContent='Base Atualizada';}
+  else if(s==='warn'){d.classList.add('dot-a');t.textContent='Dados parciais — verifique alertas';}
+  else if(s==='loading'){d.classList.add('dot-a');t.textContent='Carregando...';}
+  else{d.classList.add('dot-r');t.textContent='Erro ao carregar';}
+}
+
+function showErr(m){
+  document.getElementById('ld-area').style.display='none';
+  const e=document.getElementById('err-area');e.style.display='block';
+  e.innerHTML=`<div class="ebox"><i class="ti ti-alert-circle" style="font-size:16px;flex-shrink:0"></i><div>${m}<br><button onclick="boot()" style="margin-top:7px;padding:4px 11px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px">Tentar novamente</button></div></div>`;
+  setStatus('err');
+}
+
+
 async function boot(){
   setStatus('loading');
   document.getElementById('ld-area').style.display='flex';
