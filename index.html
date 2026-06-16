@@ -1678,31 +1678,23 @@ function renderCat(tabId){
     buildPills(tabId, dedup(ST.filter(r=>getCatTab(r)===tabId&&!r.isMP)));
   }
 
+  // Todos juntos na seção superior — MP marcada com badge visual
+  // Ordenar: produtos primeiro, depois MP (mesma ordem alfabética dentro de cada grupo)
   const prod=dd.filter(r=>!r.isMP);
   const mp  =dd.filter(r=>r.isMP);
+  const todos=[...prod,...mp]; // produtos primeiro, MP depois
 
   const cardsEl=document.getElementById(tabId+'-cards');
   const mpSec=document.getElementById(tabId+'-mp-sec');
-  const mpCards=document.getElementById(tabId+'-mp-cards');
   const cntEl=document.getElementById(tabId+'-cnt');
   const mpCntEl=document.getElementById(tabId+'-mp-cnt');
 
-  // Aba MP: todos os itens são MP — renderizar direto em mp-cards
-  if(tabId==='mp'){
-    if(cardsEl) cardsEl.innerHTML='';
-    if(mpSec) mpSec.style.display=mp.length?'block':'none';
-    if(mpCards) mpCards.innerHTML=mp.map(r=>pCard(r,true)).join('')||
-      `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm);font-size:13px">Nenhuma matéria-prima encontrada.</div>`;
-    if(cntEl) cntEl.textContent=mp.length;
-    if(mpCntEl) mpCntEl.textContent=mp.length;
-    return;
-  }
+  // Ocultar seção inferior (não usada mais)
+  if(mpSec) mpSec.style.display='none';
 
-  if(cardsEl) cardsEl.innerHTML=prod.map(r=>pCard(r,false)).join('')||
+  if(cardsEl) cardsEl.innerHTML=todos.map(r=>pCard(r,r.isMP)).join('')||
     `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm);font-size:13px">Nenhum produto encontrado.</div>`;
-  if(mpSec) mpSec.style.display=mp.length?'block':'none';
-  if(mpCards) mpCards.innerHTML=mp.map(r=>pCard(r,true)).join('');
-  if(cntEl) cntEl.textContent=prod.length;
+  if(cntEl) cntEl.textContent=prod.length+(mp.length?` · ${mp.length} MP`:'');
   if(mpCntEl) mpCntEl.textContent=mp.length;
 }
 
