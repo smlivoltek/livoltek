@@ -1046,42 +1046,50 @@ function parseArmazens(csv){
 }
 
 function parseCadastro(csv){
-  // Colunas reais (;-separated, encoding utf-8-sig):
-  // CODIGO;DESCRICAO;CÓDIGO TOP MANAGER;Categoria;Família;Nomenclatura;...
-  const parsed=Papa.parse(csv.replace(/^\uFEFF/,''),{
-    header:true,skipEmptyLines:true,delimiter:';',
-  });
-  const map={};
-  const dupl=[];
-  parsed.data.forEach(r=>{
-    // Localizar campos por variações de nome
-    const getCampo=(...names)=>{
-      for(const n of names){
-        const v=r[n]||r[norm(n)];
-        if(v!==undefined) return String(v).trim();
-      }
-      // busca parcial
-      for(const k of Object.keys(r)){
-        for(const n of names){
-          if(norm(k).includes(norm(n))) return String(r[k]).trim();
-        }
-      }
-      return '';
-    };
-    const codigo=getCampo('CODIGO','Codigo','CÓDIGO').toUpperCase();
-    if(!codigo) return;
+  // Colunas reais: CODIGO;DESCRICAO;CÓDIGO TOP MANAGER;Categoria;Família;Nomenclatura
+  // Posições fixas (índice 0-5) — encoding dos nomes pode estar corrompido
+  // Usar header:false + posição garante funcionamento independente de encoding
+  const clean=csv.replace(/^\uFEFF/,'');
+  const parsed=Papa.parse(clean,{header:false,skipEmptyLines:true,delimiter:';'});
+  const all=parsed.data;
+  if(!all.length) return {};
+
+  // Encontrar linha de header (contém 'CODIGO' em qualquer forma)
+  let hdrIdx=0;
+  for(let i=0;i<Math.min(3,all.length);i++){
+    const joined=all[i].join('|').toUpperCase().replace(/[^A-Z|]/g,'');
+    if(joined.includes('CODIGO')){hdrIdx=i;break;}
+  }
+  const hdr=all[hdrIdx];
+
+  // Mapear índices por posição E por nome (dupla garantia)
+  // Estrutura esperada: [0]CODIGO [1]DESCRICAO [2]TOP MANAGER [3]Categoria [4]Família [5]Nomenclatura
+  const ci=makeCI(hdr);
+  const iCOD  = ci('CODIGO','CÓDIGO')  >= 0 ? ci('CODIGO','CÓDIGO')  : 0;
+  const iDESC = ci('DESCRICAO')        >= 0 ? ci('DESCRICAO')        : 1;
+  const iTOP  = ci('TOP MANAGER','CODIGO TOP MANAGER') >= 0
+                ? ci('TOP MANAGER','CODIGO TOP MANAGER') : 2;
+  const iCAT  = ci('Categoria','CATEGORIA') >= 0 ? ci('Categoria','CATEGORIA') : 3;
+  const iFAM  = ci('Família','Familia','FAMILIA') >= 0
+                ? ci('Família','Familia','FAMILIA') : 4;
+  const iNOM  = ci('Nomenclatura','NOMENCLATURA') >= 0
+                ? ci('Nomenclatura','NOMENCLATURA') : 5;
+
+  const map={}, dupl=[];
+  for(let i=hdrIdx+1;i<all.length;i++){
+    const r=all[i];
+    const codigo=String(r[iCOD]||'').trim().toUpperCase();
+    if(!codigo) continue;
     if(map[codigo]) dupl.push(codigo);
     map[codigo]={
       codigo,
-      descricao:    getCampo('DESCRICAO','Descrição','DESCRIÇÃO','DESCRICAO'),
-      topManager:   getCampo('CÓDIGO TOP MANAGER','CODIGO TOP MANAGER','TOP MANAGER','TOP_MANAGER'),
-      armazemDash:  getCampo('ARMAZEM_DASHBOARD','ARMAZEM DASHBOARD'),
-      categoria:    getCampo('Categoria','CATEGORIA'),
-      familia:      getCampo('Família','Familia','FAMILIA'),
-      nomenclatura: getCampo('Nomenclatura','NOMENCLATURA'),
-      ativo:        getCampo('ATIVO'),
+      descricao:    String(r[iDESC]||'').trim(),
+      topManager:   String(r[iTOP] ||'').trim(),
+      categoria:    String(r[iCAT] ||'').trim(),
+      familia:      String(r[iFAM] ||'').trim(),
+      nomenclatura: String(r[iNOM] ||'').trim(),
     };
-  });
+  }
   VAL_DUPLICADO=dupl.map(c=>({codigo:c,descricao:map[c]?.descricao||'',msg:'Código duplicado no cadastro_produtos'}));
   SRC_TS.cadastro=new Date();
   return map;
@@ -2579,6 +2587,27 @@ function rAudit(){
 
 
 
+
+// ══ NAVEGAÇÃO
+function toggleMobMenu(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+  document.getElementById('mob-overlay').classList.toggle('open');
+}
+function closeMobMenu(){
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('mob-overlay').classList.remove('open');
+}
+function go(id){
+  document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  const sb=document.getElementById('sb-'+id);
+  if(sb) sb.classList.add('on');
+  const tab=document.getElementById('tab-'+id);
+  if(tab) tab.classList.add('on');
+  const c=document.getElementById('content');
+  if(c) c.scrollTop=0;
+  closeMobMenu();
+}
 
 async function boot(){
   setStatus('loading');
