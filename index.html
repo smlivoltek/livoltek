@@ -445,6 +445,12 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .rsc-row-hdr span{font-size:9px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:.05em}
 .rsc-row-hdr span:last-child{text-align:right}
 @media(max-width:700px){.rsc-row-hdr{grid-template-columns:1fr auto}.rsc-row-hdr span:nth-child(2),.rsc-row-hdr span:nth-child(3){display:none}}
+
+/* ── Alertas de fonte (faixa amarela) */
+#src-alerts{padding:.5rem 1rem;background:#fffbeb;border-bottom:2px solid #fcd34d}
+.src-alert{display:flex;align-items:flex-start;gap:8px;padding:.375rem 0;font-size:12px;color:#92400e}
+.src-alert i{font-size:14px;flex-shrink:0;margin-top:1px;color:#d97706}
+.src-alert-ts{margin-left:8px;font-size:10px;opacity:.7}
 </style>
 </head>
 <body>
@@ -470,6 +476,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 </header>
 
 <div class="mob-overlay" id="mob-overlay" onclick="closeMobMenu()"></div>
+<div id="src-alerts" style="display:none"></div>
 <div class="body">
 
 <!-- SIDEBAR -->
@@ -742,14 +749,35 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 
 <script>
 // ══ CONFIG
-const CSV_FILES = {
-  ESTOQUE:      'data/ESTOQUE.csv',
-  RESERVAS:     'data/RESERVAS.csv',
-  CONFERENCIA:  'data/CONFERENCIA.csv',
+// ─────────────────────────────────────────────────────────
+// MODO DE OPERAÇÃO:
+//   NOVO  → config.json existe → carrega armazéns individuais + cadastro + Armazens.csv
+//   LEGADO → config.json ausente → carrega ESTOQUE.csv + RESERVAS.csv (comportamento atual)
+// Adicionar novo armazém: criar CSV + adicionar nome em config.json. Zero código alterado.
+// ─────────────────────────────────────────────────────────
+
+// ── Timestamps de cada fonte (para exibir na Auditoria)
+const SRC_TS = {
+  estoque: null,       // data do último load dos CSVs de estoque
+  cadastro: null,      // cadastro_produtos.csv
+  armazens: null,      // Armazens.csv
+  reservas: null,      // Google Sheets reservas
+  separacao: null,     // Google Sheets separação
 };
 
+// ── Alertas de fonte (para faixas amarelas no topo)
+const SRC_ALERTS = [];  // {fonte, msg, ts}
+
+// ── Mapa de armazéns carregado dinamicamente de Armazens.csv
+// Formato: { "10108": {nome:"Curitiba (Eletra)", tipo:"Filial", regiao:"Sul"}, ... }
+let WH_MAP = {};
+
+// ── WH_NAMES, WH_LIST, WH_COLOR, WH_ICON, WH_CLASS
+// Estes são populados dinamicamente após carregar Armazens.csv no modo novo.
+// No modo legado, permanecem com os valores fixos abaixo.
 const WH_NAMES = {
   '10108':'Curitiba (Eletra)','10102':'Fortaleza (Eletra)','10106':'Manaus (Eletra)',
+  '1010':'Fábrica Livoltek','10100':'Fábrica Livoltek',
   'MAO-LIV':'Fábrica Livoltek','MAOLIV':'Fábrica Livoltek',
   'mao-liv':'Fábrica Livoltek','Fábrica Livoltek':'Fábrica Livoltek',
   'Fabrica Livoltek':'Fábrica Livoltek','LIVOLTEK':'Fábrica Livoltek',
@@ -762,9 +790,18 @@ const WH_CLASS = {'Curitiba (Eletra)':'cwb','Fortaleza (Eletra)':'for_','Manaus 
 // TAB → category
 const TAB_CAT = {inv:'INVERSOR',ev:'CARREGADOR',bess:'BESS',kit:'KIT',strbox:'STRING BOX',div:'DIVERSOS',mp:'MATÉRIA-PRIMA'};
 
-let ST=[], RES=[], REF_DATA=null; // REF_DATA = dados da aba Conferência
+let ST=[], RES=[], SEP=[], REF_DATA=null, CADASTRO={}, MODO='legado';
 let whFilter='', famFilters={};
 let catOptions={};
+
+// Validações de integridade de cadastro
+let VAL_SEM_CADASTRO=[];     // produtos no estoque sem entrada no cadastro_produtos
+let VAL_INCOMPLETO=[];       // produtos com campos obrigatórios vazios
+let VAL_WH_INVALIDO=[];      // códigos de armazém não encontrados em Armazens.csv
+let VAL_INSUFICIENTE=[];     // disp < 0 (reserva+sep > saldo)
+let VAL_NEGATIVO=[];         // saldo < 0
+let VAL_DUPLICADO=[];        // códigos duplicados no cadastro_produtos
+let AUDIT_INCOMPLETO_ATIVO=false; // toggle na Auditoria
 
 // ══ PARSE HELPERS
 const pn = v => {
@@ -772,14 +809,10 @@ const pn = v => {
   let s = String(v).trim().replace(/[R$\s]/g,'');
   if(!s||s==='-'||s==='—') return 0;
   if(s.includes(',') && s.includes('.')){
-    // 1.300,00 → thousands dot + decimal comma (BR)
     s = s.replace(/\./g,'').replace(',','.');
   } else if(s.includes(',') && !s.includes('.')){
-    // 1300,00 → decimal comma only
     s = s.replace(',','.');
   } else if(s.includes('.')){
-    // 55.634 → in TOTVS BR exports, dot = thousands separator for integers
-    // Remove dot (treat as thousands), result is integer
     s = s.replace(/\./g,'');
   }
   s = s.replace(/[^0-9.\-]/g,'');
@@ -788,147 +821,141 @@ const pn = v => {
 const fmt = n => Math.round(n).toLocaleString('pt-BR');
 const tr  = (s,n=55) => s&&s.length>n?s.slice(0,n)+'…':(s||'—');
 
-// Colunas confirmadas do CSV real (por posição):
-// 0=CODIGO 1=TP 2=GRUPO 3=DESCRICAO 4=U.M. 5=FL 6=ARMZ
-// 7=SALDO EM ESTOQUE 8=EMPENHO PARA REQ/PV/RESERVA 9=ESTOQUE DISPONIVEL
-// 10=VALOR EM ESTOQUE 11=VALOR EMPENHADO 12=DESCRICAO DO ARMAZEM
-// 13=CODIGO TOP MANAGER 14=Armazém Dashboard 15=Categoria 16=Família 17=Nomenclatura
-let _rawEstoqueHeaders = [];
-let _rawEstoqueRows = 0;
+// Normalizar string para comparação sem acentos
+const norm = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
 
-function parseEstoque(csv){
-  // Parse sem header para usar índices — evita problemas de encoding nos nomes de colunas
-  const cleanCsv = csv.replace(/^\uFEFF/,'');
-  const all = Papa.parse(cleanCsv,{header:false,skipEmptyLines:true}).data;
-  _rawEstoqueRows = all.length - 1; // total de linhas de dados
-
-  const hdr = all[0].map(h=>String(h).trim());
-  _rawEstoqueHeaders = hdr;
-
-  // Localizar índice de cada coluna pelo nome (case-insensitive, trim)
-  const ci = (...names) => {
+// Localizar coluna por nome (case-insensitive, trim, sem acento)
+function makeCI(hdr){
+  return function ci(...names){
     for(const n of names){
-      const i = hdr.findIndex(h=>h.toLowerCase()===n.toLowerCase());
+      const i = hdr.findIndex(h=>norm(h)===norm(n));
       if(i>=0) return i;
     }
     return -1;
   };
+}
 
+// ── Resolver código de armazém → nome dashboard
+function resolveWH(code){
+  const c = String(code||'').trim();
+  if(WH_MAP[c]) return WH_MAP[c].nome;
+  if(WH_NAMES[c]) return WH_NAMES[c];
+  // Tentar sem zeros à esquerda
+  const stripped = c.replace(/^0+/,'');
+  if(WH_MAP[stripped]) return WH_MAP[stripped].nome;
+  if(WH_NAMES[stripped]) return WH_NAMES[stripped];
+  // Fallback por inclusão de nome
+  const l = c.toLowerCase();
+  if(l.includes('livoltek')||l.includes('fábrica')||l.includes('fabrica')) return 'Fábrica Livoltek';
+  if(l.includes('curitiba')) return 'Curitiba (Eletra)';
+  if(l.includes('fortaleza')) return 'Fortaleza (Eletra)';
+  if(l.includes('manaus')) return 'Manaus (Eletra)';
+  return c; // desconhecido — retorna o código original
+}
+
+// ── Verificar se código de armazém é válido
+function isWHValido(code){
+  const c = String(code||'').trim();
+  if(!c) return false;
+  if(WH_MAP[c]) return true;
+  const stripped = c.replace(/^0+/,'');
+  if(WH_MAP[stripped]) return true;
+  const nome = resolveWH(c);
+  return WH_LIST.includes(nome);
+}
+
+let _rawEstoqueHeaders = [];
+let _rawEstoqueRows = 0;
+
+// ════════════════════════════════════════════════════════════
+// PARSERS — MODO LEGADO
+// ════════════════════════════════════════════════════════════
+
+function parseEstoque(csv){
+  const cleanCsv = csv.replace(/^\uFEFF/,'');
+  const all = Papa.parse(cleanCsv,{header:false,skipEmptyLines:true}).data;
+  _rawEstoqueRows = all.length - 1;
+  const hdr = all[0].map(h=>String(h).trim());
+  _rawEstoqueHeaders = hdr;
+  const ci = makeCI(hdr);
   const iCOD  = ci('CODIGO');
   const iTP   = ci('TP');
   const iFL   = ci('FL');
-  const iARMZ = ci('ARMZ');
   const iSAL  = ci('SALDO EM ESTOQUE');
-  const iEMP  = ci('EMPENHO PARA REQ/PV/RESERVA','NO PARA REQ/PV/RE','EMPENHO');
+  const iEMP  = ci('EMPENHO PARA REQ/PV/RESERVA','EMPENHO');
   const iARM  = ci('Armazém Dashboard','Armazem Dashboard','ARMAZEM DASHBOARD');
   const iCAT  = ci('Categoria','CATEGORIA');
   const iFAM  = ci('Família','Familia','FAMILIA');
   const iNOM  = ci('Nomenclatura','NOMENCLATURA','Nome Comercial');
   const iDESC = ci('DESCRICAO','Descricao','DESCRIÇÃO');
-  const iDISP = ci('ESTOQUE DISPONIVEL','Estoque Disponivel');
-
-  // Expor índices para auditoria
-  window._AUDIT_IDX = {iCOD,iTP,iFL,iARMZ,iSAL,iEMP,iARM,iCAT,iFAM,iNOM,iDESC,iDISP};
-
+  window._AUDIT_IDX = {iCOD,iTP,iFL,iSAL,iEMP,iARM,iCAT,iFAM,iNOM,iDESC};
   const items=[];
   for(let i=1;i<all.length;i++){
-    const r = all[i];
-    const codigo = String(r[iCOD]||'').trim();
+    const r=all[i];
+    const codigo=String(r[iCOD]||'').trim();
     if(!codigo) continue;
-    const fl   = String(r[iFL]||'').trim();
-    // Sem filtro de ARMZ — planilha já contém apenas registros comerciais
-
-    const armLabel = iARM>=0?String(r[iARM]||'').trim():'';
-    // Resolver WH: prioridade para Armazém Dashboard, depois FL
-    let wh = '';
-    if(armLabel){
-      // "Fábrica Livoltek" ou "Curitiba (Eletra)" etc. vêm direto
-      wh = WH_NAMES[armLabel] || armLabel;
-    } else {
-      wh = WH_NAMES[fl] || fl;
-    }
-    // Normalizar nomes conhecidos
-    const whL=wh.toLowerCase();
-    if(whL.includes('livoltek')||whL.includes('fábrica')||whL.includes('fabrica'))
-      wh='Fábrica Livoltek';
-    else if(whL.includes('curitiba')) wh='Curitiba (Eletra)';
-    else if(whL.includes('fortaleza')) wh='Fortaleza (Eletra)';
-    else if(whL.includes('manaus')) wh='Manaus (Eletra)';
-
-    const saldo   = pn(iSAL>=0 ? r[iSAL] : 0);
-    const empenho = pn(iEMP>=0 ? r[iEMP] : 0);
-    const descricao   = String(iDESC>=0?r[iDESC]||'':'').trim();
-    const categoria   = String(iCAT>=0 ?r[iCAT]||'':'').trim().toUpperCase();
-    const familia     = String(iFAM>=0 ?r[iFAM]||'':'').trim();
-    const nomenclatura= String(iNOM>=0 ?r[iNOM]||'':'').trim();
-    const tp = String(r[iTP]||'').trim().toUpperCase();
-    // isMP: apenas se Categoria contém MATÉRIA-PRIMA explicitamente
-    // TP=MP sem categoria = produto não cadastrado, NÃO é matéria-prima
-    const catNorm = categoria.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    const isMP = catNorm.includes('MATERIA')||catNorm.includes('MATER')||
-                 categoria.includes('MATÉR')||categoria.includes('MATÉRIA');
-
-    // Se Nomenclatura vazia, usar DESCRICAO (do TOTVS)
-    // Família serve para classificação nos pills
-    const nomFinal = nomenclatura || descricao;
-    items.push({codigo, nomenclatura:nomFinal, descricao,
-                categoria, familia, wh, saldo, empenho, reserva:0, disp:0, isMP});
-  }
-  // DEBUG Fábrica MP
-  const fabMP = items.filter(r=>r.wh==='Fábrica Livoltek'&&r.isMP);
-  const fabProd = items.filter(r=>r.wh==='Fábrica Livoltek'&&!r.isMP);
-  console.log('Fábrica PROD:', fabProd.length, '| Fábrica MP:', fabMP.length);
-  if(fabMP.length>0) console.log('MP sample:', JSON.stringify({cat:fabMP[0].categoria,fam:fabMP[0].familia,isMP:fabMP[0].isMP}));
-  if(fabMP.length===0){
-    const fabAll=items.filter(r=>r.wh==='Fábrica Livoltek');
-    console.log('All Fábrica cats:', [...new Set(fabAll.map(r=>r.categoria))]);
+    const fl=String(r[iFL]||'').trim();
+    const armLabel=iARM>=0?String(r[iARM]||'').trim():'';
+    let wh=armLabel?resolveWH(armLabel):resolveWH(fl);
+    const saldo=pn(iSAL>=0?r[iSAL]:0);
+    const empenho=pn(iEMP>=0?r[iEMP]:0);
+    const descricao=String(iDESC>=0?r[iDESC]||'':'').trim();
+    const categoria=String(iCAT>=0?r[iCAT]||'':'').trim().toUpperCase();
+    const familia=String(iFAM>=0?r[iFAM]||'':'').trim();
+    const nomenclatura=String(iNOM>=0?r[iNOM]||'':'').trim();
+    const tp=String(r[iTP]||'').trim().toUpperCase();
+    const catNorm=categoria.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const isMP=catNorm.includes('MATERIA')||catNorm.includes('MATER')||
+               categoria.includes('MATÉR')||categoria.includes('MATÉRIA');
+    const nomFinal=nomenclatura||descricao;
+    items.push({codigo,nomenclatura:nomFinal,descricao,
+                categoria,familia,wh,saldo,empenho,separacao:0,reserva:0,disp:0,isMP});
   }
   return items;
 }
 
 function parseConferencia(csv){
-  // Colunas reais: Armazém, Total Estoque, Total Reservado, em Separação, Total Disponível, SKUs Únicos, Status
-  const parsed = Papa.parse(csv.replace(/^\uFEFF/,''),{header:true,skipEmptyLines:true,transformHeader:h=>h.trim()});
-  const ref = {sal:0, res:0, emp:0, disp:0, skus:0, porWH:{}};
+  const parsed=Papa.parse(csv.replace(/^\uFEFF/,''),{header:true,skipEmptyLines:true,transformHeader:h=>h.trim()});
+  const ref={sal:0,res:0,emp:0,disp:0,skus:0,porWH:{}};
   parsed.data.forEach(r=>{
-    const arm = String(r['Armazém']||r['Armazem']||'').trim();
-    if(!arm) return;
-    // Ignorar linha de TOTAL — usar apenas linhas de armazém
-    if(arm.toUpperCase()==='TOTAL') return;
-    const sal  = pn(r['Total Estoque']||0);
-    const res  = pn(r['Total Reservado']||0);
-    const emp  = pn(r['em Separação']||r['Em Separação']||r['em Separacao']||0);
-    const disp = pn(r['Total Disponível']||r['Total Disponivel']||0);
-    const skus = pn(r['SKUs Únicos']||r['SKUs Unicos']||r['SKUs']||0);
+    const arm=String(r['Armazém']||r['Armazem']||'').trim();
+    if(!arm||arm.toUpperCase()==='TOTAL') return;
+    const sal=pn(r['Total Estoque']||0);
+    const res=pn(r['Total Reservado']||0);
+    const emp=pn(r['em Separação']||r['Em Separação']||r['em Separacao']||0);
+    const disp=pn(r['Total Disponível']||r['Total Disponivel']||0);
+    const skus=pn(r['SKUs Únicos']||r['SKUs Unicos']||r['SKUs']||0);
     ref.porWH[arm]={sal,res,emp,disp,skus};
-    ref.sal +=sal; ref.res+=res; ref.emp+=emp; ref.disp+=disp; ref.skus+=skus;
+    ref.sal+=sal;ref.res+=res;ref.emp+=emp;ref.disp+=disp;ref.skus+=skus;
   });
   return ref;
 }
 
 function parseReservas(csv){
-  // Colunas reais: Cliente, Responsavel, Diretoria, Código, Observações, Armazem, Qtdade, Cancelado, Solicitado
-  const parsed = Papa.parse(csv,{header:true,skipEmptyLines:true});
+  const parsed=Papa.parse(csv,{header:true,skipEmptyLines:true,delimiter:';',
+    transformHeader:h=>h.trim().replace(/^\uFEFF/,'')});
   const result=[];
   parsed.data.forEach(r=>{
-    const codigo = String(
-      r['Código']||r['Codigo']||r['CÓDIGO']||r['CODIGO']||r['codigo']||''
-    ).trim().toUpperCase();
-    const qtd = pn(r['Qtdade']||r['Qtd']||r['QTD']||r['Quantidade']||r['QTDADE']||0);
-    const cancelado = String(r['Cancelado']||r['CANCELADO']||'').trim();
-    if(!codigo || qtd<=0 || cancelado) return;
-    // Armazem = nome completo OU código numérico (suporte aos dois formatos)
-    const armRaw = String(r['Armazem']||r['Armazém']||r['ARMAZEM']||'').trim();
-    const wh = WH_NAMES[armRaw] || armRaw;
+    const codigo=String(r['Código']||r['Código']||r['Codigo']||r['CÓDIGO']||r['CODIGO']||r['C?digo']||'').trim().toUpperCase();
+    const qtd=pn(r['Qtdade']||r['Qtd']||r['QTD']||r['Quantidade']||r['QTDADE']||
+               r['QUANTIDADE_RESERVADA']||0);
+    const cancelado=String(r['Cancelado']||r['CANCELADO']||'').trim();
+    if(!codigo||qtd<=0||cancelado) return;
+    const armRaw=String(r['Armazem']||r['Armazém']||r['ARMAZEM']||
+                        r['CODIGO_ARMAZEM']||'').trim();
+    const wh=resolveWH(armRaw);
+    // Registrar armazém inválido
+    if(armRaw && !isWHValido(armRaw) && !VAL_WH_INVALIDO.find(v=>v.codigo===armRaw&&v.fonte==='Reservas')){
+      VAL_WH_INVALIDO.push({codigo:armRaw,fonte:'Reservas',descricao:'Código de armazém não cadastrado em Armazens.csv'});
+    }
     result.push({
-      cliente:    String(r['Cliente']||'').trim(),
+      cliente:String(r['Cliente']||'').trim(),
       responsavel:String(r['Responsavel']||r['Responsável']||'').trim(),
-      diretoria:  String(r['Diretoria']||'').trim(),
+      diretoria:String(r['Diretoria']||'').trim(),
       codigo,
-      obs:        String(r['Observações']||r['Observacoes']||r['OBS']||'').trim(),
-      wh,
-      qtd,
-      solicitado: String(r['Solicitado']||'').trim(),
+      obs:String(r['Observações']||r['Observacoes']||r['OBSERVACAO']||'').trim(),
+      wh,armRaw,qtd,
+      solicitado:String(r['Solicitado']||'').trim(),
     });
   });
   return result;
@@ -944,46 +971,425 @@ function obsToWH(o){
 }
 
 function applyReservas(){
-  // Construir lookup: codigo → qtd total reservada (sem distinguir armazém)
-  // A planilha de referência não distribui por armazém — é o total do produto
-  const lkpTotal={};  // codigo → total reservado
-  const lkpWH={};     // wh|codigo → reservado com WH específico
-
+  // Monta lookup WH|CODIGO → qtd reservada
+  const lkpTotal={}, lkpWH={};
   RES.forEach(r=>{
     const cod=r.codigo.toUpperCase();
-    // Total por produto (independente de armazém)
     lkpTotal[cod]=(lkpTotal[cod]||0)+r.qtd;
-    // Por armazém específico
-    if(r.wh && WH_LIST.includes(r.wh)){
+    if(r.wh&&WH_LIST.includes(r.wh)){
       const k=r.wh+'|'+cod;
       lkpWH[k]=(lkpWH[k]||0)+r.qtd;
     }
   });
-
-  // Agrupar ST por codigo para distribuir reserva proporcionalmente
-  // Regra: reserva total do produto distribuída pelo armazém indicado na reserva
-  // Se reserva não tem armazém, aplica no primeiro armazém com saldo
   const codSeen={};
   ST.forEach(s=>{
     const cod=s.codigo.toUpperCase();
     const whKey=s.wh+'|'+cod;
     const resWH=lkpWH[whKey]||0;
-
-    // Reserva sem armazém específico: aplicar uma única vez no primeiro registro
     let resGlobal=0;
     const totalRes=lkpTotal[cod]||0;
     const totalWHRes=Object.entries(lkpWH)
       .filter(([k])=>k.endsWith('|'+cod))
       .reduce((a,[,v])=>a+v,0);
-    const globalQty=totalRes-totalWHRes; // reservas sem WH
+    const globalQty=totalRes-totalWHRes;
+    if(globalQty>0&&!codSeen[cod]){codSeen[cod]=true;resGlobal=globalQty;}
+    s.reserva=resWH+resGlobal;
+    // No modo legado, separacao = empenho (sem planilha de separação)
+    s.separacao=s.empenho||0;
+    s.disp=Math.max(0,s.saldo-s.reserva-s.separacao);
+  });
+}
 
-    if(globalQty>0 && !codSeen[cod]){
-      codSeen[cod]=true;
-      resGlobal=globalQty;
+// ════════════════════════════════════════════════════════════
+// PARSERS — MODO NOVO
+// ════════════════════════════════════════════════════════════
+
+function parseArmazens(csv){
+  // Colunas reais: CODIGO_ARMAZEM;NOME_ARMAZEM;TIPO;REGIÃO
+  const parsed=Papa.parse(csv.replace(/^\uFEFF/,''),{
+    header:true,skipEmptyLines:true,delimiter:';',
+    transformHeader:h=>norm(h)
+  });
+  const map={};
+  parsed.data.forEach(r=>{
+    const cod=String(r['CODIGO_ARMAZEM']||r['CODIGO ARMAZEM']||'').trim();
+    const nome=String(r['NOME_ARMAZEM']||r['NOME ARMAZEM']||'').trim();
+    const tipo=String(r['TIPO']||'').trim();
+    const regiao=String(r['REGIAO']||r['REGIÃO']||'').trim();
+    if(!cod||!nome) return;
+    // Construir nome dashboard: "Nome (Tipo)" se tipo diferente de Filial
+    // Normalizar tipo para comparação (encoding pode corromper 'Fábrica')
+    const tipoNorm = tipo.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    const nomeDash = (tipoNorm&&tipoNorm!=='Filial')
+      ? `${nome} (${tipoNorm})`
+      : `${nome} (Eletra)`;
+    map[cod]={nome:nomeDash,tipo,regiao,codigo:cod};
+  });
+  SRC_TS.armazens=new Date();
+  return map;
+}
+
+function parseCadastro(csv){
+  // Colunas reais (;-separated, encoding utf-8-sig):
+  // CODIGO;DESCRICAO;CÓDIGO TOP MANAGER;Categoria;Família;Nomenclatura;...
+  const parsed=Papa.parse(csv.replace(/^\uFEFF/,''),{
+    header:true,skipEmptyLines:true,delimiter:';',
+  });
+  const map={};
+  const dupl=[];
+  parsed.data.forEach(r=>{
+    // Localizar campos por variações de nome
+    const getCampo=(...names)=>{
+      for(const n of names){
+        const v=r[n]||r[norm(n)];
+        if(v!==undefined) return String(v).trim();
+      }
+      // busca parcial
+      for(const k of Object.keys(r)){
+        for(const n of names){
+          if(norm(k).includes(norm(n))) return String(r[k]).trim();
+        }
+      }
+      return '';
+    };
+    const codigo=getCampo('CODIGO','Codigo','CÓDIGO').toUpperCase();
+    if(!codigo) return;
+    if(map[codigo]) dupl.push(codigo);
+    map[codigo]={
+      codigo,
+      descricao:    getCampo('DESCRICAO','Descrição','DESCRIÇÃO','DESCRICAO'),
+      topManager:   getCampo('CÓDIGO TOP MANAGER','CODIGO TOP MANAGER','TOP MANAGER','TOP_MANAGER'),
+      armazemDash:  getCampo('ARMAZEM_DASHBOARD','ARMAZEM DASHBOARD'),
+      categoria:    getCampo('Categoria','CATEGORIA'),
+      familia:      getCampo('Família','Familia','FAMILIA'),
+      nomenclatura: getCampo('Nomenclatura','NOMENCLATURA'),
+      ativo:        getCampo('ATIVO'),
+    };
+  });
+  VAL_DUPLICADO=dupl.map(c=>({codigo:c,descricao:map[c]?.descricao||'',msg:'Código duplicado no cadastro_produtos'}));
+  SRC_TS.cadastro=new Date();
+  return map;
+}
+
+function parseEstoqueWH(csv, whCodigo){
+  // FONTE DO ARMAZÉM: nome do arquivo (whCodigo) → nome dashboard
+  // FL e ARMZ usados apenas para auditoria/validação, NÃO para definir o armazém
+  const WH_FROM_FILE = {
+    'curitiba':       'Curitiba (Eletra)',
+    'fortaleza':      'Fortaleza (Eletra)',
+    'manaus':         'Manaus (Eletra)',
+    'fabrica_manaus': 'Fábrica Livoltek',
+    'fabrica':        'Fábrica Livoltek',
+  };
+  // Resolver nome dashboard a partir do nome do arquivo
+  const whNome = WH_FROM_FILE[whCodigo]
+    || (WH_MAP && Object.values(WH_MAP).find(w=>w.nome.toLowerCase().includes(whCodigo))?.nome)
+    || whCodigo;
+
+  const cleanCsv=csv.replace(/^\uFEFF/,'');
+  const parsed=Papa.parse(cleanCsv,{header:false,skipEmptyLines:true,delimiter:';'});
+  const all=parsed.data;
+  if(!all.length) return [];
+
+  // Detectar linha de header (pular linhas de título antes do header real)
+  let hdrIdx=0;
+  for(let i=0;i<Math.min(5,all.length);i++){
+    if(all[i].some(c=>norm(c)==='CODIGO'||norm(c)==='FL'||norm(c)==='SALDO EM ESTOQUE')){
+      hdrIdx=i; break;
+    }
+  }
+  const hdr=all[hdrIdx].map(h=>String(h).trim());
+  const ci=makeCI(hdr);
+
+  const iCOD  = ci('CODIGO');
+  const iFL   = ci('FL');
+  const iARMZ = ci('ARMZ');
+  const iDESC = ci('DESCRICAO','DESCRIÇÃO');
+  const iSAL  = ci('SALDO EM ESTOQUE');
+  const iEMP  = ci('EMPENHO PARA REQ/PV/RESERVA','EMPENHO');
+  const iTP   = ci('TP');
+
+  // Alertar colunas obrigatórias ausentes (CODIGO e SALDO são obrigatórios; FL é só auditoria)
+  [['CODIGO',iCOD],['SALDO EM ESTOQUE',iSAL]].forEach(([name,idx])=>{
+    if(idx<0) SRC_ALERTS.push({
+      fonte:`estoque_${whCodigo}.csv`,
+      msg:`Coluna obrigatória ausente: "${name}"`,
+      ts:new Date()
+    });
+  });
+
+  // Auditoria: verificar se o FL do CSV é consistente com o armazém esperado
+  // (apenas na primeira linha de dados, para não repetir)
+  let flAuditado=false;
+
+  const items=[];
+  for(let i=hdrIdx+1;i<all.length;i++){
+    const r=all[i];
+    const codigo=String(r[iCOD]||'').trim().toUpperCase();
+    if(!codigo) continue;
+
+    // FL: apenas para auditoria — verificar consistência com o nome do arquivo
+    if(!flAuditado && iFL>=0){
+      flAuditado=true;
+      const flRaw=String(r[iFL]||'').trim().replace(/^0+/,'');
+      if(flRaw && isWHValido(flRaw)){
+        const whPeloFL=resolveWH(flRaw);
+        if(whPeloFL && whPeloFL!==whNome){
+          SRC_ALERTS.push({
+            fonte:`estoque_${whCodigo}.csv`,
+            msg:`Atenção: FL="${flRaw}" indica "${whPeloFL}" mas o arquivo é do armazém "${whNome}". Verifique se o CSV está correto.`,
+            ts:new Date()
+          });
+        }
+      } else if(flRaw && !isWHValido(flRaw)){
+        // FL com código desconhecido — registrar na auditoria mas não bloquear
+        if(!VAL_WH_INVALIDO.find(v=>v.codigo===flRaw&&v.fonte===`estoque_${whCodigo}`)){
+          VAL_WH_INVALIDO.push({
+            codigo:flRaw,
+            fonte:`estoque_${whCodigo}.csv`,
+            descricao:`Código FL não encontrado em Armazens.csv (armazém definido pelo nome do arquivo: ${whNome})`
+          });
+        }
+      }
     }
 
-    s.reserva=resWH+resGlobal;
-    s.disp=Math.max(0,s.saldo-s.empenho-s.reserva);
+    // ARMZ=07 → ÚNICO filtro de produtos válidos para o dashboard comercial
+    // Registros com ARMZ diferente de 07 são ignorados (matéria-prima, outros depósitos etc.)
+    const armz=iARMZ>=0?String(r[iARMZ]||'').trim():'';
+    if(iARMZ>=0 && armz && armz!=='07' && armz!=='7') continue; // aceita '07' e '7'
+
+    const saldo  = pn(iSAL>=0?r[iSAL]:0);
+    const empenho= pn(iEMP>=0?r[iEMP]:0);
+    const descricao=String(iDESC>=0?r[iDESC]||'':'').trim();
+    const tp=String(r[iTP]||'').trim().toUpperCase();
+
+    items.push({codigo,descricao,
+                wh: whNome,   // ← SEMPRE o nome do arquivo
+                armz,         // ← guardado para auditoria interna
+                saldo,empenho,
+                separacao:0,reserva:0,disp:0,
+                categoria:'',familia:'',nomenclatura:'',isMP:false,
+                _semCadastro:false,_incompleto:[],tp});
+  }
+  return items;
+}
+
+function parseFabricaManaus(csv){
+  // estoque_fabrica_manaus.csv — formato TOPMANAGER (diferente do TOTVS)
+  // Linha 0: total geral (ignorar)
+  // Linha 1: header — colunas relevantes: TOP=código interno, HEXING=código produto, Saldo Estoque
+  const cleanCsv=csv.replace(/^\uFEFF/,'');
+  const parsed=Papa.parse(cleanCsv,{header:false,skipEmptyLines:false,delimiter:';'});
+  const all=parsed.data;
+
+  // Linha 1 = header
+  const hdr=all[1]?all[1].map(h=>String(h).trim()):[];
+  const ci=makeCI(hdr);
+  const iHEXING = ci('HEXING');    // código do produto (chave principal)
+  const iTOP    = ci('TOP');       // código interno TOPMANAGER
+  const iSAL    = ci('Saldo Estoque','SALDO ESTOQUE','SALDO');
+  const iDESC   = ci('Coluna6','DESCRICAO','DESCRIÇÃO'); // col 6 = descrição
+
+  const items=[];
+  for(let i=2;i<all.length;i++){
+    const r=all[i];
+    // HEXING pode estar vazio se a linha tem Coluna1 preenchido (linha de continuação)
+    const codigo=String(r[iHEXING]||'').trim().toUpperCase();
+    if(!codigo) continue;
+    const saldo=pn(iSAL>=0?r[iSAL]:0);
+    const descricao=String(iDESC>=0?r[iDESC]||'':'').trim();
+    items.push({codigo,descricao,wh:'Fábrica Livoltek',saldo,empenho:0,
+                separacao:0,reserva:0,disp:0,
+                categoria:'',familia:'',nomenclatura:'',isMP:false,
+                _semCadastro:false,_incompleto:[],tp:''});
+  }
+  return items;
+}
+
+function parseReservasSheets(csv){
+  // Google Sheets publicado como CSV — campos: CODIGO;CODIGO_ARMAZEM;QUANTIDADE_RESERVADA;MOTIVO;OBSERVACAO
+  // Mantém compatibilidade com formato legado (Cliente;Codigo;Armazem;Qtdade...)
+  const parsed=Papa.parse(csv.replace(/^\uFEFF/,''),{
+    header:true,skipEmptyLines:true,
+    transformHeader:h=>h.trim().replace(/^\uFEFF/,'')
+  });
+  const result=[];
+  parsed.data.forEach(r=>{
+    const codigo=String(
+      r['CODIGO']||r['Código']||r['Codigo']||r['codigo']||''
+    ).trim().toUpperCase();
+    const qtd=pn(
+      r['QUANTIDADE_RESERVADA']||r['Qtdade']||r['QTD']||r['Quantidade']||0
+    );
+    const cancelado=String(r['Cancelado']||r['CANCELADO']||'').trim();
+    if(!codigo||qtd<=0||cancelado) return;
+    const armRaw=String(
+      r['CODIGO_ARMAZEM']||r['Armazem']||r['Armazém']||''
+    ).trim();
+    const wh=resolveWH(armRaw);
+    if(armRaw&&!isWHValido(armRaw)){
+      if(!VAL_WH_INVALIDO.find(v=>v.codigo===armRaw&&v.fonte==='Reservas (Sheets)')){
+        VAL_WH_INVALIDO.push({codigo:armRaw,fonte:'Reservas (Sheets)',descricao:'Código não encontrado em Armazens.csv'});
+      }
+    }
+    result.push({
+      cliente:String(r['Cliente']||r['CLIENTE']||'').trim(),
+      responsavel:String(r['Responsavel']||r['Responsável']||r['RESPONSAVEL']||'').trim(),
+      diretoria:String(r['Diretoria']||r['DIRETORIA']||'').trim(),
+      codigo,obs:String(r['OBSERVACAO']||r['Observações']||r['OBS']||'').trim(),
+      wh,armRaw,qtd,
+      solicitado:String(r['Solicitado']||'').trim(),
+    });
+  });
+  SRC_TS.reservas=new Date();
+  return result;
+}
+
+function parseSeparacao(csv){
+  // Google Sheets: NUMERO_PEDIDO;CODIGO;CODIGO_ARMAZEM;QUANTIDADE;CLIENTE;DATA_ENVIO_FATURAMENTO;OBSERVACAO
+  const parsed=Papa.parse(csv.replace(/^\uFEFF/,''),{
+    header:true,skipEmptyLines:true,
+    transformHeader:h=>h.trim().replace(/^\uFEFF/,'')
+  });
+  const result=[];
+  parsed.data.forEach(r=>{
+    const codigo=String(r['CODIGO']||r['Codigo']||'').trim().toUpperCase();
+    const qtd=pn(r['QUANTIDADE']||r['QTD']||r['Qtd']||0);
+    if(!codigo||qtd<=0) return;
+    const armRaw=String(r['CODIGO_ARMAZEM']||r['Armazem']||'').trim();
+    const wh=resolveWH(armRaw);
+    if(armRaw&&!isWHValido(armRaw)){
+      if(!VAL_WH_INVALIDO.find(v=>v.codigo===armRaw&&v.fonte==='Separação (Sheets)')){
+        VAL_WH_INVALIDO.push({codigo:armRaw,fonte:'Separação (Sheets)',descricao:'Código não encontrado em Armazens.csv'});
+      }
+    }
+    result.push({
+      pedido:String(r['NUMERO_PEDIDO']||r['Pedido']||'').trim(),
+      codigo,wh,armRaw,qtd,
+      cliente:String(r['CLIENTE']||r['Cliente']||'').trim(),
+      dataEnvio:String(r['DATA_ENVIO_FATURAMENTO']||'').trim(),
+      obs:String(r['OBSERVACAO']||r['OBS']||'').trim(),
+    });
+  });
+  SRC_TS.separacao=new Date();
+  return result;
+}
+
+// ── JOIN: estoque + cadastro_produtos
+function joinCadastro(items){
+  items.forEach(s=>{
+    const cad=CADASTRO[s.codigo];
+    if(!cad){
+      s._semCadastro=true;
+      // Manter descricao do estoque (sem cadastro = sem nomenclatura, familia, categoria)
+      return;
+    }
+    s._semCadastro=false;
+    s.nomenclatura = cad.nomenclatura||s.descricao;
+    s.categoria    = (cad.categoria||'').toUpperCase();
+    s.familia      = cad.familia||'';
+    // isMP
+    const catNorm=s.categoria.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    s.isMP = catNorm.includes('MATERIA')||catNorm.includes('MATER')||
+             s.categoria.includes('MATÉR')||s.categoria.includes('MATÉRIA');
+    // Campos incompletos (só acumula se toggle ativo — validação adiada)
+    const incompleto=[];
+    if(!cad.topManager)   incompleto.push('CÓDIGO TOP MANAGER');
+    if(!cad.categoria)    incompleto.push('CATEGORIA');
+    if(!cad.familia)      incompleto.push('FAMÍLIA');
+    if(!cad.nomenclatura) incompleto.push('NOMENCLATURA');
+    s._incompleto=incompleto;
+  });
+}
+
+// ── Aplicar reservas + separação no modo novo (por armazém)
+function applyReservasSep(){
+  // Lookup WH|CODIGO → qtd
+  const lkpRes={}, lkpResTotal={};
+  const lkpSep={}, lkpSepTotal={};
+
+  RES.forEach(r=>{
+    const cod=r.codigo;
+    lkpResTotal[cod]=(lkpResTotal[cod]||0)+r.qtd;
+    const k=r.wh+'|'+cod;
+    lkpRes[k]=(lkpRes[k]||0)+r.qtd;
+  });
+  SEP.forEach(r=>{
+    const cod=r.codigo;
+    lkpSepTotal[cod]=(lkpSepTotal[cod]||0)+r.qtd;
+    const k=r.wh+'|'+cod;
+    lkpSep[k]=(lkpSep[k]||0)+r.qtd;
+  });
+
+  const codSeenRes={}, codSeenSep={};
+  ST.forEach(s=>{
+    const cod=s.codigo;
+    const k=s.wh+'|'+cod;
+    // Reserva com WH específico
+    let res=lkpRes[k]||0;
+    // Reserva sem WH → aplica uma vez no primeiro registro do produto
+    const resTotal=lkpResTotal[cod]||0;
+    const resComWH=Object.entries(lkpRes)
+      .filter(([key])=>key.endsWith('|'+cod))
+      .reduce((a,[,v])=>a+v,0);
+    const resGlobal=resTotal-resComWH;
+    if(resGlobal>0&&!codSeenRes[cod]){codSeenRes[cod]=true;res+=resGlobal;}
+    // Separação com WH específico
+    let sep=lkpSep[k]||0;
+    const sepTotal=lkpSepTotal[cod]||0;
+    const sepComWH=Object.entries(lkpSep)
+      .filter(([key])=>key.endsWith('|'+cod))
+      .reduce((a,[,v])=>a+v,0);
+    const sepGlobal=sepTotal-sepComWH;
+    if(sepGlobal>0&&!codSeenSep[cod]){codSeenSep[cod]=true;sep+=sepGlobal;}
+
+    s.reserva=res;
+    s.separacao=sep;
+    // Nova fórmula: DISPONÍVEL = SALDO - RESERVA - SEPARAÇÃO (sem empenho TOTVS)
+    s.disp=s.saldo-res-sep;
+  });
+}
+
+// ── Validações de integridade
+function validateAll(){
+  // Limpar arrays
+  VAL_SEM_CADASTRO=[];
+  VAL_INCOMPLETO=[];
+  VAL_INSUFICIENTE=[];
+  VAL_NEGATIVO=[];
+
+  ST.forEach(s=>{
+    if(s._semCadastro){
+      if(!VAL_SEM_CADASTRO.find(v=>v.codigo===s.codigo)){
+        VAL_SEM_CADASTRO.push({codigo:s.codigo,descricao:s.descricao,wh:s.wh});
+      }
+    }
+    if(AUDIT_INCOMPLETO_ATIVO&&s._incompleto&&s._incompleto.length>0){
+      VAL_INCOMPLETO.push({codigo:s.codigo,descricao:s.nomenclatura||s.descricao,
+                           wh:s.wh,campos:s._incompleto});
+    }
+    if(s.disp<0){
+      VAL_INSUFICIENTE.push({codigo:s.codigo,descricao:s.nomenclatura||s.descricao,
+                              wh:s.wh,saldo:s.saldo,reserva:s.reserva,
+                              separacao:s.separacao,disp:s.disp});
+    }
+    if(s.saldo<0){
+      VAL_NEGATIVO.push({codigo:s.codigo,descricao:s.nomenclatura||s.descricao,
+                         wh:s.wh,saldo:s.saldo});
+    }
+  });
+}
+
+// ── Atualizar WH_LIST/WH_COLOR/WH_ICON/WH_CLASS dinamicamente a partir do WH_MAP
+function syncWHFromMap(){
+  // Limpar arrays globais mantendo os existentes que ainda existem
+  WH_LIST.length=0;
+  Object.values(WH_MAP).forEach(w=>{
+    if(!WH_LIST.includes(w.nome)) WH_LIST.push(w.nome);
+    if(!WH_COLOR[w.nome]) WH_COLOR[w.nome]='var(--cwb)';
+    if(!WH_ICON[w.nome])  WH_ICON[w.nome]='ti-building-warehouse';
+    if(!WH_CLASS[w.nome]) WH_CLASS[w.nome]='wh'+w.codigo;
+    WH_NAMES[w.codigo]=w.nome;
   });
 }
 
@@ -2007,8 +2413,145 @@ function rAudit(){
         </div>
       </div>`;
 
-  el.innerHTML=divCalcBlock+resumo+conferencia+validacao+divergencias+semProdBlock;
+  // ── Bloco de validações de integridade de dados (modo novo)
+  let validIntBlock='';
+  if(MODO==='novo'){
+    const N=fmt;
+    // Toggle de cadastro incompleto
+    const toggleBtn=`<button onclick="AUDIT_INCOMPLETO_ATIVO=!AUDIT_INCOMPLETO_ATIVO;validateAll();rAudit();"
+      style="padding:4px 10px;border:1px solid ${AUDIT_INCOMPLETO_ATIVO?'var(--grn-d)':'var(--brd)'};border-radius:6px;
+      background:${AUDIT_INCOMPLETO_ATIVO?'var(--grn-pale)':'var(--surf)'};font-size:11px;cursor:pointer;margin-left:8px">
+      ${AUDIT_INCOMPLETO_ATIVO?'✅ Ativo':'☐ Ativar'}</button>`;
+
+    // Resumo de fontes
+    const fmtTS=ts=>ts?ts.toLocaleString('pt-BR'):'—';
+    const fonteRows=[
+      {nome:'Estoque (CSVs)',ts:SRC_TS.estoque,cnt:ST.length,unit:'registros'},
+      {nome:'Cadastro de Produtos',ts:SRC_TS.cadastro,cnt:Object.keys(CADASTRO).length,unit:'SKUs'},
+      {nome:'Armazéns',ts:SRC_TS.armazens,cnt:Object.keys(WH_MAP).length,unit:'armazéns'},
+      {nome:'Reservas',ts:SRC_TS.reservas,cnt:RES.length,unit:'reservas'},
+      {nome:'Pedidos em Separação',ts:SRC_TS.separacao,cnt:SEP.length,unit:'pedidos'},
+    ].map(f=>`<tr style="border-top:1px solid var(--brd)">
+      <td style="padding:6px 12px;font-size:12px;font-weight:600">${f.nome}</td>
+      <td style="padding:6px 12px;text-align:right;font-family:'DM Mono',monospace;font-size:12px">${f.cnt} ${f.unit}</td>
+      <td style="padding:6px 12px;font-size:11px;color:${f.ts?'var(--grn-d)':'var(--txtm)'}">${fmtTS(f.ts)}</td>
+      <td style="padding:6px 12px;font-size:11px;color:${f.ts?'var(--txt)':'#dc2626'}">${f.ts?'✅ Carregado':'❌ Não carregado'}</td>
+    </tr>`).join('');
+
+    const alertRows=SRC_ALERTS.map(a=>`<tr style="border-top:1px solid #fecaca">
+      <td style="padding:6px 12px;font-size:11px;font-weight:600;color:#dc2626">${a.fonte}</td>
+      <td colspan="3" style="padding:6px 12px;font-size:11px;color:#991b1b">${a.msg}</td>
+    </tr>`).join('');
+
+    // Sem cadastro
+    const semCadRows=VAL_SEM_CADASTRO.slice(0,30).map(v=>`<tr style="border-top:1px solid #fecaca">
+      <td style="padding:5px 10px;font-size:11px;font-family:'DM Mono',monospace;color:#dc2626">${v.codigo}</td>
+      <td style="padding:5px 10px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.descricao||'—'}</td>
+      <td style="padding:5px 10px;font-size:11px;color:var(--txtm)">${v.wh}</td>
+    </tr>`).join('');
+
+    // Armazéns inválidos
+    const whInvRows=VAL_WH_INVALIDO.map(v=>`<tr style="border-top:1px solid #fecaca">
+      <td style="padding:5px 10px;font-size:11px;font-family:'DM Mono',monospace;color:#dc2626">${v.codigo}</td>
+      <td style="padding:5px 10px;font-size:11px">${v.fonte}</td>
+      <td style="padding:5px 10px;font-size:11px;color:var(--txtm)">${v.descricao}</td>
+    </tr>`).join('');
+
+    // Estoque insuficiente (disp < 0)
+    const insufRows=VAL_INSUFICIENTE.map(v=>`<tr style="border-top:1px solid #fecaca">
+      <td style="padding:5px 10px;font-size:11px;font-family:'DM Mono',monospace;color:#dc2626">${v.codigo}</td>
+      <td style="padding:5px 10px;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.descricao||'—'}</td>
+      <td style="padding:5px 10px;font-size:11px;color:var(--txtm)">${v.wh}</td>
+      <td style="padding:5px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:11px">${fmt(v.saldo)}</td>
+      <td style="padding:5px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--pur)">${fmt(v.reserva)}</td>
+      <td style="padding:5px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;color:var(--amb-d)">${fmt(v.separacao)}</td>
+      <td style="padding:5px 10px;text-align:right;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:#dc2626">${fmt(v.disp)}</td>
+    </tr>`).join('');
+
+    validIntBlock=`
+    <div style="margin-bottom:20px">
+      <div style="font-size:14px;font-weight:700;color:#1E3A5F;padding:10px 14px;background:#e8eef6;border-radius:10px 10px 0 0;border:1px solid #c7d7ed;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-database"></i> AUDITORIA DE FONTES — MODO NOVO
+        <span style="margin-left:auto;font-size:11px;font-weight:400;color:var(--txtm)">config.json detectado</span>
+      </div>
+      <div style="border:1px solid #c7d7ed;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;margin-bottom:16px">
+        <table style="width:100%;border-collapse:collapse">
+          <tr style="background:#f8fafc">
+            <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Fonte</th>
+            <th style="padding:6px 12px;text-align:right;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Registros</th>
+            <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Última Atualização</th>
+            <th style="padding:6px 12px;text-align:left;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">Status</th>
+          </tr>
+          ${fonteRows}
+          ${alertRows}
+        </table>
+      </div>
+
+      ${VAL_SEM_CADASTRO.length?`
+      <div style="margin-bottom:12px">
+        <div style="padding:8px 12px;font-size:12px;font-weight:700;color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-alert-circle"></i> Produtos sem Cadastro Mestre — ${VAL_SEM_CADASTRO.length} ocorrência${VAL_SEM_CADASTRO.length>1?'s':''}
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #fca5a5;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+          <tr style="background:#fff5f5"><th style="padding:5px 10px;font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;text-align:left">Código</th><th style="padding:5px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:left">Descrição (TOTVS)</th><th style="padding:5px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:left">Armazém</th></tr>
+          ${semCadRows}
+          ${VAL_SEM_CADASTRO.length>30?`<tr><td colspan="3" style="padding:6px 10px;font-size:11px;color:var(--txtm)">… e mais ${VAL_SEM_CADASTRO.length-30} produto(s)</td></tr>`:''}
+        </table>
+      </div>`:''}
+
+      ${VAL_WH_INVALIDO.length?`
+      <div style="margin-bottom:12px">
+        <div style="padding:8px 12px;font-size:12px;font-weight:700;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-map-pin-off"></i> Armazéns não Cadastrados — ${VAL_WH_INVALIDO.length} ocorrência${VAL_WH_INVALIDO.length>1?'s':''}
+        </div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #fcd34d;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+          <tr style="background:#fffbeb"><th style="padding:5px 10px;font-size:10px;font-weight:700;color:#92400e;text-transform:uppercase;text-align:left">Código</th><th style="padding:5px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:left">Fonte</th><th style="padding:5px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:left">Detalhe</th></tr>
+          ${whInvRows}
+        </table>
+      </div>`:''}
+
+      ${VAL_INSUFICIENTE.length?`
+      <div style="margin-bottom:12px">
+        <div style="padding:8px 12px;font-size:12px;font-weight:700;color:#991b1b;background:#fee2e2;border:1px solid #fca5a5;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:6px">
+          <i class="ti ti-alert-triangle"></i> Estoque Insuficiente (Disp &lt; 0) — ${VAL_INSUFICIENTE.length} SKU${VAL_INSUFICIENTE.length>1?'s':''}
+        </div>
+        <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;border:1px solid #fca5a5;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+          <tr style="background:#fff5f5">
+            <th style="padding:5px 10px;font-size:10px;font-weight:700;color:#991b1b;text-transform:uppercase;text-align:left">Código</th>
+            <th style="padding:5px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:left">Produto</th>
+            <th style="padding:5px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:left">Armazém</th>
+            <th style="padding:5px 10px;font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;text-align:right">Saldo</th>
+            <th style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--pur);text-transform:uppercase;text-align:right">Reserva</th>
+            <th style="padding:5px 10px;font-size:10px;font-weight:700;color:var(--amb-d);text-transform:uppercase;text-align:right">Separação</th>
+            <th style="padding:5px 10px;font-size:10px;font-weight:700;color:#dc2626;text-transform:uppercase;text-align:right">Disponível</th>
+          </tr>
+          ${insufRows}
+        </table>
+        </div>
+      </div>`:''}
+
+      ${AUDIT_INCOMPLETO_ATIVO&&VAL_INCOMPLETO.length?`
+      <div style="margin-bottom:12px">
+        <div style="padding:8px 12px;font-size:12px;font-weight:700;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:8px 8px 0 0">
+          <i class="ti ti-clipboard-x"></i> Cadastros Incompletos — ${VAL_INCOMPLETO.length} produto(s)
+        </div>
+        <div style="border:1px solid #fcd34d;border-top:none;border-radius:0 0 8px 8px;padding:8px 12px;font-size:11px;color:var(--txtm)">
+          ${VAL_INCOMPLETO.slice(0,20).map(v=>`<div style="padding:3px 0;border-bottom:1px solid var(--brd)"><b>${v.codigo}</b> — ${v.descricao} — Faltam: ${v.campos.join(', ')}</div>`).join('')}
+          ${VAL_INCOMPLETO.length>20?`<div style="margin-top:4px">… e mais ${VAL_INCOMPLETO.length-20}</div>`:''}
+        </div>
+      </div>`:''}
+
+      <div style="padding:8px 12px;font-size:11px;color:var(--txtm);border:1px solid var(--brd);border-radius:8px">
+        Validação de <b>Cadastro Incompleto</b> ${toggleBtn} — Ativar somente quando o cadastro_produtos.csv estiver completo.
+        ${VAL_DUPLICADO.length?`<br>⚠️ <b>${VAL_DUPLICADO.length} código(s) duplicado(s)</b> em cadastro_produtos: ${VAL_DUPLICADO.map(v=>v.codigo).slice(0,5).join(', ')}`:''} 
+      </div>
+    </div>`;
+  }
+
+  el.innerHTML=validIntBlock+divCalcBlock+resumo+conferencia+validacao+divergencias+semProdBlock;
 }
+
 
 
 async function boot(){
@@ -2017,24 +2560,174 @@ async function boot(){
   document.getElementById('err-area').style.display='none';
   document.getElementById('mc').style.display='none';
   document.getElementById('btn-csv').disabled=true;
-  ST=[]; RES=[];
-  for(const[k,path] of Object.entries(CSV_FILES)){
-    document.getElementById('lprog').textContent='Carregando '+path+'...';
-    try{
-      const r=await fetch(path,{cache:'no-store'});
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      const txt=await r.text();
-      if(k==='ESTOQUE') ST=parseEstoque(txt);
-      else if(k==='RESERVAS') RES=parseReservas(txt);
-      else if(k==='CONFERENCIA') REF_DATA=parseConferencia(txt);
-    }catch(e){
-      if(k!=='RESERVAS'){showErr(`<b>${path}</b> não encontrado. Rode o GitHub Action para gerar os dados.`);return;}
-    }
-  }
-  if(!ST.length){showErr('Nenhum produto carregado. Verifique data/ESTOQUE.csv');return;}
-  // DEBUG: show first item
+  ST=[]; RES=[]; SEP=[];
+  SRC_ALERTS.length=0;
+  VAL_SEM_CADASTRO=[]; VAL_INCOMPLETO=[]; VAL_WH_INVALIDO=[];
+  VAL_INSUFICIENTE=[]; VAL_NEGATIVO=[]; VAL_DUPLICADO=[];
 
-  applyReservas();
+  const prog = txt => {
+    const el=document.getElementById('lprog');
+    if(el) el.textContent=txt;
+  };
+
+  // ── Tentar modo NOVO: detectar config.json
+  let cfg=null;
+  try{
+    prog('Verificando configuração...');
+    const r=await fetch('data/config.json',{cache:'no-store'});
+    if(r.ok) cfg=await r.json();
+  }catch(e){ /* config.json ausente → modo legado */ }
+
+  if(cfg){
+    // ════════════════════════════════════════════════
+    // MODO NOVO
+    // ════════════════════════════════════════════════
+    MODO='novo';
+
+    // 1. Armazens.csv
+    prog('Carregando Armazens.csv...');
+    try{
+      const r=await fetch('data/Armazens.csv',{cache:'no-store'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      WH_MAP=parseArmazens(await r.text());
+      syncWHFromMap();
+    }catch(e){
+      showErr('<b>data/Armazens.csv</b> não encontrado ou inválido. Este arquivo é obrigatório no modo novo.');
+      return;
+    }
+
+    // 2. cadastro_produtos.csv
+    prog('Carregando cadastro_produtos.csv...');
+    try{
+      const r=await fetch('data/cadastro_produtos.csv',{cache:'no-store'});
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      CADASTRO=parseCadastro(await r.text());
+    }catch(e){
+      showErr('<b>data/cadastro_produtos.csv</b> não encontrado. Este arquivo é obrigatório no modo novo.');
+      return;
+    }
+
+    // 3. CSVs de estoque (paralelo)
+    const warehouses=cfg.warehouses||[];
+    if(!warehouses.length){
+      showErr('<b>config.json</b> não contém a lista "warehouses". Adicione ao menos um armazém.');
+      return;
+    }
+    const stItems=[];
+    prog(`Carregando ${warehouses.length} arquivo(s) de estoque...`);
+    await Promise.all(warehouses.map(async wh=>{
+      try{
+        const fname = wh==='fabrica_manaus'
+          ? 'data/estoque_fabrica_manaus.csv'
+          : `data/estoque_${wh}.csv`;
+        const r=await fetch(fname,{cache:'no-store'});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const txt=await r.text();
+        const items = wh==='fabrica_manaus'
+          ? parseFabricaManaus(txt)
+          : parseEstoqueWH(txt, wh);
+        stItems.push(...items);
+      }catch(e){
+        SRC_ALERTS.push({
+          fonte:`estoque_${wh}.csv`,
+          msg:`Arquivo não encontrado ou inválido: ${e.message}`,
+          ts:new Date()
+        });
+      }
+    }));
+    SRC_TS.estoque=new Date();
+
+    if(!stItems.length){
+      showErr('Nenhum produto carregado. Verifique os arquivos de estoque e o config.json.');
+      return;
+    }
+
+    // JOIN com cadastro
+    joinCadastro(stItems);
+    ST=stItems;
+
+    // 4. Reservas — Google Sheets (opcional, não bloqueia)
+    // config.json usa reservas_url direta (suporta planilhas diferentes)
+    if(cfg.reservas_url){
+      prog('Carregando Reservas (Google Sheets)...');
+      try{
+        const r=await fetch(cfg.reservas_url,{cache:'no-store'});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        RES=parseReservasSheets(await r.text());
+      }catch(e){
+        SRC_ALERTS.push({
+          fonte:'Reservas (Google Sheets)',
+          msg:`Não foi possível carregar: ${e.message}. Usando fallback local se disponível.`,
+          ts:new Date()
+        });
+        // Fallback para RESERVAS.csv local
+        try{
+          const rb=await fetch('data/RESERVAS.csv',{cache:'no-store'});
+          if(rb.ok){ RES=parseReservas(await rb.text()); SRC_TS.reservas=new Date(); }
+        }catch(e2){}
+      }
+    } else {
+      // Sem URL configurada — tentar RESERVAS.csv local
+      try{
+        const r=await fetch('data/RESERVAS.csv',{cache:'no-store'});
+        if(r.ok){ RES=parseReservas(await r.text()); SRC_TS.reservas=new Date(); }
+      }catch(e){}
+    }
+
+    // 5. Separação/Faturados — Google Sheets (opcional, não bloqueia)
+    // Planilha separada da de reservas
+    if(cfg.separacao_url){
+      prog('Carregando Pedidos em Separação (Google Sheets)...');
+      try{
+        const r=await fetch(cfg.separacao_url,{cache:'no-store'});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        SEP=parseSeparacao(await r.text());
+      }catch(e){
+        SRC_ALERTS.push({
+          fonte:'Pedidos em Separação / Faturados (Google Sheets)',
+          msg:`Não foi possível carregar: ${e.message}. Separação não aplicada.`,
+          ts:new Date()
+        });
+      }
+    }
+
+    // Aplicar reservas + separação
+    applyReservasSep();
+    // Validações
+    validateAll();
+
+  } else {
+    // ════════════════════════════════════════════════
+    // MODO LEGADO (comportamento atual, sem mudança)
+    // ════════════════════════════════════════════════
+    MODO='legado';
+    const CSV_FILES_LEGADO={
+      ESTOQUE:'data/ESTOQUE.csv',
+      RESERVAS:'data/RESERVAS.csv',
+      CONFERENCIA:'data/CONFERENCIA.csv',
+    };
+    for(const[k,path] of Object.entries(CSV_FILES_LEGADO)){
+      prog('Carregando '+path+'...');
+      try{
+        const r=await fetch(path,{cache:'no-store'});
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        const txt=await r.text();
+        if(k==='ESTOQUE') ST=parseEstoque(txt);
+        else if(k==='RESERVAS') RES=parseReservas(txt);
+        else if(k==='CONFERENCIA') REF_DATA=parseConferencia(txt);
+      }catch(e){
+        if(k!=='RESERVAS'&&k!=='CONFERENCIA'){
+          showErr(`<b>${path}</b> não encontrado.`);return;
+        }
+      }
+    }
+    if(!ST.length){showErr('Nenhum produto carregado. Verifique data/ESTOQUE.csv');return;}
+    applyReservas();
+  }
+
+  // ── Exibir alertas de fonte (faixa amarela)
+  renderSrcAlerts();
+
   populateSelects();
   document.getElementById('ld-area').style.display='none';
   document.getElementById('mc').style.display='block';
@@ -2042,55 +2735,26 @@ async function boot(){
   const now=new Date();
   const ts=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   document.getElementById('sync-t').textContent=ts;
-  setStatus('ok');
-  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div'].forEach(t=>renderCat(t)); rRes(); rAlrt(); updateSidebar(); rAudit();
+  setStatus(SRC_ALERTS.length?'warn':'ok');
+  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div'].forEach(t=>renderCat(t));
+  rRes(); rAlrt(); updateSidebar(); rAudit();
 }
 
-function showErr(m){
-  document.getElementById('ld-area').style.display='none';
-  const e=document.getElementById('err-area');e.style.display='block';
-  e.innerHTML=`<div class="ebox"><i class="ti ti-alert-circle" style="font-size:16px;flex-shrink:0"></i><div>${m}<br><button onclick="boot()" style="margin-top:7px;padding:4px 11px;background:var(--pri);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:11px">Tentar novamente</button></div></div>`;
-  setStatus('err');
-}
-function setStatus(s){
-  const d=document.getElementById('sdot'),t=document.getElementById('stxt');d.className='dot';
-  if(s==='ok'){d.classList.add('dot-g');t.textContent='Base Atualizada';}
-  else if(s==='loading'){d.classList.add('dot-a');t.textContent='Carregando...';}
-  else{d.classList.add('dot-r');t.textContent='Erro ao carregar';}
-}
-
-// ══ NAVIGATION
-// ── Mobile menu
-function toggleMobMenu(){
-  document.getElementById('sidebar').classList.toggle('mob-open');
-  document.getElementById('mob-overlay').classList.toggle('open');
-}
-function closeMobMenu(){
-  document.getElementById('sidebar').classList.remove('mob-open');
-  document.getElementById('mob-overlay').classList.remove('open');
+function renderSrcAlerts(){
+  if(!SRC_ALERTS.length) return;
+  const el=document.getElementById('src-alerts');
+  if(!el) return;
+  el.innerHTML=SRC_ALERTS.map(a=>`
+    <div class="src-alert">
+      <i class="ti ti-alert-triangle"></i>
+      <div>
+        <b>${a.fonte}</b> — ${a.msg}
+        <span class="src-alert-ts">${a.ts.toLocaleTimeString('pt-BR')}</span>
+      </div>
+    </div>`).join('');
+  el.style.display='block';
 }
 
-function go(id){
-  document.querySelectorAll('.sbi').forEach(b=>b.classList.remove('on'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
-  const sb=document.getElementById('sb-'+id);
-  if(sb) sb.classList.add('on');
-  const tab=document.getElementById('tab-'+id);
-  if(tab) tab.classList.add('on');
-  document.getElementById('content').scrollTop=0;
-  closeMobMenu(); // fecha drawer ao navegar no mobile
-}
-
-// ══ EXPORT
-function exportCSV(){
-  const dd=dedup(ST);
-  const cols=['Nomenclatura','Codigo','Categoria','Familia','Armazem','Estoque_Total','Em_Separacao','Reserva','Disponivel'];
-  const rows=[cols,...dd.map(r=>[`"${(r.nomenclatura||'').replace(/"/g,"'")}"`,(r.codigo||''),r.categoria,`"${r.familia}"`,Object.keys(r._byWH).join('|'),r._sal,r._emp,r._res,r._disp])];
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob(['\ufeff'+rows.map(r=>r.join(';')).join('\n')],{type:'text/csv;charset=utf-8'}));
-  a.download='Livoltek_Estoque_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.csv';
-  a.click();
-}
 
 boot();
 </script>
