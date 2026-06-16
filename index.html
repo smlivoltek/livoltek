@@ -451,6 +451,32 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .src-alert{display:flex;align-items:flex-start;gap:8px;padding:.375rem 0;font-size:12px;color:#92400e}
 .src-alert i{font-size:14px;flex-shrink:0;margin-top:1px;color:#d97706}
 .src-alert-ts{margin-left:8px;font-size:10px;opacity:.7}
+
+/* ── TODOS: novo layout de card (amc2) ── */
+.amc2{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin-bottom:.5rem}
+.amc2-head{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:.875rem 1rem}
+.amc2-info{flex:1;min-width:0}
+.amc2-nom{font-size:13px;font-weight:700;color:var(--txt);line-height:1.35}
+.amc2-desc{font-size:10px;color:var(--txtm);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amc2-meta{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap}
+.amc2-cod{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm)}
+.amc2-pill{font-size:9px;font-weight:600;padding:1px 6px;border-radius:4px;white-space:nowrap}
+.amc2-disp-block{text-align:right;flex-shrink:0}
+.amc2-disp-lbl{font-size:8px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.amc2-disp-val{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;line-height:1.1}
+.amc2-wh-list{padding:.5rem 1rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:2px}
+.amc2-wh-row{display:flex;align-items:center;gap:6px;padding:3px 0}
+.amc2-wh-name{flex:1;font-size:12px;color:var(--txt2)}
+.amc2-wh-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--txt)}
+.amc2-no-stock{font-size:11px;color:var(--txtm);padding:4px 0}
+.amc2-totals{padding:.5rem 1rem .625rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:2px}
+.amc2-total-row{display:flex;justify-content:space-between;font-size:12px;color:var(--txt2);padding:1px 0}
+.amc2-sep{color:var(--amb-d)!important}
+.amc2-sep span:last-child{font-family:'DM Mono',monospace;font-weight:600}
+.amc2-res{color:var(--pur)!important}
+.amc2-res span:last-child{font-family:'DM Mono',monospace;font-weight:600}
+.amc2-total-row:first-child span:last-child{font-family:'DM Mono',monospace;font-weight:600;color:var(--txt)}
+.amc2-total-note{font-size:10px;color:var(--txtm);margin-top:4px;font-style:italic}
 </style>
 </head>
 <body>
@@ -1666,33 +1692,57 @@ function rAll(){
     mob.innerHTML=`<div class="all-mob-empty"><i class="ti ti-mood-empty"></i><div>Nenhum produto encontrado</div></div>`;
     return;
   }
-  mob.innerHTML=dd.map(r=>{
-    const disp=r._disp;
-    const dispCol=disp>20?'var(--grn-d)':disp>=1?'var(--amb-d)':'var(--red)';
-    const dispLabel=disp>20?'Disponível':disp>=1?'Pouco estoque':'Sem estoque';
-    const dispBg=disp>20?'var(--grn-pale)':disp>=1?'var(--amb-pale)':'var(--red-pale)';
+  // Ordenar alfabético por nomenclatura
+  const ddSorted=[...dd].sort((a,b)=>(a.nomenclatura||a.descricao||'').localeCompare(b.nomenclatura||b.descricao||'','pt-BR'));
 
-    // Saldo por armazém (apenas onde há saldo)
-    const whRows=Object.entries(r._byWH)
+  mob.innerHTML=ddSorted.map(r=>{
+    const disp=r._disp;
+    const sal=r._sal;
+    const sep=r._emp||0;
+    const res=r._res||0;
+    const dispCol=disp>0?'var(--grn-d)':disp===0&&sal>0?'var(--amb-d)':'var(--red)';
+
+    // Saldo por armazém (apenas onde há saldo > 0)
+    const whList=Object.entries(r._byWH)
       .filter(([,v])=>v>0)
-      .sort((a,b)=>b[1]-a[1])
-      .map(([w,v])=>`<div class="amc-wh-row">
-        <span class="wt" style="color:${WH_COLOR[w]||'#64748b'};background:${(WH_COLOR[w]||'#64748b')}1a;font-size:9px">${w.split(' ')[0]}</span>
-        <span class="amc-wh-val">${fmt(v)}</span>
+      .sort((a,b)=>b[1]-a[1]);
+
+    const whRows=whList.map(([w,v])=>`
+      <div class="amc2-wh-row">
+        <i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'};font-size:12px"></i>
+        <span class="amc2-wh-name">${w.replace(/\s*\(.*\)/,'')}</span>
+        <span class="amc2-wh-val">${fmt(v)}</span>
       </div>`).join('');
 
-    const extras=[];
-    if(r._emp>0) extras.push(`<span class="amc-tag amc-sep"><i class="ti ti-lock"></i> ${fmt(r._emp)} sep.</span>`);
-    if(r._res>0) extras.push(`<span class="amc-tag amc-res"><i class="ti ti-bookmark"></i> ${fmt(r._res)} res.</span>`);
+    // Pill de categoria
+    const catColor={'inv':'var(--pri)','ev':'var(--grn-d)','bess':'var(--amb-d)',
+                    'kit':'#d97706','strbox':'var(--blu)','div':'#7c3aed','mp':'var(--red)'};
+    const catTab=getCatTab(r);
+    const catCol=catColor[catTab]||'#94a3b8';
+    const famLabel=(r.familia||'').replace(/\s*[-–]\s*(GT1|GT3|HP1|HP3).*/i,'').trim()||'';
 
-    return`<div class="amc">
-      <div class="amc-top">
-        <div class="amc-nom">${r.nomenclatura||r.descricao||'—'}</div>
-        <div class="amc-disp" style="color:${dispCol};background:${dispBg}">${fmt(disp)}<span class="amc-disp-lbl">${dispLabel}</span></div>
+    return`<div class="amc2">
+      <div class="amc2-head">
+        <div class="amc2-info">
+          <div class="amc2-nom">${r.nomenclatura||r.descricao||'—'}</div>
+          <div class="amc2-desc">${r.descricao&&r.nomenclatura&&r.descricao!==r.nomenclatura?r.descricao.slice(0,60)+'…':''}</div>
+          <div class="amc2-meta">
+            <span class="amc2-cod">${r.codigo}</span>
+            ${famLabel?`<span class="amc2-pill" style="color:${catCol};background:${catCol}1a">${famLabel}</span>`:''}
+          </div>
+        </div>
+        <div class="amc2-disp-block">
+          <div class="amc2-disp-lbl">DISPONÍVEL PARA VENDA</div>
+          <div class="amc2-disp-val" style="color:${dispCol}">${fmt(disp)}</div>
+        </div>
       </div>
-      <div class="amc-code">${r.codigo}<span class="amc-fam">${r.familia||''}</span></div>
-      <div class="amc-wh-grid">${whRows||'<span style="font-size:11px;color:var(--txtm)">Sem saldo</span>'}</div>
-      ${extras.length?`<div class="amc-tags">${extras.join('')}</div>`:''}
+      <div class="amc2-wh-list">${whRows||'<span class="amc2-no-stock">Sem saldo em estoque</span>'}</div>
+      ${sal>0?`<div class="amc2-totals">
+        <div class="amc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
+        ${sep>0?`<div class="amc2-total-row amc2-sep"><span><i class="ti ti-lock"></i> Em Separação</span><span>−${fmt(sep)}</span></div>`:''}
+        ${res>0?`<div class="amc2-total-row amc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>−${fmt(res)}</span></div>`:''}
+        ${sep>0||res>0?`<div class="amc2-total-note">Separação e Reserva já foram abatidas do disponível.</div>`:''}
+      </div>`:''}
     </div>`;
   }).join('');
 }
