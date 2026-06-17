@@ -593,6 +593,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <button class="sbi" id="sb-alrt" onclick="go('alrt')">
       <i class="ti ti-target si"></i><span class="sn">Oportunidades · Insights</span><span class="sc red" id="sc-alrt" style="display:none">—</span>
     </button>
+    <button class="sbi" id="sb-mp" onclick="go('mp')">
+      <i class="ti ti-building-factory-2 si"></i><span class="sn">Matéria-Prima · Raw Mat.</span><span class="sc" id="sc-mp">—</span>
+    </button>
     <button class="sbi" id="sb-audit" onclick="go('audit')" style="margin-top:8px;border:1px dashed #94a3b8">
       <i class="ti ti-microscope si"></i><span class="sn" style="color:#dc2626;font-weight:700">AUDITORIA</span><span class="sc" style="display:none"></span>
     </button>
@@ -1579,6 +1582,8 @@ function dedup(items){
 // Isso permite ver MP de Inversores na aba Inversores, etc.
 // Só vai para 'mp' se não tiver família reconhecida
 function getCatTab(r){
+  // MP sempre vai para aba MP — simples e direto
+  if(r.isMP) return 'mp';
   const fam=(r.familia||'').toUpperCase().trim();
   if(fam.includes('INVERSOR'))                      return 'inv';
   if(fam.includes('CARREGADOR'))                    return 'ev';
@@ -1587,8 +1592,6 @@ function getCatTab(r){
   if(fam.includes('STRING BOX'))                    return 'strbox';
   if(fam.includes('MOTOR'))                         return 'mot';
   if(fam.includes('DIVERSOS'))                      return 'div';
-  // MP sem família reconhecida → aba MP
-  if(r.isMP) return 'mp';
   return 'div';
 }
 
@@ -1709,24 +1712,16 @@ function renderCat(tabId){
     buildPills(tabId, dedup(ST.filter(r=>getCatTab(r)===tabId&&!r.isMP)));
   }
 
-  // Todos juntos na seção superior — MP marcada com badge visual
-  // Ordenar: produtos primeiro, depois MP (mesma ordem alfabética dentro de cada grupo)
-  const prod=dd.filter(r=>!r.isMP);
-  const mp  =dd.filter(r=>r.isMP);
-  const todos=[...prod,...mp]; // produtos primeiro, MP depois
-
   const cardsEl=document.getElementById(tabId+'-cards');
   const mpSec=document.getElementById(tabId+'-mp-sec');
   const cntEl=document.getElementById(tabId+'-cnt');
   const mpCntEl=document.getElementById(tabId+'-mp-cnt');
 
-  // Ocultar seção inferior (não usada mais)
   if(mpSec) mpSec.style.display='none';
-
-  if(cardsEl) cardsEl.innerHTML=todos.map(r=>pCard(r,r.isMP)).join('')||
+  if(cardsEl) cardsEl.innerHTML=dd.map(r=>pCard(r,r.isMP)).join('')||
     `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm);font-size:13px">Nenhum produto encontrado.</div>`;
-  if(cntEl) cntEl.textContent=prod.length+(mp.length?` · ${mp.length} MP`:'');
-  if(mpCntEl) mpCntEl.textContent=mp.length;
+  if(cntEl) cntEl.textContent=dd.length;
+  if(mpCntEl) mpCntEl.textContent=0;
 }
 
 // ══ TODOS
@@ -1857,10 +1852,7 @@ function rDash(){
 
   // Calcular disp por categoria: saldo - empenho - reserva (já em r.disp por linha)
   const catData = CAT_DEFS.map(def => {
-    // MP: filtrar por isMP=true em todo ST (não por tab, pois MP fica na aba da família)
-    const rows = def.tab==='mp'
-      ? ST.filter(r => r.isMP)
-      : ST.filter(r => getCatTab(r) === def.tab && !r.isMP);
+    const rows = ST.filter(r => getCatTab(r) === def.tab);
     const disp = rows.reduce((a,r) => a + r.disp, 0);
     const sal  = rows.reduce((a,r) => a + r.saldo, 0);
     const emp  = rows.reduce((a,r) => a + r.empenho, 0);
@@ -2980,7 +2972,7 @@ async function boot(){
   }
   document.getElementById('sync-t').textContent=_ts;
   setStatus(SRC_ALERTS.length?'warn':'ok');
-  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div','mot'].forEach(t=>renderCat(t));
+  rDash(); rAll(); ['inv','ev','bess','kit','strbox','div','mot','mp'].forEach(t=>renderCat(t));
   rRes(); rAlrt(); updateSidebar(); rAudit();
 }
 
