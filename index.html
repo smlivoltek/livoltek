@@ -1169,22 +1169,29 @@ function parseCadastro(csv){
                 ? ci('Nomenclatura','NOMENCLATURA') : 5;
 
   const map={}, dupl=[];
+  const fixEnc = s => String(s||'').trim().replace(/\uFFFD/g,'');
+  const isMP_cat = cat => {const u=cat.toUpperCase(); return u.includes('MATERIA')||u.includes('MATRIA')||u.includes('PRIMA');};
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
     const codigo=String(r[iCOD]||'').trim().toUpperCase();
     if(!codigo) continue;
-    if(map[codigo]) dupl.push(codigo);
-    // fixEnc: remove caracteres de replacement (encoding corrompido)
-    // MAT�RIA-PRIMA → MATRIA-PRIMA → detectável por 'MATRIA' ou 'PRIMA'
-    const fixEnc = s => String(s||'').trim().replace(/\uFFFD/g,'');
     const catRaw = fixEnc(r[iCAT]);
-    map[codigo]={
-      codigo,
+    const famRaw = String(r[iFAM]||'').trim();
+    const nomRaw = String(r[iNOM]||'').trim();
+    const thisIsMP = isMP_cat(catRaw);
+    // Chave no mapa: código normal para PRODUTO, código+'_MP' para MATERIA-PRIMA
+    // Assim JOIN por código bate em PRODUTO, JOIN por código+'_MP' bate em MP
+    // O estoque da fábrica usa o código direto — para MP usamos código+'_MP' como fallback
+    const mapKey = thisIsMP && map[codigo] ? codigo+'_MP' : codigo;
+    if(map[mapKey]){ dupl.push(codigo); continue; }
+    map[mapKey]={
+      codigo: mapKey,
+      codigoOriginal: codigo,
       descricao:    String(r[iDESC]||'').trim(),
       topManager:   String(r[iTOP] ||'').trim(),
       categoria:    catRaw,
-      familia:      String(r[iFAM] ||'').trim(),
-      nomenclatura: String(r[iNOM] ||'').trim(),
+      familia:      famRaw,
+      nomenclatura: nomRaw,
     };
   }
   VAL_DUPLICADO=dupl.map(c=>({codigo:c,descricao:map[c]?.descricao||'',msg:'Código duplicado no cadastro_produtos'}));
@@ -1417,24 +1424,17 @@ function parseSeparacao(csv){
 
 // ── JOIN: estoque + cadastro_produtos
 function joinCadastro(items){
+  const isMP_cat=cat=>{const u=(cat||'').toUpperCase();return u.includes('MATERIA')||u.includes('MATRIA')||u.includes('PRIMA');};
+
+  // 1ª passagem: JOIN normal (código do estoque → cadastro)
   items.forEach(s=>{
     const cad=CADASTRO[s.codigo];
-    if(!cad){
-      s._semCadastro=true;
-      // Manter descricao do estoque (sem cadastro = sem nomenclatura, familia, categoria)
-      return;
-    }
+    if(!cad){s._semCadastro=true;return;}
     s._semCadastro=false;
     s.nomenclatura = cad.nomenclatura||s.descricao;
     s.categoria    = (cad.categoria||'').toUpperCase();
     s.familia      = cad.familia||'';
-    // isMP
-    // Categoria já normalizada pelo fixEnc no parseCadastro
-    // MAT�RIA-PRIMA → MATRIA-PRIMA → detectar por MATRIA ou PRIMA
-    const catNorm=s.categoria.toUpperCase();
-    s.isMP = catNorm.includes('MATERIA')||catNorm.includes('MATRIA')||
-             catNorm.includes('PRIMA')||catNorm.includes('MATER');
-    // Campos incompletos (só acumula se toggle ativo — validação adiada)
+    s.isMP         = isMP_cat(s.categoria);
     const incompleto=[];
     if(!cad.topManager)   incompleto.push('CÓDIGO TOP MANAGER');
     if(!cad.categoria)    incompleto.push('CATEGORIA');
@@ -1442,6 +1442,31 @@ function joinCadastro(items){
     if(!cad.nomenclatura) incompleto.push('NOMENCLATURA');
     s._incompleto=incompleto;
   });
+
+  // 2ª passagem: para cada entrada MP no cadastro (chave termina em _MP),
+  // criar card MP adicional baseado no item de estoque existente
+  const extras=[];
+  Object.values(CADASTRO).forEach(cad=>{
+    if(!cad.codigoOriginal) return; // só entradas MP duplicadas têm codigoOriginal
+    if(!isMP_cat(cad.categoria)) return;
+    // Buscar itens de estoque com o código original
+    const stItems=items.filter(s=>s.codigo===cad.codigoOriginal&&!s.isMP);
+    if(!stItems.length) return;
+    // Criar entrada MP virtual (saldo 0 — só para exibir o card com badge MP)
+    stItems.slice(0,1).forEach(s=>{
+      extras.push({...s,
+        nomenclatura: cad.nomenclatura||s.descricao,
+        categoria:    cad.categoria.toUpperCase(),
+        familia:      cad.familia,
+        isMP:         true,
+        _semCadastro: false,
+        _incompleto:  [],
+        saldo:0,empenho:0,separacao:0,reserva:0,disp:0,
+        _byWH:{},_sal:0,_emp:0,_res:0,_disp:0,
+      });
+    });
+  });
+  extras.forEach(e=>items.push(e));
 }
 
 // ── Aplicar reservas + separação no modo novo (por armazém)
