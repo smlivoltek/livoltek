@@ -1857,7 +1857,10 @@ function rDash(){
 
   // Calcular disp por categoria: saldo - empenho - reserva (já em r.disp por linha)
   const catData = CAT_DEFS.map(def => {
-    const rows = ST.filter(r => getCatTab(r) === def.tab);
+    // MP: filtrar por isMP=true em todo ST (não por tab, pois MP fica na aba da família)
+    const rows = def.tab==='mp'
+      ? ST.filter(r => r.isMP)
+      : ST.filter(r => getCatTab(r) === def.tab && !r.isMP);
     const disp = rows.reduce((a,r) => a + r.disp, 0);
     const sal  = rows.reduce((a,r) => a + r.saldo, 0);
     const emp  = rows.reduce((a,r) => a + r.empenho, 0);
