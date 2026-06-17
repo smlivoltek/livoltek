@@ -1005,7 +1005,7 @@ function parseEstoque(csv){
     const nomenclatura=String(iNOM>=0?r[iNOM]||'':'').trim();
     const tp=String(r[iTP]||'').trim().toUpperCase();
     const catNorm=categoria.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    const isMP=catNorm.includes('MATERIA')||catNorm.includes('MATER')||
+    const isMP=catNorm.includes('MATERIA')||catNorm.includes('MATER')||catNorm.includes('PRIMA')||
                categoria.includes('MATÉR')||categoria.includes('MATÉRIA');
     const nomFinal=nomenclatura||descricao;
     items.push({codigo,nomenclatura:nomFinal,descricao,
@@ -1174,11 +1174,15 @@ function parseCadastro(csv){
     const codigo=String(r[iCOD]||'').trim().toUpperCase();
     if(!codigo) continue;
     if(map[codigo]) dupl.push(codigo);
+    // fixEnc: remove caracteres de replacement (encoding corrompido)
+    // MAT�RIA-PRIMA → MATRIA-PRIMA → detectável por 'MATRIA' ou 'PRIMA'
+    const fixEnc = s => String(s||'').trim().replace(/\uFFFD/g,'');
+    const catRaw = fixEnc(r[iCAT]);
     map[codigo]={
       codigo,
       descricao:    String(r[iDESC]||'').trim(),
       topManager:   String(r[iTOP] ||'').trim(),
-      categoria:    String(r[iCAT] ||'').trim(),
+      categoria:    catRaw,
       familia:      String(r[iFAM] ||'').trim(),
       nomenclatura: String(r[iNOM] ||'').trim(),
     };
@@ -1425,9 +1429,11 @@ function joinCadastro(items){
     s.categoria    = (cad.categoria||'').toUpperCase();
     s.familia      = cad.familia||'';
     // isMP
-    const catNorm=s.categoria.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-    s.isMP = catNorm.includes('MATERIA')||catNorm.includes('MATER')||
-             s.categoria.includes('MATÉR')||s.categoria.includes('MATÉRIA');
+    // Categoria já normalizada pelo fixEnc no parseCadastro
+    // MAT�RIA-PRIMA → MATRIA-PRIMA → detectar por MATRIA ou PRIMA
+    const catNorm=s.categoria.toUpperCase();
+    s.isMP = catNorm.includes('MATERIA')||catNorm.includes('MATRIA')||
+             catNorm.includes('PRIMA')||catNorm.includes('MATER');
     // Campos incompletos (só acumula se toggle ativo — validação adiada)
     const incompleto=[];
     if(!cad.topManager)   incompleto.push('CÓDIGO TOP MANAGER');
