@@ -532,7 +532,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
     <div class="logo">LV</div>
     <div>
       <div class="hdr-title">LIVOLTEK · Estoque Comercial Brasil</div>
-      <div class="hdr-sub">Disponível = Saldo − Em Separação − Reservas</div>
+      <div class="hdr-sub">Disponível = Saldo − Reservas</div>
     </div>
   </div>
   <div class="hdr-r">
@@ -1101,8 +1101,8 @@ function applyReservas(){
     if(globalQty>0&&!codSeen[cod]){codSeen[cod]=true;resGlobal=globalQty;}
     s.reserva=resWH+resGlobal;
     // No modo legado, separacao = empenho (sem planilha de separação)
-    s.separacao=s.empenho||0;
-    s.disp=Math.max(0,s.saldo-s.reserva-s.separacao);
+    s.separacao=0;
+    s.disp=Math.max(0,s.saldo-s.reserva);
   });
 }
 
@@ -1472,51 +1472,24 @@ function joinCadastro(items){
   extras.forEach(e=>items.push(e));
 }
 
-// ── Aplicar reservas + separação no modo novo (por armazém)
+// ── Aplicar reservas (separação vem do Airtable — não calculada aqui)
 function applyReservasSep(){
-  // Lookup WH|CODIGO → qtd
   const lkpRes={}, lkpResTotal={};
-  const lkpSep={}, lkpSepTotal={};
-
   RES.forEach(r=>{
     const cod=r.codigo;
     lkpResTotal[cod]=(lkpResTotal[cod]||0)+r.qtd;
-    const k=r.wh+'|'+cod;
-    lkpRes[k]=(lkpRes[k]||0)+r.qtd;
+    const k=r.wh+'|'+cod; lkpRes[k]=(lkpRes[k]||0)+r.qtd;
   });
-  SEP.forEach(r=>{
-    const cod=r.codigo;
-    lkpSepTotal[cod]=(lkpSepTotal[cod]||0)+r.qtd;
-    const k=r.wh+'|'+cod;
-    lkpSep[k]=(lkpSep[k]||0)+r.qtd;
-  });
-
-  const codSeenRes={}, codSeenSep={};
+  const codSeenRes={};
   ST.forEach(s=>{
-    const cod=s.codigo;
-    const k=s.wh+'|'+cod;
-    // Reserva com WH específico
+    const cod=s.codigo, k=s.wh+'|'+cod;
     let res=lkpRes[k]||0;
-    // Reserva sem WH → aplica uma vez no primeiro registro do produto
     const resTotal=lkpResTotal[cod]||0;
-    const resComWH=Object.entries(lkpRes)
-      .filter(([key])=>key.endsWith('|'+cod))
-      .reduce((a,[,v])=>a+v,0);
+    const resComWH=Object.entries(lkpRes).filter(([key])=>key.endsWith('|'+cod)).reduce((a,[,v])=>a+v,0);
     const resGlobal=resTotal-resComWH;
     if(resGlobal>0&&!codSeenRes[cod]){codSeenRes[cod]=true;res+=resGlobal;}
-    // Separação com WH específico
-    let sep=lkpSep[k]||0;
-    const sepTotal=lkpSepTotal[cod]||0;
-    const sepComWH=Object.entries(lkpSep)
-      .filter(([key])=>key.endsWith('|'+cod))
-      .reduce((a,[,v])=>a+v,0);
-    const sepGlobal=sepTotal-sepComWH;
-    if(sepGlobal>0&&!codSeenSep[cod]){codSeenSep[cod]=true;sep+=sepGlobal;}
-
-    s.reserva=res;
-    s.separacao=sep;
-    // Nova fórmula: DISPONÍVEL = SALDO - RESERVA - SEPARAÇÃO (sem empenho TOTVS)
-    s.disp=s.saldo-res-sep;
+    s.reserva=res; s.separacao=0;
+    s.disp=s.saldo-res; // DISPONÍVEL = SALDO - RESERVA
   });
 }
 
@@ -1570,7 +1543,7 @@ function dedup(items){
     if(!m[r.codigo]){m[r.codigo]={...r,_byWH:{},_sal:0,_emp:0,_res:0,_disp:0};}
     m[r.codigo]._byWH[r.wh]=(m[r.codigo]._byWH[r.wh]||0)+r.saldo;
     m[r.codigo]._sal +=r.saldo;
-    m[r.codigo]._emp +=r.empenho;
+    m[r.codigo]._emp = 0;
     m[r.codigo]._res +=r.reserva;
     m[r.codigo]._disp+=r.disp;
   });
@@ -1630,7 +1603,7 @@ function pCard(r, isMP){
     <div class="pr"><span class="pr-lbl" style="color:var(--txtm)">Estoque Total</span><span class="pr-val" style="color:var(--txtm)">${fmt(r._sal)}</span></div>
     <div class="pr"><span class="pr-lbl" style="color:var(--amb-d)">Em Separação</span><span class="pr-val" style="color:${r._emp>0?'var(--amb-d)':'var(--txtm)'}">${fmt(r._emp)}</span></div>
     <div class="pr"><span class="pr-lbl" style="color:var(--pur)">Reserva</span><span class="pr-val" style="color:${r._res>0?'var(--pur)':'var(--txtm)'}">${fmt(r._res)}</span></div>
-    <div class="pc-note">Separação e Reserva já foram abatidas do disponível.</div>
+    <div class="pc-note">Reserva já foi abatida do disponível.</div>
   </div>`;
 }
 
@@ -1822,9 +1795,9 @@ function rAll(){
       <div class="pc2-wh-list">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
       <div class="pc2-totals">
         <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
-        ${sep>0?`<div class="pc2-total-row pc2-sep"><span><i class="ti ti-lock"></i> Em Separação</span><span>${fmt(sep)}</span></div>`:''}
+        
         ${res>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(res)}</span></div>`:''}
-        ${sep>0||res>0?`<div class="pc2-note">Separação e Reserva já foram abatidas do disponível.</div>`:''}
+        ${sep>0||res>0?`<div class="pc2-note">Reserva já foi abatida do disponível.</div>`:''}
       </div>
       ${hasClientes?`
       <div class="pc2-cli-toggle" onclick="this.classList.toggle('open');this.nextElementSibling.style.display=this.classList.contains('open')?'block':'none'">
@@ -1855,7 +1828,7 @@ function rDash(){
     const rows = ST.filter(r => getCatTab(r) === def.tab);
     const disp = rows.reduce((a,r) => a + r.disp, 0);
     const sal  = rows.reduce((a,r) => a + r.saldo, 0);
-    const emp  = rows.reduce((a,r) => a + r.empenho, 0);
+    const emp  = 0;
     const res  = rows.reduce((a,r) => a + r.reserva, 0);
     const skus = new Set(rows.map(r => r.codigo)).size;
     return {...def, disp, sal, emp, res, skus};
@@ -2031,9 +2004,9 @@ function buildProdCard(g, modoDiretoria){
     <div class="pc2-wh-list">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
     <div class="pc2-totals">
       <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
-      ${sep>0?`<div class="pc2-total-row pc2-sep"><span><i class="ti ti-lock"></i> Em Separação</span><span>${fmt(sep)}</span></div>`:''}
+      
       ${g.totalQtd>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(g.totalQtd)}</span></div>`:''}
-      ${sep>0||g.totalQtd>0?`<div class="pc2-note">Separação e Reserva já foram abatidas do disponível.</div>`:''}
+      ${sep>0||g.totalQtd>0?`<div class="pc2-note">Reserva já foi abatida do disponível.</div>`:''}
     </div>
     <div class="pc2-cli-toggle${expanded?' open':''}" onclick="toggleResCard('${g.codigo}')">
       <span><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''} · ${fmt(g.totalQtd)} un. comprometidas</span>
@@ -2182,7 +2155,7 @@ function updateSidebar(){
   if(REF_DATA){
     const sumSal =ST.reduce((a,r)=>a+r.saldo,0);
     const sumRes =RES.reduce((a,r)=>a+r.qtd,0);
-    const sumEmp =ST.reduce((a,r)=>a+r.empenho,0);
+    const sumEmp = 0;
     const sumDisp=ST.reduce((a,r)=>a+r.disp,0);
     const totalSKU=new Set(ST.map(r=>r.codigo)).size;
     const checks=[
@@ -2251,7 +2224,7 @@ function rAudit(){
   const totalReg = ST.length;
   const totalSKU = new Set(ST.map(r=>r.codigo)).size;
   const sumSal   = ST.reduce((a,r)=>a+r.saldo,0);
-  const sumEmp   = ST.reduce((a,r)=>a+r.empenho,0);
+  const sumEmp   = 0;
   const sumRes   = RES.reduce((a,r)=>a+r.qtd,0);
   const sumDisp  = ST.reduce((a,r)=>a+r.disp,0);
 
@@ -2261,7 +2234,7 @@ function rAudit(){
     const skus  = new Set(items.map(r=>r.codigo)).size;
     const recs  = items.length;
     const sal   = items.reduce((a,r)=>a+r.saldo,0);
-    const emp   = items.reduce((a,r)=>a+r.empenho,0);
+    const emp   = 0;
     const res   = items.reduce((a,r)=>a+r.reserva,0);
     const disp  = items.reduce((a,r)=>a+r.disp,0);
     // Reserva do CSV de reservas para esse armazém (para conferência)
@@ -2500,7 +2473,7 @@ function rAudit(){
 
   // Nível produto: identificar registros onde disp !== max(0, saldo - empenho - reserva)
   const prodDivs = ST.map(r=>{
-    const esperado = Math.max(0, r.saldo - r.empenho - r.reserva);
+    const esperado = Math.max(0, r.saldo - r.reserva);
     const exibido  = r.disp;
     const diff     = Math.round(exibido) - Math.round(esperado);
     return {...r, _esp: esperado, _exib: exibido, _diff: diff};
@@ -2509,14 +2482,14 @@ function rAudit(){
   // Nível armazém: comparar soma esperada vs soma exibida
   const whDivs = WH_LIST.map(w=>{
     const rows = ST.filter(r=>r.wh===w);
-    const esperado = rows.reduce((a,r)=>a + Math.max(0, r.saldo - r.empenho - r.reserva), 0);
+    const esperado = rows.reduce((a,r)=>a + Math.max(0, r.saldo - r.reserva), 0);
     const exibido  = rows.reduce((a,r)=>a + r.disp, 0);
     const diff     = Math.round(exibido) - Math.round(esperado);
     return {w, esperado, exibido, diff};
   }).filter(d => d.diff !== 0);
 
   // Total geral
-  const totalEsperado = ST.reduce((a,r)=>a + Math.max(0, r.saldo - r.empenho - r.reserva), 0);
+  const totalEsperado = ST.reduce((a,r)=>a + Math.max(0, r.saldo - r.reserva), 0);
   const totalExibido  = ST.reduce((a,r)=>a + r.disp, 0);
   const totalDiff     = Math.round(totalExibido) - Math.round(totalEsperado);
 
@@ -2971,6 +2944,9 @@ async function boot(){
     _ts=localStorage.getItem(_tsKey)||'—';
   }
   document.getElementById('sync-t').textContent=_ts;
+  // Tooltip explicativo: deixa claro que é a última vez que os dados mudaram (não a última visita)
+  const syncEl=document.getElementById('sync-t');
+  if(syncEl) syncEl.title='Última alteração detectada nos dados (Estoque, Reservas ou Separação)';
   setStatus(SRC_ALERTS.length?'warn':'ok');
   rDash(); rAll(); ['inv','ev','bess','kit','strbox','div','mot','mp'].forEach(t=>renderCat(t));
   rRes(); rAlrt(); updateSidebar(); rAudit();
@@ -2993,6 +2969,12 @@ function renderSrcAlerts(){
 
 
 boot();
+
+// ══ AUTO-REFRESH: recarrega os dados (Reservas/Separação) a cada 3 horas
+// Não recarrega a página inteira — apenas re-executa boot() para buscar dados atualizados
+setInterval(()=>{
+  boot();
+}, 3*60*60*1000); // 3 horas em ms
 </script>
 </body>
 </html>
