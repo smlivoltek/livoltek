@@ -1851,7 +1851,7 @@ function rDash(){
       </div>
       <div class="dcat-right">
         <span class="dcat-val" style="color:${dispCol}">${fmt(c.disp)}</span>
-        <span class="dcat-detail">${c.emp>0?`<span style="color:var(--amb-d)">−${fmt(c.emp)} sep.</span> `:''} ${c.res>0?`<span style="color:var(--pur)">−${fmt(c.res)} res.</span>`:''}</span>
+        <span class="dcat-detail"><span style="color:var(--amb-d)">−${fmt(c.emp)} sep.</span> ${c.res>0?`<span style="color:var(--pur)">−${fmt(c.res)} res.</span>`:''}</span>
       </div>
     </div>`;
   }).join('');
