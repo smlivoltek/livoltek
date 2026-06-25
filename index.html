@@ -520,6 +520,21 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:var(--bg);color:var(-
 .pc2-cli-row:last-child{border-bottom:none}
 .pc2-cli-nome{color:var(--txt);font-weight:500}
 .pc2-cli-qtd{font-family:'DM Mono',monospace;font-weight:700;color:var(--pur)}
+
+/* ── pc: bloco de armazém com saldo + disponível separados ── */
+.pc-wh-block{padding:.4rem 0;border-bottom:1px solid var(--brd)}
+.pc-wh-block:last-child{border-bottom:none}
+.pc-wh-top{display:flex;align-items:center;justify-content:space-between}
+.pc-wh-disp{font-family:'DM Mono',monospace;font-size:14px;font-weight:700}
+.pc-wh-disp-lbl{font-size:9px;font-weight:400;color:var(--txtm);text-transform:uppercase}
+.pc-wh-detail{display:flex;gap:10px;font-size:10px;color:var(--txtm);margin-top:2px;padding-left:17px}
+
+.pc2-wh-row-detail{padding:4px 0;border-bottom:1px solid var(--brd)}
+.pc2-wh-row-detail:last-child{border-bottom:none}
+.pc2-wh-row-top{display:flex;align-items:center;gap:7px}
+.pc2-wh-row-top .pc2-wh-name{flex:1}
+.pc2-wh-val-lbl{font-size:8px;font-weight:400;color:var(--txtm);text-transform:uppercase}
+.pc2-wh-row-sub{font-size:10px;color:var(--txtm);padding-left:19px;margin-top:1px}
 </style>
 </head>
 <body>
@@ -1537,11 +1552,17 @@ function syncWHFromMap(){
 }
 
 // ══ DEDUP
+// _byWH agora guarda {saldo, reserva, disp} por armazém — não só o saldo.
+// Isso permite mostrar ao vendedor o disponível REAL de cada armazém individualmente,
+// em vez de um total consolidado que mistura armazéns com e sem reserva.
 function dedup(items){
   const m={};
   items.forEach(r=>{
     if(!m[r.codigo]){m[r.codigo]={...r,_byWH:{},_sal:0,_emp:0,_res:0,_disp:0};}
-    m[r.codigo]._byWH[r.wh]=(m[r.codigo]._byWH[r.wh]||0)+r.saldo;
+    if(!m[r.codigo]._byWH[r.wh]) m[r.codigo]._byWH[r.wh]={saldo:0,reserva:0,disp:0};
+    m[r.codigo]._byWH[r.wh].saldo  +=r.saldo;
+    m[r.codigo]._byWH[r.wh].reserva+=r.reserva;
+    m[r.codigo]._byWH[r.wh].disp   +=r.disp;
     m[r.codigo]._sal +=r.saldo;
     m[r.codigo]._emp = 0;
     m[r.codigo]._res +=r.reserva;
@@ -1572,19 +1593,30 @@ function getCatTab(r){
 function pCard(r, isMP){
   const disp=r._disp;
   const dispCol=disp>20?'var(--grn-d)':disp>=1?'var(--amb-d)':'var(--red)';
-  const dispBg =disp>20?'var(--grn-pale)':disp>=1?'var(--amb-pale)':'var(--red-pale)';
   const famLabel=r.familia||r.categoria||'';
   const famCol=isMP?'var(--red)':'var(--pri)';
   const famBg =isMP?'var(--red-pale)':'var(--pri-pale)';
 
+  // ── Linha por armazém: mostra SALDO e DISPONÍVEL separadamente.
+  // Isso evita o erro de achar que o total consolidado vale para qualquer armazém —
+  // cada filial pode ter reserva diferente, então o disponível de cada uma é individual.
   const whRows=WH_LIST.map(w=>{
-    const s=r._byWH[w]||0; if(!s) return '';
+    const d=r._byWH[w]; if(!d||!d.saldo) return '';
     const c=WH_COLOR[w]; const ico=WH_ICON[w];
-    return `<div class="pr"><span class="pr-lbl" style="color:${c};display:flex;align-items:center;gap:4px"><i class="ti ${ico}" style="font-size:11px"></i>${w}</span><span class="pr-val">${fmt(s)}</span></div>`;
+    const temReserva=d.reserva>0;
+    const whDispCol=d.disp>0?'var(--grn-d)':d.disp===0?'var(--amb-d)':'var(--red)';
+    return `<div class="pc-wh-block">
+      <div class="pc-wh-top">
+        <span class="pr-lbl" style="color:${c};display:flex;align-items:center;gap:4px"><i class="ti ${ico}" style="font-size:11px"></i>${w}</span>
+        <span class="pc-wh-disp" style="color:${whDispCol}">${fmt(d.disp)} <span class="pc-wh-disp-lbl">disp.</span></span>
+      </div>
+      <div class="pc-wh-detail">
+        <span>Estoque: ${fmt(d.saldo)}</span>
+        ${temReserva?`<span style="color:var(--pur)">Reserva: ${fmt(d.reserva)}</span>`:''}
+      </div>
+    </div>`;
   }).join('');
 
-  // Título: Nomenclatura se disponível, senão Descrição
-  // Subtítulo: Descrição se diferente do título
   const nom = r.nomenclatura||r.descricao||r.codigo;
   const desc = (r.descricao && r.descricao!==nom && r.nomenclatura) ? r.descricao : '';
 
@@ -1595,15 +1627,12 @@ function pCard(r, isMP){
     ${desc?`<div class="pc-desc">${tr(desc,55)}</div>`:''}
     <div class="pc-cod">${r.codigo}</div>
     <div class="pc-disp-wrap">
-      <div class="pc-disp-lbl" style="color:${dispCol}">Disponível para Venda</div>
+      <div class="pc-disp-lbl" style="color:${dispCol}">Disponível Total (todos os armazéns)</div>
       <div class="pc-disp" style="color:${dispCol}">${fmt(disp)}</div>
     </div>
-    ${whRows}
     <div class="pc-div"></div>
-    <div class="pr"><span class="pr-lbl" style="color:var(--txtm)">Estoque Total</span><span class="pr-val" style="color:var(--txtm)">${fmt(r._sal)}</span></div>
-    <div class="pr"><span class="pr-lbl" style="color:var(--amb-d)">Em Separação</span><span class="pr-val" style="color:${r._emp>0?'var(--amb-d)':'var(--txtm)'}">${fmt(r._emp)}</span></div>
-    <div class="pr"><span class="pr-lbl" style="color:var(--pur)">Reserva</span><span class="pr-val" style="color:${r._res>0?'var(--pur)':'var(--txtm)'}">${fmt(r._res)}</span></div>
-    <div class="pc-note">Reserva já foi abatida do disponível.</div>
+    ${whRows||'<div style="font-size:11px;color:var(--txtm);padding:.5rem 0">Sem saldo em estoque</div>'}
+    <div class="pc-note">Disponível já considera a reserva de cada armazém.</div>
   </div>`;
 }
 
@@ -1760,15 +1789,21 @@ function rAll(){
     const catCol=catColor[catTab]||'#94a3b8';
     const famLabel=r.familia||'';
 
-    // Saldo por armazém
+    // Disponível por armazém (não apenas saldo) — cada filial tem sua própria reserva
     const whRows=Object.entries(r._byWH)
-      .filter(([,v])=>v>0)
-      .sort((a,b)=>b[1]-a[1])
-      .map(([w,v])=>`<div class="pc2-wh-row">
-        <i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'}"></i>
-        <span class="pc2-wh-name">${w}</span>
-        <span class="pc2-wh-val">${fmt(v)}</span>
-      </div>`).join('');
+      .filter(([,d])=>d.saldo>0)
+      .sort((a,b)=>b[1].saldo-a[1].saldo)
+      .map(([w,d])=>{
+        const whDispCol=d.disp>0?'var(--grn-d)':d.disp===0?'var(--amb-d)':'var(--red)';
+        return`<div class="pc2-wh-row-detail">
+          <div class="pc2-wh-row-top">
+            <i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'}"></i>
+            <span class="pc2-wh-name">${w}</span>
+            <span class="pc2-wh-val" style="color:${whDispCol}">${fmt(d.disp)}<span class="pc2-wh-val-lbl"> disp.</span></span>
+          </div>
+          <div class="pc2-wh-row-sub">Estoque: ${fmt(d.saldo)}${d.reserva>0?` · Reserva: ${fmt(d.reserva)}`:''}</div>
+        </div>`;
+      }).join('');
 
     // Clientes com reserva (para expandir)
     const resClientes=RES.filter(rv=>rv.codigo===r.codigo&&!rv._cancelado);
@@ -1789,7 +1824,7 @@ function rAll(){
         <div class="pc2-cod">${r.codigo}</div>
       </div>
       <div class="pc2-disp-block">
-        <div class="pc2-disp-lbl">DISPONÍVEL PARA VENDA</div>
+        <div class="pc2-disp-lbl">DISPONÍVEL TOTAL (todos os armazéns)</div>
         <div class="pc2-disp-val" style="color:${dispCol}">${fmt(disp)}</div>
       </div>
       <div class="pc2-wh-list">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
@@ -1998,7 +2033,7 @@ function buildProdCard(g, modoDiretoria){
       <div class="pc2-cod">${g.codigo}</div>
     </div>
     <div class="pc2-disp-block">
-      <div class="pc2-disp-lbl">DISPONÍVEL PARA VENDA</div>
+      <div class="pc2-disp-lbl">DISPONÍVEL TOTAL (todos os armazéns)</div>
       <div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispTotal)}</div>
     </div>
     <div class="pc2-wh-list">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
