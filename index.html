@@ -88,13 +88,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .kcard-val{font-family:'DM Mono',monospace;font-size:26px;font-weight:700;margin-top:4px}
 
 /* ── Cards de produto (pc2) ── */
-.cgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:.625rem;align-items:start}
+.cgrid{display:grid;grid-template-columns:repeat(5,1fr);gap:.625rem;align-items:stretch}
 @media(max-width:1400px){.cgrid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:1100px){.cgrid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:750px){.cgrid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:380px){.cgrid{grid-template-columns:1fr}}
 
-.pc2{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden}
+.pc2{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;height:100%}
 .pc2-top{padding:.75rem 1rem .375rem}
 .pc2-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
 .pc2-nom{font-size:13px;font-weight:700;color:var(--txt);line-height:1.35;flex:1}
@@ -318,7 +318,7 @@ const WH_COLOR = {'Curitiba (Eletra)':'var(--cwb)','Fortaleza (Eletra)':'var(--f
 const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra)':'ti-building-warehouse','Manaus (Eletra)':'ti-building-warehouse','Fábrica Livoltek':'ti-building-factory-2'};
 
 let ST=[], RES=[], CADASTRO={}, MODO='novo';
-let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[];
+let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[];
 let AUDIT_INCOMPLETO_ATIVO=false;
 const resExpanded = new Set();
 
@@ -601,23 +601,24 @@ function joinCadastro(items){
 }
 
 function applyReservas(){
-  const lkpRes={}, lkpResTotal={};
+  // Toda reserva real SEMPRE vem com armazém informado — não é uma situação normal
+  // ela chegar sem armazém válido. Se acontecer, é erro de cadastro no Sheets e deve
+  // ser sinalizado na Auditoria, nunca "adivinhado" automaticamente no cálculo.
+  ST.forEach(s=>{ s.reserva=0; });
+
   RES.forEach(r=>{
-    const cod=r.codigo;
-    lkpResTotal[cod]=(lkpResTotal[cod]||0)+r.qtd;
-    const k=r.wh+'|'+cod; lkpRes[k]=(lkpRes[k]||0)+r.qtd;
+    const whValido = r.wh && WH_LIST.includes(r.wh);
+    if(!whValido){
+      if(!VAL_RES_SEM_ARMAZEM.find(v=>v.codigo===r.codigo&&v.cliente===r.cliente)){
+        VAL_RES_SEM_ARMAZEM.push({codigo:r.codigo,cliente:r.cliente,qtd:r.qtd,armRaw:r.armRaw||r.wh||'(vazio)'});
+      }
+      return; // não aplica a reserva ao cálculo — fica só sinalizada na Auditoria
+    }
+    const k=r.wh+'|'+r.codigo;
+    ST.forEach(s=>{ if(s.wh+'|'+s.codigo===k) s.reserva += r.qtd; });
   });
-  const codSeenRes={};
-  ST.forEach(s=>{
-    const cod=s.codigo, k=s.wh+'|'+cod;
-    let res=lkpRes[k]||0;
-    const resTotal=lkpResTotal[cod]||0;
-    const resComWH=Object.entries(lkpRes).filter(([key])=>key.endsWith('|'+cod)).reduce((a,[,v])=>a+v,0);
-    const resGlobal=resTotal-resComWH;
-    if(resGlobal>0&&!codSeenRes[cod]){codSeenRes[cod]=true;res+=resGlobal;}
-    s.reserva=res;
-    s.disp=s.saldo-res; // DISPONÍVEL = SALDO - RESERVA (separação controlada via Airtable, fora deste dashboard)
-  });
+
+  ST.forEach(s=>{ s.disp = s.saldo - s.reserva; });
 }
 
 function validateAll(){
@@ -674,24 +675,26 @@ function getCatTab(r){
 // ══ CARD DE PRODUTO ══
 function pCard(r, isMP){
   const disp=r._disp;
+  const sal=r._sal;
+  const res=r._res||0;
   const dispCol=disp>20?'var(--grn-d)':disp>=1?'var(--amb-d)':'var(--red)';
   const famLabel=r.familia||r.categoria||'';
   const famCol=isMP?'var(--red)':'var(--pri)';
   const famBg=isMP?'var(--red-pale)':'var(--pri-pale)';
+
+  // Lista de armazéns: mostra saldo (não disponível), igual ao padrão de referência —
+  // o card já tem o disponível total no topo; aqui é só "onde tem estoque físico".
   const whRows=WH_LIST.map(w=>{
     const d=r._byWH[w]; if(!d||!d.saldo) return '';
     const c=WH_COLOR[w]; const ico=WH_ICON[w];
-    const whDispCol=d.disp>0?'var(--grn-d)':d.disp===0?'var(--amb-d)':'var(--red)';
-    return `<div class="pc2-wh-row" style="flex-direction:column;align-items:stretch;gap:1px">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span style="display:flex;align-items:center;gap:6px;color:${c}"><i class="ti ${ico}" style="font-size:12px"></i><span class="pc2-wh-name" style="color:var(--txt2)">${w}</span></span>
-        <span class="pc2-wh-val" style="color:${whDispCol}">${fmt(d.disp)}</span>
-      </div>
-      ${d.reserva>0?`<div style="font-size:10px;color:var(--txtm);padding-left:18px">Estoque: ${fmt(d.saldo)} · Reserva: ${fmt(d.reserva)}</div>`:''}
+    return `<div class="pc2-wh-row">
+      <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
+      <span class="pc2-wh-name">${w}</span>
+      <span class="pc2-wh-val">${fmt(d.saldo)}</span>
     </div>`;
   }).join('');
+
   const nom=r.nomenclatura||r.descricao||r.codigo;
-  const desc=(r.descricao&&r.descricao!==nom&&r.nomenclatura)?r.descricao:'';
 
   return `<div class="pc2${isMP?' mp':''}">
     <div class="pc2-top">
@@ -703,10 +706,15 @@ function pCard(r, isMP){
       <div class="pc2-cod">${r.codigo}</div>
     </div>
     <div class="pc2-disp-block">
-      <div class="pc2-disp-lbl">Disponível Total</div>
+      <div class="pc2-disp-lbl">Disponível para Venda</div>
       <div class="pc2-disp-val" style="color:${dispCol}">${fmt(disp)}</div>
     </div>
-    <div class="pc2-wh-list">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
+    <div class="pc2-wh-list" style="flex:1">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
+    <div class="pc2-totals">
+      <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
+      ${res>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(res)}</span></div>`:''}
+      ${res>0?`<div class="pc2-note">Reserva já foi abatida do disponível.</div>`:''}
+    </div>
   </div>`;
 }
 
@@ -986,7 +994,7 @@ async function boot(){
   document.getElementById('mc').style.display='none';
   ST=[]; RES=[];
   SRC_ALERTS.length=0;
-  VAL_SEM_CADASTRO=[];VAL_INCOMPLETO=[];VAL_WH_INVALIDO=[];VAL_INSUFICIENTE=[];VAL_NEGATIVO=[];VAL_DUPLICADO=[];
+  VAL_SEM_CADASTRO=[];VAL_INCOMPLETO=[];VAL_WH_INVALIDO=[];VAL_INSUFICIENTE=[];VAL_NEGATIVO=[];VAL_DUPLICADO=[];VAL_RES_SEM_ARMAZEM=[];
 
   const prog=txt=>{ const el=document.getElementById('lprog'); if(el) el.textContent=txt; };
 
