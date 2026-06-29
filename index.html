@@ -134,6 +134,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .sel{padding:8px 12px;border:1px solid var(--brd);border-radius:8px;font-size:13px;background:var(--surf);
   font-family:inherit;cursor:pointer}
 
+/* ── Pills de família (sub-categoria dinâmica via cadastro_produtos) ── */
+.fam-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fam-pill{padding:6px 13px;border:1px solid var(--brd);border-radius:999px;background:var(--surf);
+  font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;font-family:inherit;white-space:nowrap}
+.fam-pill:hover{border-color:var(--pri);color:var(--pri)}
+.fam-pill.on{background:var(--pri);border-color:var(--pri);color:#fff}
+
 /* ── Auditoria ── */
 .aud-block{margin-bottom:20px}
 .aud-hdr{font-size:14px;font-weight:700;padding:10px 14px;border-radius:10px 10px 0 0;
@@ -256,6 +263,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 
       <!-- ══ TODOS ══ -->
       <div id="tab-todos" class="tab">
+        <div class="fam-pills" id="todos-pills"></div>
         <div class="fb">
           <div class="sbar"><i class="ti ti-search"></i><input id="todos-q" placeholder="Nomenclatura ou código..." data-i18n-placeholder="searchPh" oninput="renderCat('todos')"></div>
           <select class="sel" id="todos-wh" onchange="renderCat('todos')"><option value="" data-i18n="optTodosArm">Todos os armazéns</option></select>
@@ -265,16 +273,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
       </div>
 
       <!-- ══ CATEGORIAS (inv/ev/bess/kit/strbox/div/mot) ══ -->
-      <div id="tab-inv" class="tab"><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Nomenclatura ou código..." oninput="renderCat('inv')"></div><select class="sel" id="inv-wh" onchange="renderCat('inv')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="inv-cards"></div><div id="inv-mp-sec" style="display:none"></div></div>
-      <div id="tab-ev" class="tab"><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Nomenclatura ou código..." oninput="renderCat('ev')"></div><select class="sel" id="ev-wh" onchange="renderCat('ev')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="ev-cards"></div><div id="ev-mp-sec" style="display:none"></div></div>
-      <div id="tab-bess" class="tab"><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="bess-q" placeholder="Nomenclatura ou código..." oninput="renderCat('bess')"></div><select class="sel" id="bess-wh" onchange="renderCat('bess')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="bess-cards"></div><div id="bess-mp-sec" style="display:none"></div></div>
-      <div id="tab-kit" class="tab"><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="kit-q" placeholder="Nomenclatura ou código..." oninput="renderCat('kit')"></div><select class="sel" id="kit-wh" onchange="renderCat('kit')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="kit-cards"></div><div id="kit-mp-sec" style="display:none"></div></div>
-      <div id="tab-strbox" class="tab"><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="strbox-q" placeholder="Nomenclatura ou código..." oninput="renderCat('strbox')"></div><select class="sel" id="strbox-wh" onchange="renderCat('strbox')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="strbox-cards"></div><div id="strbox-mp-sec" style="display:none"></div></div>
-      <div id="tab-div" class="tab"><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="div-q" placeholder="Nomenclatura ou código..." oninput="renderCat('div')"></div><select class="sel" id="div-wh" onchange="renderCat('div')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="div-cards"></div><div id="div-mp-sec" style="display:none"></div></div>
-      <div id="tab-mot" class="tab"><div class="fb"><div class="sbar"><i class="ti ti-propeller"></i><input id="mot-q" placeholder="Nomenclatura ou código..." oninput="renderCat('mot')"></div><select class="sel" id="mot-wh" onchange="renderCat('mot')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="mot-cards"></div><div id="mot-mp-sec" style="display:none"></div></div>
+      <div id="tab-inv" class="tab"><div class="fam-pills" id="inv-pills"></div><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="inv-q" placeholder="Nomenclatura ou código..." oninput="renderCat('inv')"></div><select class="sel" id="inv-wh" onchange="renderCat('inv')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="inv-cards"></div><div id="inv-mp-sec" style="display:none"></div></div>
+      <div id="tab-ev" class="tab"><div class="fam-pills" id="ev-pills"></div><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="ev-q" placeholder="Nomenclatura ou código..." oninput="renderCat('ev')"></div><select class="sel" id="ev-wh" onchange="renderCat('ev')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="ev-cards"></div><div id="ev-mp-sec" style="display:none"></div></div>
+      <div id="tab-bess" class="tab"><div class="fam-pills" id="bess-pills"></div><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="bess-q" placeholder="Nomenclatura ou código..." oninput="renderCat('bess')"></div><select class="sel" id="bess-wh" onchange="renderCat('bess')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="bess-cards"></div><div id="bess-mp-sec" style="display:none"></div></div>
+      <div id="tab-kit" class="tab"><div class="fam-pills" id="kit-pills"></div><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="kit-q" placeholder="Nomenclatura ou código..." oninput="renderCat('kit')"></div><select class="sel" id="kit-wh" onchange="renderCat('kit')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="kit-cards"></div><div id="kit-mp-sec" style="display:none"></div></div>
+      <div id="tab-strbox" class="tab"><div class="fam-pills" id="strbox-pills"></div><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="strbox-q" placeholder="Nomenclatura ou código..." oninput="renderCat('strbox')"></div><select class="sel" id="strbox-wh" onchange="renderCat('strbox')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="strbox-cards"></div><div id="strbox-mp-sec" style="display:none"></div></div>
+      <div id="tab-div" class="tab"><div class="fam-pills" id="div-pills"></div><div class="fb"><div class="sbar"><i class="ti ti-search"></i><input id="div-q" placeholder="Nomenclatura ou código..." oninput="renderCat('div')"></div><select class="sel" id="div-wh" onchange="renderCat('div')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="div-cards"></div><div id="div-mp-sec" style="display:none"></div></div>
+      <div id="tab-mot" class="tab"><div class="fam-pills" id="mot-pills"></div><div class="fb"><div class="sbar"><i class="ti ti-propeller"></i><input id="mot-q" placeholder="Nomenclatura ou código..." oninput="renderCat('mot')"></div><select class="sel" id="mot-wh" onchange="renderCat('mot')"><option value="">Todos os armazéns</option></select></div><div class="cgrid" id="mot-cards"></div><div id="mot-mp-sec" style="display:none"></div></div>
 
       <!-- ══ MATÉRIA-PRIMA ══ -->
       <div id="tab-mp" class="tab">
+        <div class="fam-pills" id="mp-pills"></div>
         <div class="fb">
           <div class="sbar"><i class="ti ti-search"></i><input id="mp-q" placeholder="Nomenclatura ou código..." oninput="renderCat('mp')"></div>
           <select class="sel" id="mp-wh" onchange="renderCat('mp')"><option value="">Todos os armazéns</option></select>
@@ -719,10 +728,37 @@ function pCard(r, isMP){
 }
 
 // ══ RENDER CATEGORIA ══
+// Filtro ativo por aba: { tabId: 'NOME_DA_FAMILIA' | '' }
+const famFilters={};
+
+function setFam(tabId, fam){
+  famFilters[tabId] = (famFilters[tabId]===fam) ? '' : fam; // clicar de novo desmarca
+  renderCat(tabId);
+}
+
+function renderFamPills(tabId, baseRows){
+  const pillsEl=document.getElementById(tabId+'-pills');
+  if(!pillsEl) return;
+  // Extrai famílias únicas da coluna FAMILIA do cadastro_produtos, só com produtos desta aba
+  const familias=[...new Set(baseRows.map(r=>r.familia).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  if(!familias.length){ pillsEl.innerHTML=''; return; }
+  const ativa=famFilters[tabId]||'';
+  pillsEl.innerHTML = familias.map(f=>{
+    const on = f===ativa;
+    return `<button class="fam-pill${on?' on':''}" onclick="setFam('${tabId}','${f.replace(/'/g,"\\'")}')">${f}</button>`;
+  }).join('');
+}
+
 function renderCat(tabId){
   const q=(document.getElementById(tabId+'-q')?.value||'').toLowerCase();
   const wh=document.getElementById(tabId+'-wh')?.value||'';
-  let rows = tabId==='todos' ? ST.slice() : ST.filter(r=>getCatTab(r)===tabId);
+  const famAtiva=famFilters[tabId]||'';
+
+  let baseRows = tabId==='todos' ? ST.slice() : ST.filter(r=>getCatTab(r)===tabId);
+  renderFamPills(tabId, baseRows); // pills sempre refletem o universo da aba, antes do filtro de família
+
+  let rows = baseRows;
+  if(famAtiva) rows=rows.filter(r=>r.familia===famAtiva);
   if(q) rows=rows.filter(r=> (r.nomenclatura||'').toLowerCase().includes(q) || (r.descricao||'').toLowerCase().includes(q) || r.codigo.toLowerCase().includes(q));
   if(wh) rows=rows.filter(r=>r.wh===wh);
   const dd=dedup(rows).sort((a,b)=>(a.nomenclatura||a.descricao||'').localeCompare(b.nomenclatura||b.descricao||'','pt-BR'));
