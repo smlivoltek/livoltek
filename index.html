@@ -927,8 +927,31 @@ function rAudit(){
   const whInvRows=VAL_WH_INVALIDO.map(v=>`<tr><td style="font-family:'DM Mono',monospace;color:#dc2626">${v.codigo}</td><td>${v.fonte}</td><td>${v.descricao}</td></tr>`).join('');
   const insufRows=VAL_INSUFICIENTE.map(v=>`<tr><td style="font-family:'DM Mono',monospace;color:#dc2626">${v.codigo}</td><td>${v.descricao||'—'}</td><td>${v.wh}</td>
     <td style="text-align:right">${fmt(v.saldo)}</td><td style="text-align:right;color:var(--pur)">${fmt(v.reserva)}</td><td style="text-align:right;color:#dc2626;font-weight:700">${fmt(v.disp)}</td></tr>`).join('');
+  const resSemArmRows=VAL_RES_SEM_ARMAZEM.map(v=>`<tr><td style="font-family:'DM Mono',monospace;color:#991b1b;font-weight:700">${v.codigo}</td>
+    <td>${v.cliente||'—'}</td><td style="text-align:right;font-weight:700">${fmt(v.qtd)}</td>
+    <td style="color:#991b1b">"${v.armRaw}"</td></tr>`).join('');
+
+  // ── Bloco crítico em destaque no TOPO: reservas sem armazém válido
+  // Toda reserva deveria sempre ter armazém informado — quando isso falha,
+  // a reserva NÃO é descontada do cálculo (para não "adivinhar" o armazém errado),
+  // então o disponível pode aparecer maior do que realmente é até isso ser corrigido no Sheets.
+  const resSemArmBlock = VAL_RES_SEM_ARMAZEM.length ? `
+    <div class="aud-block">
+      <div class="aud-hdr" style="background:#dc2626;color:#fff;font-size:15px">
+        <i class="ti ti-alert-triangle"></i> RESERVA SEM ARMAZÉM INFORMADO — ${VAL_RES_SEM_ARMAZEM.length} ocorrência${VAL_RES_SEM_ARMAZEM.length>1?'s':''}
+      </div>
+      <div style="background:#fef2f2;border:2px solid #dc2626;border-top:none;padding:10px 14px;font-size:12px;color:#7f1d1d">
+        Estas reservas <b>não foram aplicadas</b> ao cálculo de disponível porque o armazém informado é inválido ou está vazio.
+        Toda reserva deveria sempre vir com armazém — corrija na planilha de Reservas e atualize a página.
+      </div>
+      <table class="aud-tbl" style="border:2px solid #dc2626;border-top:none">
+        <tr style="background:#fef2f2"><th>Código</th><th>Cliente</th><th style="text-align:right">Qtd.</th><th>Armazém informado</th></tr>
+        ${resSemArmRows}
+      </table>
+    </div>` : '';
 
   document.getElementById('audit-content').innerHTML=`
+    ${resSemArmBlock}
     <div class="aud-block">
       <div class="aud-hdr" style="background:#e8eef6;color:#1E3A5F"><i class="ti ti-database"></i> Auditoria de Fontes</div>
       <table class="aud-tbl" style="border:1px solid var(--brd);border-top:none">
@@ -1092,7 +1115,7 @@ async function boot(){
     _ts=localStorage.getItem('livoltek_estoque_ts')||'—';
   }
   document.getElementById('sync-t').textContent=_ts;
-  setStatus(SRC_ALERTS.length?'warn':'ok');
+  setStatus((SRC_ALERTS.length||VAL_RES_SEM_ARMAZEM.length)?'warn':'ok');
 
   rDash(); rAll();
   ['inv','ev','bess','kit','strbox','div','mot','mp'].forEach(tb=>renderCat(tb));
