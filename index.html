@@ -629,10 +629,7 @@ function applyReservas(){
     lkpRes[k]=(lkpRes[k]||0)+r.qtd;
   });
 
-  // O CSV de estoque pode ter MÚLTIPLAS linhas para o mesmo código+armazém (ex: lotes
-  // separados no TOTVS). A reserva daquela chave deve ser descontada uma única vez do
-  // total do armazém — não repetida em cada linha. Por isso aplicamos só na PRIMEIRA
-  // linha encontrada de cada combinação armazém+código; dedup() soma certo depois.
+  // Aplica reservas em linhas existentes de ST (1 vez por armazém+código)
   const aplicado=new Set();
   ST.forEach(s=>{
     const k=s.wh+'|'+s.codigo;
@@ -642,16 +639,27 @@ function applyReservas(){
     }
   });
 
-  ST.forEach(s=>{ s.disp = s.saldo - s.reserva; });
+  // Para reservas sem linha correspondente em ST (produto com saldo zero/ausente no CSV),
+  // cria uma linha virtual com saldo=0 — assim o disponível fica negativo (-reserva),
+  // mostrando corretamente que há compromisso maior que o estoque disponível.
+  Object.entries(lkpRes).forEach(([k, qtd])=>{
+    if(aplicado.has(k)) return; // já foi aplicado em linha real do ST
+    const [wh, ...codParts] = k.split('|');
+    const codigo = codParts.join('|');
+    const cadItem = CADASTRO[codigo] || {};
+    const linhaVirtual = {
+      codigo, wh, saldo:0, reserva:qtd, disp:-qtd, armz:'07',
+      descricao: cadItem.descricao||codigo,
+      nomenclatura: cadItem.nomenclatura||cadItem.descricao||codigo,
+      familia: cadItem.familia||'', categoria: cadItem.categoria||'',
+      isMP: false, _semCadastro:!cadItem.nomenclatura, _incompleto:[],
+      _byWH:{}, _sal:0, _res:qtd, _disp:-qtd, tp:''
+    };
+    ST.push(linhaVirtual);
+    VAL_INSUFICIENTE.push({codigo, descricao:linhaVirtual.nomenclatura, wh, saldo:0, reserva:qtd, disp:-qtd});
+  });
 
-  // DEBUG TEMPORÁRIO — remover depois de identificar a causa
-  if(window.location.search.includes('debug')){
-    const dbgCod='GT3-50KQ1R11002';
-    console.log('=== DEBUG '+dbgCod+' ===');
-    console.log('Linhas em ST:', ST.filter(s=>s.codigo===dbgCod));
-    console.log('Linhas em RES:', RES.filter(r=>r.codigo===dbgCod));
-    console.log('lkpRes:', Object.entries(lkpRes).filter(([k])=>k.includes(dbgCod)));
-  }
+  ST.forEach(s=>{ s.disp = s.saldo - s.reserva; });
 }
 
 function validateAll(){
@@ -876,18 +884,22 @@ function buildResRow(r){
   </div>`;
 }
 
-function buildProdCard(g, modoDiretoria){
+function buildProdCard(g, modoDiretoria, isFiltered){
   const st=ST.find(s=>s.codigo===g.codigo);
   const nom=st?.nomenclatura||st?.descricao||g.codigo;
   const familia=st?.familia||'';
   const stRows=ST.filter(s=>s.codigo===g.codigo);
   const sal=stRows.reduce((a,r)=>a+r.saldo,0);
-  // Fonte de verdade: ST[].disp e ST[].reserva (já calculados em applyReservas).
-  // g.totalQtd é a reserva FILTRADA pela tela (pode ser só parte, se houver filtro de
-  // diretoria/armazém ativo) — usá-la para o cálculo de disponível causava double-count.
-  const dispTotal=dedup(stRows).reduce((a,r)=>a+r._disp,0);
-  const reservaReal=dedup(stRows).reduce((a,r)=>a+r._res,0);
-  const dispCol=dispTotal>0?'var(--grn-d)':dispTotal===0&&sal>0?'var(--amb-d)':'var(--red)';
+  const reservaTotalReal=dedup(stRows).reduce((a,r)=>a+r._res,0);
+  const dispTotalReal=dedup(stRows).reduce((a,r)=>a+r._disp,0);
+
+  // Quando há filtro ativo (busca/diretoria/armazém), a Reserva e o Disponível exibidos
+  // refletem SÓ o que está filtrado na tela — para não contradizer a lista de clientes
+  // abaixo, que também é filtrada. Sem filtro, os dois valores são iguais ao total real.
+  const reservaExibida = isFiltered ? g.totalQtd : reservaTotalReal;
+  const dispExibido = isFiltered ? (sal - g.totalQtd) : dispTotalReal;
+
+  const dispCol=dispExibido>0?'var(--grn-d)':dispExibido===0&&sal>0?'var(--amb-d)':'var(--red)';
   const sortedRes=g.reservas.slice().sort((a,b)=>b.qtd-a.qtd);
   const expanded=resExpanded.has(g.codigo);
   const nCli=new Set(g.reservas.map(r=>r.cliente)).size;
@@ -896,14 +908,19 @@ function buildProdCard(g, modoDiretoria){
   const whRows=Object.entries(whMap).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1])
     .map(([w,v])=>`<div class="pc2-wh-row"><i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'}"></i><span class="pc2-wh-name">${w}</span><span class="pc2-wh-val">${fmt(v)}</span></div>`).join('');
 
+  const dispLbl = isFiltered ? 'Disponível (filtro ativo)' : 'Disponível Total';
+  const resLbl = isFiltered ? 'Reserva (filtro ativo)' : 'Reserva';
+
   return `<div class="pc2">
     <div class="pc2-top">
       <div class="pc2-head"><div class="pc2-nom">${nom}</div>${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}</div>
       <div class="pc2-cod">${g.codigo}</div>
     </div>
-    <div class="pc2-disp-block"><div class="pc2-disp-lbl">Disponível Total</div><div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispTotal)}</div></div>
+    <div class="pc2-disp-block"><div class="pc2-disp-lbl">${dispLbl}</div><div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispExibido)}</div></div>
     <div class="pc2-wh-list">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
-    <div class="pc2-totals"><div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(reservaReal)}</span></div></div>
+    <div class="pc2-totals"><div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> ${resLbl}</span><span>${fmt(reservaExibida)}</span></div>
+    ${isFiltered?`<div class="pc2-note">Reserva total do produto (todas as diretorias/buscas): ${fmt(reservaTotalReal)}</div>`:''}
+    </div>
     <div class="pc2-cli-toggle${expanded?' open':''}" onclick="toggleResCard('${g.codigo}')">
       <span><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''} · ${fmt(g.totalQtd)} un.</span>
       <i class="ti ${expanded?'ti-chevron-up':'ti-chevron-down'}"></i>
@@ -921,6 +938,7 @@ function rRes(){
   const q=(document.getElementById('res-q')?.value||'').toLowerCase();
   const dir=document.getElementById('res-dir')?.value||'';
   const arm=document.getElementById('res-arm')?.value||'';
+  const isFiltered = !!(q||dir||arm); // qualquer filtro ativo torna a Reserva exibida "parcial"
   const rows=RES.filter(r=>{
     const stNom=(ST.find(s=>s.codigo===r.codigo)?.nomenclatura||'').toLowerCase();
     const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||stNom.includes(q)||(r.responsavel||'').toLowerCase().includes(q);
@@ -937,7 +955,7 @@ function rRes(){
   document.getElementById('res-cnt').textContent=rows.length;
   document.getElementById('res-prod-cnt').textContent=grupos.length;
   const el=document.getElementById('res-cards');
-  el.innerHTML = grupos.length ? grupos.map(g=>buildProdCard(g,!!dir)).join('') :
+  el.innerHTML = grupos.length ? grupos.map(g=>buildProdCard(g,!!dir,isFiltered)).join('') :
     `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm)"><i class="ti ti-bookmark-off"></i><div>Nenhuma reserva encontrada</div></div>`;
 }
 
