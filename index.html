@@ -481,9 +481,13 @@ function parseEstoqueWH(csv, whCodigo){
   const hdr=all[hdrIdx].map(h=>String(h).trim());
   const ci=makeCI(hdr);
   const iCOD=ci('CODIGO'), iFL=ci('FL'), iARMZ=ci('ARMZ'), iDESC=ci('DESCRICAO','DESCRIÇÃO');
-  const iSAL=ci('SALDO EM ESTOQUE'), iTP=ci('TP');
+  // ESTOQUE DISPONIVEL = SALDO - EMPENHO (fonte correta para disponibilidade comercial)
+  // Fallback para SALDO EM ESTOQUE se a coluna não existir
+  const iDISP=ci('ESTOQUE DISPONIVEL','ESTOQUE DISPONÍVEL');
+  const iSAL=iDISP>=0 ? iDISP : ci('SALDO EM ESTOQUE');
+  const iTP=ci('TP');
 
-  [['CODIGO',iCOD],['SALDO EM ESTOQUE',iSAL]].forEach(([name,idx])=>{
+  [['CODIGO',iCOD],['ESTOQUE DISPONIVEL / SALDO EM ESTOQUE',iSAL]].forEach(([name,idx])=>{
     if(idx<0) SRC_ALERTS.push({fonte:`estoque_${whCodigo}.csv`,msg:`Coluna obrigatória ausente: "${name}"`,ts:new Date()});
   });
 
