@@ -720,7 +720,44 @@ function applyReservas(){
     VAL_INSUFICIENTE.push({codigo, descricao:linhaVirtual.nomenclatura, wh, saldo:0, reserva:qtd, disp:-qtd});
   });
 
-  ST.forEach(s=>{ s.disp = s.saldo - s.reserva; });
+  // Aplicar faturados no disp — FAT pode ainda não ter sido carregado aqui
+  // então a aplicação final é feita em applyFaturados(), chamado depois do boot
+  ST.forEach(s=>{ s.fat=0; s.disp = s.saldo - s.reserva; });
+}
+
+// Chamado APÓS parsePedidosFaturados() — desconta faturados do disponível
+function applyFaturados(){
+  // Zerar fat antes de reaplicar
+  ST.forEach(s=>{ s.fat=0; });
+  const aplicadoFat=new Set();
+  Object.entries(FAT).forEach(([k,v])=>{
+    const [wh,...codParts]=k.split('|');
+    const codigo=codParts.join('|');
+    // Aplicar na primeira linha do ST que bate com armazém+código (mesmo padrão da reserva)
+    for(const s of ST){
+      const sk=s.wh+'|'+s.codigo;
+      if(sk===k && !aplicadoFat.has(k)){
+        s.fat=v.qtd;
+        aplicadoFat.add(k);
+        break;
+      }
+    }
+    // Se não existe linha em ST para esse produto+armazém faturado, cria linha virtual
+    if(!aplicadoFat.has(k)){
+      const cadItem=CADASTRO[codigo]||{};
+      ST.push({
+        codigo, wh, saldo:0, reserva:0, fat:v.qtd, disp:-v.qtd, armz:'07',
+        descricao:cadItem.descricao||codigo,
+        nomenclatura:cadItem.nomenclatura||cadItem.descricao||codigo,
+        familia:cadItem.familia||'', categoria:cadItem.categoria||'',
+        isMP:false, _semCadastro:!cadItem.nomenclatura, _incompleto:[],
+        _byWH:{}, _sal:0, _res:0, _fat:v.qtd, _disp:-v.qtd, tp:''
+      });
+      aplicadoFat.add(k);
+    }
+  });
+  // Recalcular disp = saldo - reserva - fat
+  ST.forEach(s=>{ s.disp = s.saldo - s.reserva - (s.fat||0); });
 }
 
 function validateAll(){
@@ -748,13 +785,15 @@ function syncWHFromMap(){
 function dedup(items){
   const m={};
   items.forEach(r=>{
-    if(!m[r.codigo]) m[r.codigo]={...r,_byWH:{},_sal:0,_res:0,_disp:0};
-    if(!m[r.codigo]._byWH[r.wh]) m[r.codigo]._byWH[r.wh]={saldo:0,reserva:0,disp:0};
+    if(!m[r.codigo]) m[r.codigo]={...r,_byWH:{},_sal:0,_res:0,_fat:0,_disp:0};
+    if(!m[r.codigo]._byWH[r.wh]) m[r.codigo]._byWH[r.wh]={saldo:0,reserva:0,fat:0,disp:0};
     m[r.codigo]._byWH[r.wh].saldo+=r.saldo;
     m[r.codigo]._byWH[r.wh].reserva+=r.reserva;
+    m[r.codigo]._byWH[r.wh].fat+=(r.fat||0);
     m[r.codigo]._byWH[r.wh].disp+=r.disp;
     m[r.codigo]._sal+=r.saldo;
     m[r.codigo]._res+=r.reserva;
+    m[r.codigo]._fat+=(r.fat||0);
     m[r.codigo]._disp+=r.disp;
   });
   return Object.values(m);
@@ -776,16 +815,15 @@ function getCatTab(r){
 
 // ══ CARD DE PRODUTO ══
 function pCard(r, isMP){
-  const disp=r._disp;
+  const disp=r._disp; // já descontado: Saldo - Reserva - Faturado
   const sal=r._sal;
   const res=r._res||0;
-  const dispCol=disp>20?'var(--grn-d)':disp>=1?'var(--amb-d)':'var(--red)';
+  const fat=r._fat||0;
+  const dispCol=disp>0?'var(--grn-d)':disp===0?'var(--amb-d)':'var(--red)';
   const famLabel=r.familia||r.categoria||'';
   const famCol=isMP?'var(--red)':'var(--pri)';
   const famBg=isMP?'var(--red-pale)':'var(--pri-pale)';
 
-  // Lista de armazéns: mostra saldo (não disponível), igual ao padrão de referência —
-  // o card já tem o disponível total no topo; aqui é só "onde tem estoque físico".
   const whRows=WH_LIST.map(w=>{
     const d=r._byWH[w]; if(!d||!d.saldo) return '';
     const c=WH_COLOR[w]; const ico=WH_ICON[w];
@@ -795,6 +833,21 @@ function pCard(r, isMP){
       <span class="pc2-wh-val">${fmt(d.saldo)}</span>
     </div>`;
   }).join('');
+
+  // Detalhe de faturado por armazém usando _byWH.fat (já acumulado em dedup)
+  const fatWhRows=WH_LIST.map(w=>{
+    const d=r._byWH[w]; if(!d||!d.fat) return '';
+    const c=WH_COLOR[w]; const ico=WH_ICON[w];
+    return `<div class="pc2-wh-row">
+      <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
+      <span class="pc2-wh-name">${w}</span>
+      <span class="pc2-wh-val" style="color:var(--cor-laranja)">${fmt(d.fat)}</span>
+    </div>`;
+  }).join('');
+
+  const fatPedidos=[...new Set(
+    Object.entries(FAT).filter(([k])=>k.endsWith('|'+r.codigo)).flatMap(([,v])=>v.pedidos)
+  )];
 
   const nom=r.nomenclatura||r.descricao||r.codigo;
 
@@ -815,26 +868,11 @@ function pCard(r, isMP){
     <div class="pc2-totals">
       <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
       ${res>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(res)}</span></div>`:''}
-      ${(()=>{
-        const fatKey=Object.entries(FAT).filter(([k])=>k.endsWith('|'+r.codigo));
-        const fatQtd=fatKey.reduce((a,[,v])=>a+v.qtd,0);
-        const fatPedidos=[...new Set(fatKey.flatMap(([,v])=>v.pedidos))];
-        if(!fatQtd) return '';
-        const fatWhRows = fatKey.map(([k,v])=>{
-          const wh=v.wh||k.split('|')[0];
-          const c=WH_COLOR[wh]||'var(--cor-laranja)';
-          const ico=WH_ICON[wh]||'ti-building-warehouse';
-          return `<div class="pc2-wh-row" style="padding-left:2px">
-            <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
-            <span class="pc2-wh-name">${wh}</span>
-            <span class="pc2-wh-val" style="color:var(--cor-laranja)">${fmt(v.qtd)}</span>
-          </div>`;
-        }).join('');
-        return `<div class="pc2-total-row pc2-fat"><span><i class="ti ti-truck-delivery"></i> Faturado</span><span>${fmt(fatQtd)}</span></div>
-          ${fatWhRows}
-          <div class="pc2-note">${fatPedidos.length} pedido${fatPedidos.length>1?'s':''} · desde ${DATA_CORTE_FATURADOS.toLocaleDateString('pt-BR')}</div>`;
-      })()}
-      ${res>0?`<div class="pc2-note">Reserva já foi abatida do disponível.</div>`:''}
+      ${fat>0?`
+        <div class="pc2-total-row pc2-fat"><span><i class="ti ti-truck-delivery"></i> Faturado</span><span>${fmt(fat)}</span></div>
+        ${fatWhRows}
+        <div class="pc2-note">${fatPedidos.length} pedido${fatPedidos.length>1?'s':''} · desde ${DATA_CORTE_FATURADOS.toLocaleDateString('pt-BR')}</div>`:''}
+      ${res>0||fat>0?`<div class="pc2-note">Reserva e faturados já abatidos do disponível.</div>`:''}
     </div>
   </div>`;
 }
@@ -1280,21 +1318,27 @@ async function boot(){
   }catch(e){
     SRC_ALERTS.push({fonte:'pedidos.csv (faturados)',msg:'Não foi possível carregar: '+e.message,ts:new Date()});
   }
+  // Descontar faturados do disponível (Disponível = Saldo - Reserva - Faturado)
+  applyFaturados();
 
   // 6. Data de atualização: data do CSV mais recente via GitHub API
   prog('Verificando data dos dados...');
   let dataCSV = null;
   try{
     const OWNER='smlivoltek', REPO='livoltek';
-    const apiUrl=`https://api.github.com/repos/${OWNER}/${REPO}/commits?path=data/estoque_curitiba.csv&per_page=1`;
-    const apiResp = await fetchComTimeout(apiUrl, 5);
-    const commits = JSON.parse(apiResp);
-    if(commits&&commits[0]){
-      const iso = commits[0].commit?.committer?.date || commits[0].commit?.author?.date;
-      if(iso){
-        const d = new Date(iso);
-        dataCSV = d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-      }
+    // Busca a data do commit mais recente entre os 4 CSVs de estoque
+    const estoqueFiles=['data/estoque_curitiba.csv','data/estoque_fortaleza.csv','data/estoque_manaus.csv','data/estoque_fabrica_manaus.csv'];
+    const datas = await Promise.all(estoqueFiles.map(async f=>{
+      try{
+        const resp=await fetchComTimeout(`https://api.github.com/repos/${OWNER}/${REPO}/commits?path=${f}&per_page=1`,5);
+        const commits=JSON.parse(resp);
+        const iso=commits[0]?.commit?.committer?.date||commits[0]?.commit?.author?.date;
+        return iso ? new Date(iso) : null;
+      }catch(e){ return null; }
+    }));
+    const maisRecente = datas.filter(Boolean).sort((a,b)=>b-a)[0];
+    if(maisRecente){
+      dataCSV = maisRecente.toLocaleDateString('pt-BR')+' '+maisRecente.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     }
   }catch(e){ /* silencioso — fallback abaixo */ }
 
