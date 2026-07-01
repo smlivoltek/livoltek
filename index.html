@@ -112,6 +112,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc2-total-row{display:flex;justify-content:space-between;font-size:12px;color:var(--txt2)}
 .pc2-total-row span:last-child{font-family:'DM Mono',monospace;font-weight:600;color:var(--txt)}
 .pc2-res{color:var(--pur)!important}.pc2-res span:last-child{color:var(--pur)!important}
+.pc2-fat{color:var(--cor-laranja)!important}.pc2-fat span:last-child{color:var(--cor-laranja)!important}
 .pc2-note{font-size:9px;color:var(--txtm);margin-top:2px;font-style:italic}
 .pc2-cli-toggle{display:flex;align-items:center;justify-content:space-between;padding:.5rem 1rem;
   border-top:1px solid var(--brd);font-size:11px;color:var(--txtm);cursor:pointer;background:var(--bg);user-select:none}
@@ -584,6 +585,66 @@ function parseReservasSheets(csv){
   return result;
 }
 
+// ══ PARSER: Pedidos Faturados (abate do estoque a partir de DATA_CORTE_FATURADOS)
+// Lê o mesmo pedidos.csv do repositório Pedidos-Livoltek.
+// Filtra status ENVIADO PARA FATURAMENTO (PD) com data de envio >= DATA_CORTE_FATURADOS.
+// Agrupa por Código Produto + Warehouse → soma qtd para abater do estoque disponível.
+function parsePedidosFaturados(csvText){
+  const result = {}; // { 'wh|codigo': {wh, codigo, qtd, pedidos:[]} }
+  const clean = csvText.replace(/^\uFEFF/,'');
+  const lines = clean.split('\n');
+  if(!lines.length) return result;
+
+  const sep = lines[0].includes(';') ? ';' : ',';
+  const hdr = lines[0].split(sep).map(h=>h.trim().toLowerCase());
+
+  const iPO    = hdr.findIndex(h=>h.includes('po')&&h.includes('relacionado'));
+  const iEnvio = hdr.findIndex(h=>h.includes('data envio faturamento'));
+  const iWH    = hdr.findIndex(h=>h.includes('warehouse'));
+  const iCod   = hdr.findIndex(h=>h.includes('digo')&&h.includes('produto'));
+  const iQtd   = hdr.findIndex(h=>h.includes('qtdade')||h==='qtd');
+
+  const seen = new Set(); // controle de PO já processado (evitar duplicar linhas multi-item)
+  const poEnvio = {}; // { po: {dataEnvio, wh} }
+
+  // 1ª passagem: coletar data de envio e warehouse por PO (vem na primeira linha de cada PO)
+  lines.slice(1).forEach(line=>{
+    const cols = line.split(sep);
+    const po = (cols[iPO]||'').trim();
+    if(!po||!po.startsWith('LIV')) return;
+    const envio = (cols[iEnvio]||'').trim();
+    const wh = (cols[iWH]||'').trim();
+    if(!poEnvio[po]) poEnvio[po] = {dataEnvio: envio, wh};
+  });
+
+  // 2ª passagem: somar qtd por produto+armazém para POs faturados após DATA_CORTE
+  lines.slice(1).forEach(line=>{
+    const cols = line.split(sep);
+    const po = (cols[iPO]||'').trim();
+    if(!po||!po.startsWith('LIV')) return;
+    const info = poEnvio[po];
+    if(!info||!info.dataEnvio) return; // sem data de envio = não faturado
+
+    // Verificar data de corte
+    const partes = info.dataEnvio.split('/');
+    if(partes.length!==3) return;
+    const dataEnvio = new Date(partes[2], partes[1]-1, partes[0]);
+    if(dataEnvio < DATA_CORTE_FATURADOS) return;
+
+    const cod = (cols[iCod]||'').trim().toUpperCase();
+    const qtd = parseFloat((cols[iQtd]||'0').replace(',','.')) || 0;
+    if(!cod||qtd<=0) return;
+
+    const wh = resolveWH(info.wh);
+    const k = wh+'|'+cod;
+    if(!result[k]) result[k] = {wh, codigo:cod, qtd:0, pedidos:[]};
+    result[k].qtd += qtd;
+    if(!result[k].pedidos.includes(po)) result[k].pedidos.push(po);
+  });
+
+  return result;
+}
+
 function parseReservasLocal(csv){
   // fallback: reserva.csv local — mesmo schema legado (Cliente;Responsavel;Diretoria;Código;Observações;Armazem;Qtdade;Cancelado;Solicitado)
   return parseReservasSheets(csv);
@@ -754,6 +815,25 @@ function pCard(r, isMP){
     <div class="pc2-totals">
       <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
       ${res>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(res)}</span></div>`:''}
+      ${(()=>{
+        const fatKey=Object.entries(FAT).filter(([k])=>k.endsWith('|'+r.codigo));
+        const fatQtd=fatKey.reduce((a,[,v])=>a+v.qtd,0);
+        const fatPedidos=[...new Set(fatKey.flatMap(([,v])=>v.pedidos))];
+        if(!fatQtd) return '';
+        const fatWhRows = fatKey.map(([k,v])=>{
+          const wh=v.wh||k.split('|')[0];
+          const c=WH_COLOR[wh]||'var(--cor-laranja)';
+          const ico=WH_ICON[wh]||'ti-building-warehouse';
+          return `<div class="pc2-wh-row" style="padding-left:2px">
+            <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
+            <span class="pc2-wh-name">${wh}</span>
+            <span class="pc2-wh-val" style="color:var(--cor-laranja)">${fmt(v.qtd)}</span>
+          </div>`;
+        }).join('');
+        return `<div class="pc2-total-row pc2-fat"><span><i class="ti ti-truck-delivery"></i> Faturado</span><span>${fmt(fatQtd)}</span></div>
+          ${fatWhRows}
+          <div class="pc2-note">${fatPedidos.length} pedido${fatPedidos.length>1?'s':''} · desde ${DATA_CORTE_FATURADOS.toLocaleDateString('pt-BR')}</div>`;
+      })()}
       ${res>0?`<div class="pc2-note">Reserva já foi abatida do disponível.</div>`:''}
     </div>
   </div>`;
@@ -1089,15 +1169,19 @@ function renderSrcAlerts(){
 
 // ══ BOOT ══
 const WAREHOUSES = ['curitiba','fortaleza','manaus','fabrica_manaus'];
-// Preencher com a URL pública de Reservas (Google Sheets publicado como CSV) quando disponível.
 const RESERVAS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR3uDoajQWkalh8Tgks3Vl9G_hS8LHt19wtVmK33LydkfHE7fHBFVE4U3ajgbwVIpyaFiSLeOSYWGi5/pub?gid=577818960&single=true&output=csv';
+const PEDIDOS_CSV_URL = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
+const DATA_CORTE_FATURADOS = new Date('2026-06-30'); // abater pedidos faturados a partir desta data
+
+// FATURADOS: { codigo -> { wh, qtd, pedidos:[] } } — abatido do estoque nos cards
+let FAT = {};
 
 async function boot(){
   setStatus('loading');
   document.getElementById('ld-area').style.display='flex';
   document.getElementById('err-area').style.display='none';
   document.getElementById('mc').style.display='none';
-  ST=[]; RES=[];
+  ST=[]; RES=[]; FAT={};
   SRC_ALERTS.length=0;
   VAL_SEM_CADASTRO=[];VAL_INCOMPLETO=[];VAL_WH_INVALIDO=[];VAL_INSUFICIENTE=[];VAL_NEGATIVO=[];VAL_DUPLICADO=[];VAL_RES_SEM_ARMAZEM=[];
 
@@ -1185,11 +1269,46 @@ async function boot(){
   document.getElementById('ld-area').style.display='none';
   document.getElementById('mc').style.display='block';
 
-  // Timestamp: só atualiza se os dados mudaram
+  // 5. Pedidos Faturados — busca do repositório Pedidos-Livoltek
+  prog('Carregando pedidos faturados...');
+  FAT = {};
+  try{
+    const fatText = await fetchComTimeout(PEDIDOS_CSV_URL, 10);
+    FAT = parsePedidosFaturados(fatText);
+    const nFat = Object.keys(FAT).length;
+    if(nFat) console.log(`📋 Pedidos faturados: ${nFat} combinações produto+armazém desde ${DATA_CORTE_FATURADOS.toLocaleDateString('pt-BR')}`);
+  }catch(e){
+    SRC_ALERTS.push({fonte:'pedidos.csv (faturados)',msg:'Não foi possível carregar: '+e.message,ts:new Date()});
+  }
+
+  // 6. Data de atualização: data do CSV mais recente via GitHub API
+  prog('Verificando data dos dados...');
+  let dataCSV = null;
+  try{
+    const OWNER='smlivoltek', REPO='livoltek';
+    const apiUrl=`https://api.github.com/repos/${OWNER}/${REPO}/commits?path=data/estoque_curitiba.csv&per_page=1`;
+    const apiResp = await fetchComTimeout(apiUrl, 5);
+    const commits = JSON.parse(apiResp);
+    if(commits&&commits[0]){
+      const iso = commits[0].commit?.committer?.date || commits[0].commit?.author?.date;
+      if(iso){
+        const d = new Date(iso);
+        dataCSV = d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+      }
+    }
+  }catch(e){ /* silencioso — fallback abaixo */ }
+
+  document.getElementById('ld-area').style.display='none';
+  document.getElementById('mc').style.display='block';
+
+  // Timestamp: data real do último commit > data local de quando os dados mudaram
   const _sig = ST.length+'|'+ST.reduce((a,r)=>a+r.saldo,0).toFixed(0)+'|'+RES.length;
   const _prevSig = localStorage.getItem('livoltek_estoque_sig')||'';
   let _ts;
-  if(_sig!==_prevSig){
+  if(dataCSV){
+    _ts = dataCSV; // prefere data real do GitHub
+    try{localStorage.setItem('livoltek_estoque_sig',_sig);localStorage.setItem('livoltek_estoque_ts',_ts);}catch(e){}
+  } else if(_sig!==_prevSig){
     const now=new Date();
     _ts=now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
     try{localStorage.setItem('livoltek_estoque_sig',_sig);localStorage.setItem('livoltek_estoque_ts',_ts);}catch(e){}
