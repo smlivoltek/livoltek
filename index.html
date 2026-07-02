@@ -235,6 +235,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
     <div class="sb-div"></div>
     <div class="sb-sec">
       <div class="sb-lbl" data-i18n="navComercial">Comercial</div>
+      <button class="sbi" id="sb-exp" onclick="go('exp')">
+        <i class="ti ti-ship si"></i><span class="sn" data-i18n="navExp">Exportação</span>
+      </button>
       <button class="sbi" id="sb-res" onclick="go('res')">
         <i class="ti ti-handshake si"></i><span class="sn" data-i18n="navRes">Reservas</span><span class="sc" id="sc-res">—</span>
       </button>
@@ -292,6 +295,16 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
         <div class="cgrid" id="mp-cards"></div>
       </div>
 
+      <!-- ══ EXPORTAÇÃO ══ -->
+      <div id="tab-exp" class="tab">
+        <div style="margin-bottom:14px">
+          <div style="font-size:13px;color:var(--txtm);margin-bottom:10px">
+            Produtos monitorados para exportação — estoque em tempo real.
+          </div>
+        </div>
+        <div class="cgrid" id="exp-cards"></div>
+      </div>
+
       <!-- ══ RESERVAS ══ -->
       <div id="tab-res" class="tab">
         <div class="fb">
@@ -338,14 +351,16 @@ const I18N = {
     title:'Dashboard de Estoque', navDash:'Dashboard', navTodos:'Todos', navCategorias:'Categorias',
     navInv:'Inversores', navEv:'Carregadores EV', navBess:'BESS / Baterias', navKit:'Kit Solar',
     navStrbox:'String Box', navDiv:'Diversos', navMot:'Motor de Barco', navMp:'Matéria-Prima',
-    navComercial:'Comercial', navRes:'Reservas', navAudit:'Auditoria',
+    navComercial:'Comercial', navExp:'Exportação',
+        navRes:'Reservas', navAudit:'Auditoria',
     searchPh:'Nomenclatura ou código...', optTodosArm:'Todos os armazéns', loadingMsg:'Carregando dados...'
   },
   en: {
     title:'Inventory Dashboard', navDash:'Dashboard', navTodos:'All Products', navCategorias:'Categories',
     navInv:'Inverters', navEv:'EV Chargers', navBess:'BESS / Batteries', navKit:'Solar Kit',
     navStrbox:'String Box', navDiv:'Others', navMot:'Boat Motor', navMp:'Raw Material',
-    navComercial:'Commercial', navRes:'Bookings', navAudit:'Audit',
+    navComercial:'Commercial', navExp:'Export',
+        navRes:'Bookings', navAudit:'Audit',
     searchPh:'Name or code...', optTodosArm:'All warehouses', loadingMsg:'Loading data...'
   }
 };
@@ -480,28 +495,29 @@ function parseEstoqueWH(csv, whCodigo){
   }
   const hdr=all[hdrIdx].map(h=>String(h).trim());
   const ci=makeCI(hdr);
-  const iCOD=ci('CODIGO'), iFL=ci('FL'), iARMZ=ci('ARMZ'), iDESC=ci('DESCRICAO','DESCRIÇÃO');
-  // ESTOQUE DISPONIVEL = valor final comercial. Fallback para SALDO EM ESTOQUE se coluna não existir.
+  // FL (idx 5) = código do armazém principal (10108=Curitiba, etc.) — fixo por arquivo, não filtra
+  // ARMZ (idx 6) = sub-armazém dentro do armazém. ARMZ=7 é o único comercial válido.
+  const iCOD=ci('CODIGO'), iARMZ=ci('ARMZ'), iDESC=ci('DESCRICAO','DESCRIÇÃO');
   const iDISP=ci('ESTOQUE DISPONIVEL','ESTOQUE DISPONÍVEL');
   const iSAL=iDISP>=0 ? iDISP : ci('SALDO EM ESTOQUE');
   const iTP=ci('TP');
+  const iARMZfinal = iARMZ>=0 ? iARMZ : 6; // fallback índice fixo 6
 
-  let flAuditado=false;
   const items=[];
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
     const codigo=String(r[iCOD]||'').trim().toUpperCase();
     if(!codigo) continue;
-    if(!flAuditado && iFL>=0){ flAuditado=true; }
-    const armzRaw=iARMZ>=0?String(r[iARMZ]||'').trim():'';
+
+    // Filtro ARMZ=7: comparação numérica para evitar problemas com espaços/zeros à esquerda
+    const armzRaw=String(r[iARMZfinal]||'').trim();
     const armzNum=parseInt(armzRaw,10);
-    // Filtro: ARMZ=07 ou 7 é o único armazém comercial válido
-    // Comparação numérica para evitar problemas com espaços, zeros à esquerda ou tipo string/int
-    if(iARMZ>=0 && armzRaw && armzNum!==7) continue;
+    if(armzRaw && armzNum!==7) continue;
+
     const saldo=pn(iSAL>=0?r[iSAL]:0);
     const descricao=String(iDESC>=0?r[iDESC]||'':'').trim();
     const tp=String(r[iTP]||'').trim().toUpperCase();
-    items.push({codigo,descricao,wh:whNome,armz,saldo,reserva:0,fat:0,disp:0,
+    items.push({codigo,descricao,wh:whNome,saldo,reserva:0,fat:0,disp:0,
       categoria:'',familia:'',nomenclatura:'',isMP:false,_semCadastro:false,_incompleto:[],tp});
   }
   return items;
@@ -1072,6 +1088,27 @@ function toggleResCard(codigo){
   rRes();
 }
 
+// ══ EXPORTAÇÃO — SKUs fixos monitorados
+const EXPORT_SKUS = ['GT1-3K3S1R11001','GT1-3K3S1','GT1-5KD1R11001','GT3-25KL-TW11001'];
+
+function rExp(){
+  const el=document.getElementById('exp-cards');
+  if(!el) return;
+  const rows=ST.filter(r=>EXPORT_SKUS.includes(r.codigo));
+  const dd=dedup(rows);
+  // Garantir que todos os 4 SKUs aparecem, mesmo sem estoque
+  const todos=EXPORT_SKUS.map(sku=>{
+    const found=dd.find(r=>r.codigo===sku);
+    if(found) return found;
+    // Criar entrada vazia para SKU sem estoque
+    const cad=CADASTRO[sku]||{};
+    return {codigo:sku,nomenclatura:cad.nomenclatura||sku,descricao:cad.descricao||sku,
+      familia:cad.familia||'',categoria:cad.categoria||'',isMP:false,
+      _sal:0,_res:0,_fat:0,_disp:0,_byWH:{}};
+  });
+  el.innerHTML=todos.map(r=>pCard(r,false)).join('');
+}
+
 function rRes(){
   const q=(document.getElementById('res-q')?.value||'').toLowerCase();
   const dir=document.getElementById('res-dir')?.value||'';
@@ -1383,7 +1420,7 @@ async function boot(){
 
   rDash(); rAll();
   ['inv','ev','bess','kit','strbox','div','mot','mp'].forEach(tb=>renderCat(tb));
-  rRes(); updateSidebar(); rAudit();
+  rExp(); rRes(); updateSidebar(); rAudit();
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
