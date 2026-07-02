@@ -520,6 +520,22 @@ function parseEstoqueWH(csv, whCodigo){
     items.push({codigo,descricao,wh:whNome,saldo,reserva:0,fat:0,disp:0,
       categoria:'',familia:'',nomenclatura:'',isMP:false,_semCadastro:false,_incompleto:[],tp});
   }
+
+  // Linhas de exportação: SKUs fixos em QUALQUER ARMZ (sem filtro)
+  // Guardados separadamente em EXP_RAW para a aba Exportação
+  for(let i=hdrIdx+1;i<all.length;i++){
+    const r=all[i];
+    const codigo=String(r[iCOD]||'').trim().toUpperCase();
+    if(!EXPORT_SKUS.includes(codigo)) continue;
+    const armzRaw=String(r[iARMZfinal]||'').trim();
+    const armzNum=parseInt(armzRaw,10);
+    if(armzNum===7) continue; // já incluído no estoque comercial
+    if(ARMZ_EXCLUIR_EXP.has(armzNum)) continue; // excluir garantia(8), reparo(12), scrap(16)
+    const saldo=pn(iSAL>=0?r[iSAL]:0);
+    if(saldo<=0) continue;
+    const descricao=String(iDESC>=0?r[iDESC]||'':'').trim();
+    EXP_RAW.push({codigo,descricao,wh:whNome,armz:armzNum,armzNome:ARMZ_NOMES[armzNum]||`ARMZ ${armzNum}`,saldo});
+  }
   return items;
 }
 
@@ -1088,25 +1104,82 @@ function toggleResCard(codigo){
   rRes();
 }
 
-// ══ EXPORTAÇÃO — SKUs fixos monitorados
+// ══ EXPORTAÇÃO — SKUs fixos monitorados (todos os armazéns, sem filtro ARMZ)
 const EXPORT_SKUS = ['GT1-3K3S1R11001','GT1-3K3S1','GT1-5KD1R11001','GT3-25KL-TW11001'];
 
 function rExp(){
   const el=document.getElementById('exp-cards');
   if(!el) return;
-  const rows=ST.filter(r=>EXPORT_SKUS.includes(r.codigo));
-  const dd=dedup(rows);
-  // Garantir que todos os 4 SKUs aparecem, mesmo sem estoque
-  const todos=EXPORT_SKUS.map(sku=>{
-    const found=dd.find(r=>r.codigo===sku);
-    if(found) return found;
-    // Criar entrada vazia para SKU sem estoque
+
+  const html = EXPORT_SKUS.map(sku=>{
     const cad=CADASTRO[sku]||{};
-    return {codigo:sku,nomenclatura:cad.nomenclatura||sku,descricao:cad.descricao||sku,
-      familia:cad.familia||'',categoria:cad.categoria||'',isMP:false,
-      _sal:0,_res:0,_fat:0,_disp:0,_byWH:{}};
-  });
-  el.innerHTML=todos.map(r=>pCard(r,false)).join('');
+    const nom=cad.nomenclatura||cad.descricao||sku;
+
+    // Estoque comercial (ARMZ=7) — vem de ST
+    const stRows=ST.filter(r=>r.codigo===sku);
+    const dd=dedup(stRows);
+    const dispComercial=dd.reduce((a,r)=>a+r._disp,0);
+    const salComercial=dd.reduce((a,r)=>a+r._sal,0);
+    const resComercial=dd.reduce((a,r)=>a+r._res,0);
+
+    // Outros armazéns (em separação, trânsito, exportação) — vem de EXP_RAW
+    const expRows=EXP_RAW.filter(r=>r.codigo===sku);
+    const byArmz={};
+    expRows.forEach(r=>{
+      const key=r.wh+'||'+r.armz+'||'+r.armzNome;
+      byArmz[key]=(byArmz[key]||0)+r.saldo;
+    });
+
+    const dispCol=dispComercial>0?'var(--grn-d)':dispComercial===0&&salComercial>0?'var(--amb-d)':'var(--red)';
+
+    // Linhas de armazéns comerciais (ARMZ=7)
+    const whComRows=WH_LIST.map(w=>{
+      const d=dd[0]?._byWH?.[w]; if(!d||!d.saldo) return '';
+      return `<div class="pc2-wh-row">
+        <i class="ti ${WH_ICON[w]||'ti-building-warehouse'}" style="color:${WH_COLOR[w]};font-size:12px"></i>
+        <span class="pc2-wh-name">${w}</span>
+        <span class="pc2-wh-val">${fmt(d.saldo)}</span>
+      </div>`;
+    }).join('');
+
+    // Linhas de outros armazéns (em separação, trânsito, etc.)
+    const outrosRows=Object.entries(byArmz).map(([key,qtd])=>{
+      const [wh,,armzNome]=key.split('||');
+      const c=WH_COLOR[wh]||'#64748b';
+      return `<div class="pc2-wh-row" style="opacity:.85">
+        <i class="ti ti-truck" style="color:${c};font-size:12px"></i>
+        <span class="pc2-wh-name" style="color:var(--txtm)">${wh} · ${armzNome}</span>
+        <span class="pc2-wh-val" style="color:var(--cor-laranja)">${fmt(qtd)}</span>
+      </div>`;
+    }).join('');
+
+    const totalOutros=expRows.reduce((a,r)=>a+r.saldo,0);
+
+    return `<div class="pc2">
+      <div class="pc2-top">
+        <div class="pc2-head">
+          <div class="pc2-nom">${nom}</div>
+          <span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">Exportação</span>
+        </div>
+        <div class="pc2-cod">${sku}</div>
+      </div>
+      <div class="pc2-disp-block">
+        <div class="pc2-disp-lbl">Disponível para Venda</div>
+        <div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispComercial)}</div>
+      </div>
+      <div class="pc2-wh-list" style="flex:1">
+        ${whComRows||'<span class="pc2-no-stock">Sem estoque comercial</span>'}
+        ${outrosRows?`<div style="height:1px;background:var(--brd);margin:5px 0"></div>${outrosRows}`:''}
+      </div>
+      <div class="pc2-totals">
+        <div class="pc2-total-row"><span>Estoque Total (ARMZ 7)</span><span>${fmt(salComercial)}</span></div>
+        ${totalOutros>0?`<div class="pc2-total-row" style="color:var(--cor-laranja)"><span><i class="ti ti-truck"></i> Em outros armazéns</span><span>${fmt(totalOutros)}</span></div>`:''}
+        ${resComercial>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(resComercial)}</span></div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = html;
 }
 
 function rRes(){
@@ -1270,13 +1343,22 @@ const DATA_CORTE_FATURADOS = new Date(2026, 6, 1); // 01/07/2026 — mês 6 = ju
 
 // FATURADOS: { codigo -> { wh, qtd, pedidos:[] } } — abatido do estoque nos cards
 let FAT = {};
+let EXP_RAW = []; // linhas brutas dos SKUs de exportação (todos os ARMZ)
+
+// Nomes dos sub-armazéns mais comuns
+const ARMZ_NOMES = {
+  7: 'Estoque Comercial', 8: 'Garantia', 12: 'Reparo',
+  16: 'Scrap', 24: 'Trânsito', 60: 'Exportação', 28: 'Projetos',
+};
+// ARMZ excluídos da aba Exportação: garantia, reparo e scrap
+const ARMZ_EXCLUIR_EXP = new Set([8, 12, 16]);
 
 async function boot(){
   setStatus('loading');
   document.getElementById('ld-area').style.display='flex';
   document.getElementById('err-area').style.display='none';
   document.getElementById('mc').style.display='none';
-  ST=[]; RES=[]; FAT={};
+  ST=[]; RES=[]; FAT={}; EXP_RAW=[];
   SRC_ALERTS.length=0;
   VAL_SEM_CADASTRO=[];VAL_INCOMPLETO=[];VAL_WH_INVALIDO=[];VAL_INSUFICIENTE=[];VAL_NEGATIVO=[];VAL_DUPLICADO=[];VAL_RES_SEM_ARMAZEM=[];
 
