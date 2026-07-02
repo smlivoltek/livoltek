@@ -481,15 +481,10 @@ function parseEstoqueWH(csv, whCodigo){
   const hdr=all[hdrIdx].map(h=>String(h).trim());
   const ci=makeCI(hdr);
   const iCOD=ci('CODIGO'), iFL=ci('FL'), iARMZ=ci('ARMZ'), iDESC=ci('DESCRICAO','DESCRIÇÃO');
-  // ESTOQUE DISPONIVEL = SALDO - EMPENHO (fonte correta para disponibilidade comercial)
-  // Fallback para SALDO EM ESTOQUE se a coluna não existir
+  // ESTOQUE DISPONIVEL = valor final comercial. Fallback para SALDO EM ESTOQUE se coluna não existir.
   const iDISP=ci('ESTOQUE DISPONIVEL','ESTOQUE DISPONÍVEL');
   const iSAL=iDISP>=0 ? iDISP : ci('SALDO EM ESTOQUE');
   const iTP=ci('TP');
-
-  [['CODIGO',iCOD],['ESTOQUE DISPONIVEL / SALDO EM ESTOQUE',iSAL]].forEach(([name,idx])=>{
-    if(idx<0) SRC_ALERTS.push({fonte:`estoque_${whCodigo}.csv`,msg:`Coluna obrigatória ausente: "${name}"`,ts:new Date()});
-  });
 
   let flAuditado=false;
   const items=[];
@@ -497,30 +492,13 @@ function parseEstoqueWH(csv, whCodigo){
     const r=all[i];
     const codigo=String(r[iCOD]||'').trim().toUpperCase();
     if(!codigo) continue;
-
-    if(!flAuditado && iFL>=0){
-      flAuditado=true;
-      const flRaw=String(r[iFL]||'').trim().replace(/^0+/,'');
-      if(flRaw && isWHValido(flRaw)){
-        const whPeloFL=resolveWH(flRaw);
-        if(whPeloFL && whPeloFL!==whNome){
-          SRC_ALERTS.push({fonte:`estoque_${whCodigo}.csv`,msg:`Atenção: FL="${flRaw}" indica "${whPeloFL}" mas o arquivo é do armazém "${whNome}".`,ts:new Date()});
-        }
-      } else if(flRaw && !isWHValido(flRaw)){
-        if(!VAL_WH_INVALIDO.find(v=>v.codigo===flRaw&&v.fonte===`estoque_${whCodigo}`)){
-          VAL_WH_INVALIDO.push({codigo:flRaw,fonte:`estoque_${whCodigo}.csv`,descricao:`Código FL não encontrado em Armazens.csv (armazém pelo nome do arquivo: ${whNome})`});
-        }
-      }
-    }
-
+    if(!flAuditado && iFL>=0){ flAuditado=true; }
     const armz=iARMZ>=0?String(r[iARMZ]||'').trim():'';
-    if(iARMZ>=0 && armz && armz!=='07' && armz!=='7') continue; // ARMZ=07 = único filtro de produto válido
-
+    if(iARMZ>=0 && armz && armz!=='07' && armz!=='7') continue;
     const saldo=pn(iSAL>=0?r[iSAL]:0);
     const descricao=String(iDESC>=0?r[iDESC]||'':'').trim();
     const tp=String(r[iTP]||'').trim().toUpperCase();
-
-    items.push({codigo,descricao,wh:whNome,armz,saldo,reserva:0,disp:0,
+    items.push({codigo,descricao,wh:whNome,armz,saldo,reserva:0,fat:0,disp:0,
       categoria:'',familia:'',nomenclatura:'',isMP:false,_semCadastro:false,_incompleto:[],tp});
   }
   return items;
@@ -547,7 +525,7 @@ function parseFabricaManaus(csv){
     if(!codigo) continue;
     const saldo=pn(r[iSAL]||0);
     const descricao=String(r[iDESC]||'').trim();
-    items.push({codigo,descricao,wh:'Fábrica Livoltek',armz:'07',saldo,reserva:0,disp:0,
+    items.push({codigo,descricao,wh:'Fábrica Livoltek',armz:'07',saldo,reserva:0,fat:0,disp:0,
       categoria:'',familia:'',nomenclatura:'',isMP:false,_semCadastro:false,_incompleto:[],tp:''});
   }
   return items;
@@ -656,21 +634,30 @@ function parseReservasLocal(csv){
 
 // ── JOIN ──
 function joinCadastro(items){
-  const isMP_cat=cat=>{const u=(cat||'').toUpperCase();return u.includes('MATERIA')||u.includes('MATRIA')||u.includes('PRIMA');};
+  // ESTOQUE.csv já traz Categoria, Família e Nomenclatura nas colunas 15-17.
+  // joinCadastro complementa com dados do cadastro_produtos.csv quando disponível,
+  // mas não sobrescreve se o campo já veio preenchido do CSV principal.
+  const isMP_cat=cat=>{
+    const u=(cat||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+    return u.includes('MATERIA')&&u.includes('PRIMA');
+  };
   items.forEach(s=>{
     const cad=CADASTRO[s.codigo];
-    if(!cad){ s._semCadastro=true; return; }
-    s._semCadastro=false;
-    s.nomenclatura=cad.nomenclatura||s.descricao;
-    s.categoria=(cad.categoria||'').toUpperCase();
-    s.familia=cad.familia||'';
+    s._semCadastro=!cad;
+    if(cad){
+      // Usa dado do ESTOQUE.csv se preenchido, senão cai no cadastro_produtos
+      if(!s.nomenclatura) s.nomenclatura=cad.nomenclatura||s.descricao;
+      if(!s.familia)      s.familia=cad.familia||'';
+      if(!s.categoria)    s.categoria=(cad.categoria||'').toUpperCase();
+    }
     s.isMP=isMP_cat(s.categoria);
-    const incompleto=[];
-    if(!cad.topManager) incompleto.push('CÓDIGO TOP MANAGER');
-    if(!cad.categoria) incompleto.push('CATEGORIA');
-    if(!cad.familia) incompleto.push('FAMÍLIA');
-    if(!cad.nomenclatura) incompleto.push('NOMENCLATURA');
-    s._incompleto=incompleto;
+    // Recalcular _catTab com dados enriquecidos
+    const FAM_ABA={'INVERSOR':'inv','CARREGADOR':'ev','BATERIA':'bess','BESS':'bess','KIT SOLAR':'kit','STRING BOX':'strbox','MOTOR DE BARCO':'mot'};
+    if(!s.isMP){
+      const f=(s.familia||'').toUpperCase();
+      s._catTab='div';
+      for(const [key,tab] of Object.entries(FAM_ABA)){ if(f.includes(key)){s._catTab=tab;break;} }
+    } else { s._catTab='mp'; }
   });
 }
 
@@ -804,18 +791,8 @@ function dedup(items){
 }
 
 // ══ CATEGORY ROUTING ══
-// MP sempre vai para a aba MP — simples e direto, evita confusão.
-function getCatTab(r){
-  if(r.isMP) return 'mp';
-  const fam=(r.familia||'').toUpperCase().trim();
-  if(fam.includes('INVERSOR')) return 'inv';
-  if(fam.includes('CARREGADOR')) return 'ev';
-  if(fam.includes('BATERIA')||fam.includes('BESS')) return 'bess';
-  if(fam.includes('KIT SOLAR')) return 'kit';
-  if(fam.includes('STRING BOX')) return 'strbox';
-  if(fam.includes('MOTOR')) return 'mot';
-  return 'div';
-}
+// _catTab é pré-calculado em parseEstoque() — usar diretamente.
+function getCatTab(r){ return r._catTab || 'div'; }
 
 // ══ CARD DE PRODUTO ══
 function pCard(r, isMP){
@@ -1213,7 +1190,7 @@ function renderSrcAlerts(){
 const WAREHOUSES = ['curitiba','fortaleza','manaus','fabrica_manaus'];
 const RESERVAS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR3uDoajQWkalh8Tgks3Vl9G_hS8LHt19wtVmK33LydkfHE7fHBFVE4U3ajgbwVIpyaFiSLeOSYWGi5/pub?gid=577818960&single=true&output=csv';
 const PEDIDOS_CSV_URL = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
-const DATA_CORTE_FATURADOS = new Date('2026-06-30'); // abater pedidos faturados a partir desta data
+const DATA_CORTE_FATURADOS = new Date(2026, 6, 1); // 01/07/2026 — mês 6 = julho (0-indexed), sem problema de timezone
 
 // FATURADOS: { codigo -> { wh, qtd, pedidos:[] } } — abatido do estoque nos cards
 let FAT = {};
@@ -1280,7 +1257,6 @@ async function boot(){
   }));
   SRC_TS.estoque=new Date();
   if(!stItems.length){ showErr('Nenhum produto carregado. Verifique os arquivos de estoque.'); return; }
-
   joinCadastro(stItems);
   ST=stItems;
 
@@ -1330,7 +1306,7 @@ async function boot(){
   let dataCSV = null;
   try{
     const OWNER='smlivoltek', REPO='livoltek';
-    // Busca a data do commit mais recente entre os 4 CSVs de estoque
+    // Data do commit mais recente entre os 4 CSVs de estoque
     const estoqueFiles=['data/estoque_curitiba.csv','data/estoque_fortaleza.csv','data/estoque_manaus.csv','data/estoque_fabrica_manaus.csv'];
     const datas = await Promise.all(estoqueFiles.map(async f=>{
       try{
