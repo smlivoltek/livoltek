@@ -571,14 +571,17 @@ function parseReservasSheets(csv){
       return tt;
     }});
   const result=[];
-  parsed.data.forEach(r=>{
+  // Debug: logar colunas e primeiras linhas para diagnóstico
+  if(parsed.data.length>0) console.log('📋 RESERVAS colunas:', Object.keys(parsed.data[0]));
+  parsed.data.forEach((r,idx)=>{
+    if(idx<5) console.log('RESERVA linha',idx,JSON.stringify(r));
     const _allKeys=Object.keys(r);
     const _codKey=_allKeys.find(k=>k.replace(/[^A-Za-z]/g,'').toUpperCase()==='CODIGO')||'';
     const codigo=String(r[_codKey]||r['Código']||r['Codigo']||r['CODIGO']||'').trim().toUpperCase();
     const qtd=pn(r['QUANTIDADE_RESERVADA']||r['Qtdade']||r['QTD']||r['Quantidade']||0);
     const cancelado=String(r['Cancelado']||r['CANCELADO']||'').trim();
     if(!codigo||qtd<=0||cancelado) return;
-    const armRaw=String(r['CODIGO_ARMAZEM']||r['Armazem']||r['Armazém']||'').trim();
+    const armRaw=String(r['CODIGO_ARMAZEM']||r['Armazem']||r['Armazém']||r['ARMAZEM']||r['armazem']||'').trim();
     // Resolve código numérico (ex: 10102) ou nome completo para nome canônico
     const wh=normalizaArmazem(armRaw);
     const whValido=WH_LIST.includes(wh);
