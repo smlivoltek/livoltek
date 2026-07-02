@@ -493,8 +493,11 @@ function parseEstoqueWH(csv, whCodigo){
     const codigo=String(r[iCOD]||'').trim().toUpperCase();
     if(!codigo) continue;
     if(!flAuditado && iFL>=0){ flAuditado=true; }
-    const armz=iARMZ>=0?String(r[iARMZ]||'').trim():'';
-    if(iARMZ>=0 && armz && armz!=='07' && armz!=='7') continue;
+    const armzRaw=iARMZ>=0?String(r[iARMZ]||'').trim():'';
+    const armzNum=parseInt(armzRaw,10);
+    // Filtro: ARMZ=07 ou 7 é o único armazém comercial válido
+    // Comparação numérica para evitar problemas com espaços, zeros à esquerda ou tipo string/int
+    if(iARMZ>=0 && armzRaw && armzNum!==7) continue;
     const saldo=pn(iSAL>=0?r[iSAL]:0);
     const descricao=String(iDESC>=0?r[iDESC]||'':'').trim();
     const tp=String(r[iTP]||'').trim().toUpperCase();
@@ -531,6 +534,33 @@ function parseFabricaManaus(csv){
   return items;
 }
 
+// Mapa fixo de código numérico de armazém → nome canônico
+// Não depende de armazens.csv (excluído do repositório)
+const ARMAZEM_CODIGO_MAP = {
+  '10108': 'Curitiba (Eletra)',
+  '10102': 'Fortaleza (Eletra)',
+  '10106': 'Manaus (Eletra)',
+  '1010':  'Fábrica Livoltek',
+};
+
+function normalizaArmazem(armRaw){
+  const s = String(armRaw||'').trim();
+  if(!s) return '';
+  // Tenta por código numérico exato
+  if(ARMAZEM_CODIGO_MAP[s]) return ARMAZEM_CODIGO_MAP[s];
+  // Tenta pelo código sem zeros à esquerda
+  if(ARMAZEM_CODIGO_MAP[s.replace(/^0+/,'')]) return ARMAZEM_CODIGO_MAP[s.replace(/^0+/,'')];
+  // Tenta por nome completo (se já vier como texto)
+  if(WH_LIST.includes(s)) return s;
+  // Tenta por palavra-chave
+  const sl = s.toLowerCase();
+  if(sl.includes('curitiba')) return 'Curitiba (Eletra)';
+  if(sl.includes('fortaleza')) return 'Fortaleza (Eletra)';
+  if(sl.includes('manaus')&&!sl.includes('fabrica')&&!sl.includes('livoltek')) return 'Manaus (Eletra)';
+  if(sl.includes('fabrica')||sl.includes('livoltek')) return 'Fábrica Livoltek';
+  return s; // retorna o valor original se não reconhecido
+}
+
 function parseReservasSheets(csv){
   const csvClean=csv.replace(/^\uFEFF/,'');
   const detectedSep = csvClean.indexOf(';')!==-1 && (csvClean.indexOf(';')<(csvClean.indexOf(',')===-1?99999:csvClean.indexOf(','))) ? ';' : ',';
@@ -549,11 +579,17 @@ function parseReservasSheets(csv){
     const cancelado=String(r['Cancelado']||r['CANCELADO']||'').trim();
     if(!codigo||qtd<=0||cancelado) return;
     const armRaw=String(r['CODIGO_ARMAZEM']||r['Armazem']||r['Armazém']||'').trim();
-    const wh=resolveWH(armRaw);
-    if(armRaw&&!isWHValido(armRaw)){
-      if(!VAL_WH_INVALIDO.find(v=>v.codigo===armRaw&&v.fonte==='Reservas (Sheets)')){
-        VAL_WH_INVALIDO.push({codigo:armRaw,fonte:'Reservas (Sheets)',descricao:'Código não encontrado em Armazens.csv'});
+    // Resolve código numérico (ex: 10102) ou nome completo para nome canônico
+    const wh=normalizaArmazem(armRaw);
+    const whValido=WH_LIST.includes(wh);
+    if(armRaw && !whValido){
+      if(!VAL_RES_SEM_ARMAZEM.find(v=>v.codigo===codigo&&v.cliente===String(r['Cliente']||'').trim())){
+        VAL_RES_SEM_ARMAZEM.push({
+          codigo, cliente:String(r['Cliente']||'').trim(),
+          qtd, armRaw: armRaw+'  (não reconhecido)'
+        });
       }
+      return; // não aplica reserva com armazém inválido
     }
     result.push({
       cliente:String(r['Cliente']||r['CLIENTE']||'').trim(),
@@ -1215,18 +1251,18 @@ async function boot(){
     }catch(e){ clearTimeout(timer); throw e.name==='AbortError'?new Error('Timeout após '+segundos+'s'):e; }
   };
 
-  // 1. Armazens.csv
-  prog('Carregando armazens.csv...');
-  try{
-    const r=await fetch('data/armazens.csv',{cache:'no-store'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    WH_MAP=parseArmazens(await r.text());
-    syncWHFromMap();
-  }catch(e){
-    console.error('Erro ao processar armazens.csv:', e);
-    showErr('<b>data/armazens.csv</b>: '+e.message);
-    return;
-  }
+  // 1. Armazéns — mapa fixo (armazens.csv foi excluído do repositório)
+  WH_LIST.length=0;
+  WH_LIST.push('Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','Fábrica Livoltek');
+  WH_COLOR['Curitiba (Eletra)']='#374151';
+  WH_COLOR['Fortaleza (Eletra)']='#374151';
+  WH_COLOR['Manaus (Eletra)']='#374151';
+  WH_COLOR['Fábrica Livoltek']='#2563eb';
+  WH_ICON['Curitiba (Eletra)']='ti-building-warehouse';
+  WH_ICON['Fortaleza (Eletra)']='ti-building-warehouse';
+  WH_ICON['Manaus (Eletra)']='ti-building-warehouse';
+  WH_ICON['Fábrica Livoltek']='ti-building-factory-2';
+  SRC_TS.armazens=new Date();
 
   // 2. cadastro_produtos.csv
   prog('Carregando cadastro_produtos.csv...');
