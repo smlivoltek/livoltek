@@ -1105,7 +1105,19 @@ function toggleResCard(codigo){
 }
 
 // ══ EXPORTAÇÃO — SKUs fixos monitorados (todos os armazéns, sem filtro ARMZ)
-const EXPORT_SKUS = ['GT1-3K3S1R11001','GT1-3K3S1','GT1-5KD1R11001','GT3-25KL-TW11001'];
+const EXPORT_SKUS = [
+  'GT1-5KD1R11001','GT1-6KD1R11001','GT1-8KT1R11001','GT1-10KT2R11003',
+  'GT3-15KD1R11001','GT3-20KD1R11001','GT3-20KL-TW11001',
+  'GT3-25KD1R11001','GT3-25KL-TW11001'
+];
+
+// Cards de exportação expandidos — mesmo padrão visual das reservas
+const expExpanded = new Set();
+
+function toggleExpCard(sku){
+  if(expExpanded.has(sku)) expExpanded.delete(sku); else expExpanded.add(sku);
+  rExp();
+}
 
 function rExp(){
   const el=document.getElementById('exp-cards');
@@ -1114,68 +1126,75 @@ function rExp(){
   const html = EXPORT_SKUS.map(sku=>{
     const cad=CADASTRO[sku]||{};
     const nom=cad.nomenclatura||cad.descricao||sku;
+    const familia=cad.familia||'Inversor';
 
-    // Estoque comercial (ARMZ=7) — vem de ST
+    // Estoque ARMZ=7 (comercial) — vem de ST
     const stRows=ST.filter(r=>r.codigo===sku);
     const dd=dedup(stRows);
-    const dispComercial=dd.reduce((a,r)=>a+r._disp,0);
-    const salComercial=dd.reduce((a,r)=>a+r._sal,0);
-    const resComercial=dd.reduce((a,r)=>a+r._res,0);
+    const salTotal=dd.reduce((a,r)=>a+r._sal,0);
+    const resTotal=dd.reduce((a,r)=>a+r._res,0);
+    const dispTotal=dd.reduce((a,r)=>a+r._disp,0);
 
-    // Outros armazéns (em separação, trânsito, exportação) — vem de EXP_RAW
+    // Outros armazéns (ARMZ≠7, exceto 8/12/16) — vem de EXP_RAW
     const expRows=EXP_RAW.filter(r=>r.codigo===sku);
-    const byArmz={};
-    expRows.forEach(r=>{
-      const key=r.wh+'||'+r.armz+'||'+r.armzNome;
-      byArmz[key]=(byArmz[key]||0)+r.saldo;
-    });
-
-    const dispCol=dispComercial>0?'var(--grn-d)':dispComercial===0&&salComercial>0?'var(--amb-d)':'var(--red)';
-
-    // Linhas de armazéns comerciais (ARMZ=7)
-    const whComRows=WH_LIST.map(w=>{
-      const d=dd[0]?._byWH?.[w]; if(!d||!d.saldo) return '';
-      return `<div class="pc2-wh-row">
-        <i class="ti ${WH_ICON[w]||'ti-building-warehouse'}" style="color:${WH_COLOR[w]};font-size:12px"></i>
-        <span class="pc2-wh-name">${w}</span>
-        <span class="pc2-wh-val">${fmt(d.saldo)}</span>
-      </div>`;
-    }).join('');
-
-    // Linhas de outros armazéns (em separação, trânsito, etc.)
-    const outrosRows=Object.entries(byArmz).map(([key,qtd])=>{
-      const [wh,,armzNome]=key.split('||');
-      const c=WH_COLOR[wh]||'#64748b';
-      return `<div class="pc2-wh-row" style="opacity:.85">
-        <i class="ti ti-truck" style="color:${c};font-size:12px"></i>
-        <span class="pc2-wh-name" style="color:var(--txtm)">${wh} · ${armzNome}</span>
-        <span class="pc2-wh-val" style="color:var(--cor-laranja)">${fmt(qtd)}</span>
-      </div>`;
-    }).join('');
-
     const totalOutros=expRows.reduce((a,r)=>a+r.saldo,0);
+
+    const dispCol=dispTotal>0?'var(--grn-d)':dispTotal===0&&salTotal>0?'var(--amb-d)':'var(--red)';
+    const expanded=expExpanded.has(sku);
+
+    // Linhas de armazéns comerciais (ARMZ=7) agrupadas por armazém
+    const whRows=WH_LIST.map(w=>{
+      const whrec=dd.find(r=>r._byWH&&r._byWH[w]);
+      const sal=whrec?._byWH?.[w]?.saldo||0;
+      if(!sal) return '';
+      const c=WH_COLOR[w]||'#64748b';
+      const ico=WH_ICON[w]||'ti-building-warehouse';
+      return `<div class="pc2-wh-row">
+        <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
+        <span class="pc2-wh-name">${w}</span>
+        <span class="pc2-wh-val">${fmt(sal)}</span>
+      </div>`;
+    }).join('');
+
+    // Linhas dos outros armazéns (trânsito, exportação, etc.) — expandíveis
+    const outrosDetalhes=expRows.map(r=>{
+      const c=WH_COLOR[r.wh]||'#64748b';
+      return `<div class="pc2-cli-row">
+        <span class="pc2-cli-nome">${r.armzNome}<br>
+          <span style="font-size:10px;color:var(--txtm)">${r.wh}</span>
+        </span>
+        <span style="font-size:10px;color:var(--txtm)">ARMZ ${r.armz}</span>
+        <span class="pc2-cli-qtd" style="color:var(--cor-laranja)">${fmt(r.saldo)}</span>
+      </div>`;
+    }).join('');
 
     return `<div class="pc2">
       <div class="pc2-top">
         <div class="pc2-head">
           <div class="pc2-nom">${nom}</div>
-          <span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">Exportação</span>
+          <span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>
         </div>
         <div class="pc2-cod">${sku}</div>
       </div>
       <div class="pc2-disp-block">
-        <div class="pc2-disp-lbl">Disponível para Venda</div>
-        <div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispComercial)}</div>
+        <div class="pc2-disp-lbl">Disponível (ARMZ 7)</div>
+        <div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispTotal)}</div>
       </div>
       <div class="pc2-wh-list" style="flex:1">
-        ${whComRows||'<span class="pc2-no-stock">Sem estoque comercial</span>'}
-        ${outrosRows?`<div style="height:1px;background:var(--brd);margin:5px 0"></div>${outrosRows}`:''}
+        ${whRows||'<span class="pc2-no-stock">Sem estoque no ARMZ 7</span>'}
       </div>
       <div class="pc2-totals">
-        <div class="pc2-total-row"><span>Estoque Total (ARMZ 7)</span><span>${fmt(salComercial)}</span></div>
-        ${totalOutros>0?`<div class="pc2-total-row" style="color:var(--cor-laranja)"><span><i class="ti ti-truck"></i> Em outros armazéns</span><span>${fmt(totalOutros)}</span></div>`:''}
-        ${resComercial>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(resComercial)}</span></div>`:''}
+        <div class="pc2-total-row"><span>Estoque Total (ARMZ 7)</span><span>${fmt(salTotal)}</span></div>
+        ${resTotal>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(resTotal)}</span></div>`:''}
+        ${totalOutros>0?`<div class="pc2-total-row pc2-fat"><span><i class="ti ti-ship"></i> Em trânsito/exportação</span><span>${fmt(totalOutros)}</span></div>`:''}
       </div>
+      ${totalOutros>0?`
+      <div class="pc2-cli-toggle" onclick="toggleExpCard('${sku}')">
+        <span><i class="ti ti-ship"></i> ${expRows.length} localização${expRows.length>1?'s':''} · ${fmt(totalOutros)} un.</span>
+        <i class="ti ${expanded?'ti-chevron-up':'ti-chevron-down'}"></i>
+      </div>
+      ${expanded?outrosDetalhes:''}
+      `:''}
     </div>`;
   }).join('');
 
