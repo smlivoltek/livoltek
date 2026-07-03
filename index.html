@@ -724,11 +724,17 @@ function joinCadastro(items){
     s.isMP=isMP_cat(s.categoria);
     // Recalcular _catTab com dados enriquecidos
     const FAM_ABA={'INVERSOR':'inv','CARREGADOR':'ev','BATERIA':'bess','BESS':'bess','KIT SOLAR':'kit','STRING BOX':'strbox','MOTOR DE BARCO':'mot'};
-    if(!s.isMP){
-      const f=(s.familia||'').toUpperCase();
-      s._catTab='div';
+    if(s.isMP){ s._catTab='mp'; }
+    else if(s.familia){
+      const f=s.familia.toUpperCase();
+      s._catTab='div'; // default
       for(const [key,tab] of Object.entries(FAM_ABA)){ if(f.includes(key)){s._catTab=tab;break;} }
-    } else { s._catTab='mp'; }
+    }
+    // Se família veio do cadastro mas _catTab ainda é 'div', recalcular
+    if(s._catTab==='div' && s.familia){
+      const f=s.familia.toUpperCase();
+      for(const [key,tab] of Object.entries(FAM_ABA)){ if(f.includes(key)){s._catTab=tab;break;} }
+    }
   });
 }
 
@@ -770,13 +776,16 @@ function applyReservas(){
     const [wh, ...codParts] = k.split('|');
     const codigo = codParts.join('|');
     const cadItem = CADASTRO[codigo] || {};
+    const isMP_v=((cadItem.categoria||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().includes('MATERIA')&&(cadItem.categoria||'').toUpperCase().includes('PRIMA'));
+    const byWH_v={};
+    byWH_v[wh]={saldo:0,reserva:qtd,fat:0,disp:-qtd};
     const linhaVirtual = {
-      codigo, wh, saldo:0, reserva:qtd, disp:-qtd, armz:'07',
+      codigo, wh, saldo:0, reserva:qtd, fat:0, disp:-qtd, armz:'07',
       descricao: cadItem.descricao||codigo,
       nomenclatura: cadItem.nomenclatura||cadItem.descricao||codigo,
       familia: cadItem.familia||'', categoria: cadItem.categoria||'',
-      isMP: false, _semCadastro:!cadItem.nomenclatura, _incompleto:[],
-      _byWH:{}, _sal:0, _res:qtd, _disp:-qtd, tp:''
+      isMP: isMP_v, _semCadastro:!cadItem.nomenclatura, _incompleto:[],
+      _byWH:byWH_v, _sal:0, _res:qtd, _fat:0, _disp:-qtd, tp:''
     };
     ST.push(linhaVirtual);
     VAL_INSUFICIENTE.push({codigo, descricao:linhaVirtual.nomenclatura, wh, saldo:0, reserva:qtd, disp:-qtd});
@@ -862,8 +871,20 @@ function dedup(items){
 }
 
 // ══ CATEGORY ROUTING ══
-// _catTab é pré-calculado em parseEstoque() — usar diretamente.
-function getCatTab(r){ return r._catTab || 'div'; }
+// Prioridade: _catTab pré-calculado. Se não houver, deriva da família.
+// Produto com família definida NUNCA vai para Diversos.
+function getCatTab(r){
+  if(r._catTab && r._catTab!=='div') return r._catTab;
+  const fam=(r.familia||'').toUpperCase().trim();
+  if(!fam) return r._catTab||'div';
+  if(fam.includes('INVERSOR')) return 'inv';
+  if(fam.includes('CARREGADOR')) return 'ev';
+  if(fam.includes('BATERIA')||fam.includes('BESS')) return 'bess';
+  if(fam.includes('KIT SOLAR')) return 'kit';
+  if(fam.includes('STRING BOX')) return 'strbox';
+  if(fam.includes('MOTOR')) return 'mot';
+  return r._catTab||'div';
+}
 
 // ══ CARD DE PRODUTO ══
 function pCard(r, isMP){
