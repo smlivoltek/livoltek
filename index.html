@@ -97,13 +97,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc2{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;height:100%}
 .pc2-top{padding:.75rem 1rem .375rem}
 .pc2-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
-.pc2-nom{font-size:11px;font-weight:400;color:var(--txtm);line-height:1.35;flex:1;margin-top:2px}
+.pc2-nom{font-size:11px;font-weight:400;color:var(--txtm);line-height:1.4;margin-top:3px;word-break:break-word}
 .pc2-pill{font-size:9px;font-weight:600;padding:2px 7px;border-radius:5px;white-space:nowrap;flex-shrink:0;margin-top:1px}
-.pc2-cod{font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--txt);margin-top:0}
+.pc2-cod{font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:var(--txt);margin-top:0;letter-spacing:-.01em}
 .pc2-disp-block{padding:.25rem 1rem .5rem}
 .pc2-disp-lbl{font-size:9px;font-weight:700;color:var(--grn-d);text-transform:uppercase;letter-spacing:.05em}
 .pc2-disp-val{font-family:'DM Mono',monospace;font-size:32px;font-weight:700;line-height:1}
-.pc2-wh-list{padding:.375rem 1rem .5rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:3px}
+.pc2-wh-list{padding:.375rem 1rem .5rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:3px;flex:1}
 .pc2-wh-row{display:flex;align-items:center;gap:7px}
 .pc2-wh-name{flex:1;font-size:12px;color:var(--txt2)}
 .pc2-wh-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--txt)}
@@ -926,7 +926,7 @@ function pCard(r, isMP){
         ${famLabel?`<span class="pc2-pill" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
       </div>
       ${isMP?'<div class="mp-badge"><i class="ti ti-box" style="font-size:10px"></i> MATÉRIA-PRIMA</div>':''}
-      <div class="pc2-nom">${tr(nom,60)}</div>
+      <div class="pc2-nom">${nom}</div>
     </div>
     <div class="pc2-disp-block">
       <div class="pc2-disp-lbl">Disponível para Venda</div>
@@ -935,18 +935,43 @@ function pCard(r, isMP){
     <div class="pc2-wh-list" style="flex:1">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
     <div class="pc2-totals">
       <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
-      ${res>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(res)}</span></div>`:''}
-      ${fat>0?`
-        <div class="pc2-total-row pc2-fat"><span><i class="ti ti-truck-delivery"></i> Faturado</span><span>${fmt(fat)}</span></div>
-        ${fatWhRows}
-        <div class="pc2-note">${fatPedidos.length} pedido${fatPedidos.length>1?'s':''} · desde ${DATA_CORTE_FATURADOS.toLocaleDateString('pt-BR')}</div>`:''}
-      ${res>0||fat>0?`<div class="pc2-note">Reserva e faturados já abatidos do disponível.</div>`:''}
     </div>
+    ${(res>0||fat>0)?`
+    <div class="pc2-cli-toggle" onclick="toggleTotCard('${r.codigo}',this)">
+      <span style="display:flex;gap:10px;align-items:center">
+        ${res>0?`<span class="pc2-fat" style="color:var(--pur)"><i class="ti ti-bookmark"></i> ${fmt(res)}</span>`:''}
+        ${fat>0?`<span class="pc2-fat"><i class="ti ti-truck-delivery"></i> ${fmt(fat)}</span>`:''}
+      </span>
+      <i class="ti ti-chevron-down" style="font-size:12px;color:var(--txtm)"></i>
+    </div>
+    <div class="pc2-tot-detail" style="display:none">
+      <div class="pc2-totals" style="border-top:none;padding-top:0">
+        ${res>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(res)}</span></div>`:''}
+        ${fat>0?`
+          <div class="pc2-total-row pc2-fat"><span><i class="ti ti-truck-delivery"></i> Faturado</span><span>${fmt(fat)}</span></div>
+          <div style="padding:2px 0 0 12px;display:flex;flex-direction:column;gap:2px">
+            ${fatWhRows}
+          </div>
+          <div class="pc2-note">desde ${DATA_CORTE_FATURADOS.toLocaleDateString('pt-BR')}</div>`:''}
+        <div class="pc2-note">Reserva e faturados já abatidos do disponível.</div>
+      </div>
+    </div>`:''}
   </div>`;
 }
 
 // ══ RENDER CATEGORIA ══
 // Filtro ativo por aba: { tabId: 'NOME_DA_FAMILIA' | '' }
+// Toggle da seção de Reserva/Faturado no card
+function toggleTotCard(codigo, btn){
+  const detail = btn.nextElementSibling;
+  if(!detail) return;
+  const open = detail.style.display !== 'none';
+  detail.style.display = open ? 'none' : 'block';
+  const ico = btn.querySelector('.ti');
+  if(ico) ico.className = open ? 'ti ti-chevron-down' : 'ti ti-chevron-up';
+  ico.style.fontSize='12px'; ico.style.color='var(--txtm)';
+}
+
 const famFilters={};
 
 function setFam(tabId, fam){
