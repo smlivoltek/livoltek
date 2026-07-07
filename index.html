@@ -1205,6 +1205,10 @@ function rExp(){
     const nom=cad.nomenclatura||cad.descricao||sku;
     const familia=cad.familia||'Inversor';
 
+    // Faturado — mesma lógica do pCard
+    const fatKeys=Object.entries(FAT).filter(([k])=>k.endsWith('|'+sku));
+    const fatTotal=fatKeys.reduce((a,[,v])=>a+v.qtd,0);
+
     // Estoque ARMZ=7 (comercial) — vem de ST
     const stRows=ST.filter(r=>r.codigo===sku);
     const dd=dedup(stRows);
@@ -1261,17 +1265,23 @@ function rExp(){
         ${whRows||'<span class="pc2-no-stock">Sem estoque no ARMZ 7</span>'}
       </div>
       <div class="pc2-totals">
-        <div class="pc2-total-row"><span>Estoque Total (ARMZ 7)</span><span>${fmt(salTotal)}</span></div>
-        ${resTotal>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(resTotal)}</span></div>`:''}
-        ${totalOutros>0?`<div class="pc2-total-row pc2-fat"><span><i class="ti ti-ship"></i> Em trânsito/exportação</span><span>${fmt(totalOutros)}</span></div>`:''}
+        <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(salTotal)}</span></div>
       </div>
-      ${totalOutros>0?`
-      <div class="pc2-cli-toggle" onclick="toggleExpCard('${sku}')">
-        <span><i class="ti ti-ship"></i> ${expRows.length} localização${expRows.length>1?'s':''} · ${fmt(totalOutros)} un.</span>
-        <i class="ti ${expanded?'ti-chevron-up':'ti-chevron-down'}"></i>
+      ${(resTotal>0||fatTotal>0)?`
+      <div class="pc2-cli-toggle" onclick="toggleTotCard('${sku}',this)">
+        <span style="display:flex;gap:10px;align-items:center">
+          ${resTotal>0?`<span style="color:var(--pur)"><i class="ti ti-bookmark"></i> ${fmt(resTotal)}</span>`:''}
+          ${fatTotal>0?`<span class="pc2-fat"><i class="ti ti-truck-delivery"></i> ${fmt(fatTotal)}</span>`:''}
+        </span>
+        <i class="ti ti-chevron-down" style="font-size:12px;color:var(--txtm)"></i>
       </div>
-      ${expanded?outrosDetalhes:''}
-      `:''}
+      <div class="pc2-tot-detail" style="display:none">
+        <div class="pc2-totals" style="border-top:none;padding-top:0">
+          ${resTotal>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(resTotal)}</span></div>`:''}
+          ${fatTotal>0?`<div class="pc2-total-row pc2-fat"><span><i class="ti ti-truck-delivery"></i> Faturado</span><span>${fmt(fatTotal)}</span></div>`:''}
+          <div class="pc2-note">Reserva e faturados já abatidos do disponível.</div>
+        </div>
+      </div>`:''}
     </div>`;
   }).join('');
 
@@ -1435,7 +1445,7 @@ function renderSrcAlerts(){
 const WAREHOUSES = ['curitiba','fortaleza','manaus','fabrica_manaus'];
 const RESERVAS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR3uDoajQWkalh8Tgks3Vl9G_hS8LHt19wtVmK33LydkfHE7fHBFVE4U3ajgbwVIpyaFiSLeOSYWGi5/pub?gid=577818960&single=true&output=csv';
 const PEDIDOS_CSV_URL = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
-const DATA_CORTE_FATURADOS = new Date(2026, 6, 1); // 01/07/2026 — mês 6 = julho (0-indexed), sem problema de timezone
+const DATA_CORTE_FATURADOS = new Date(2026, 6, 7); // 07/07/2026 — saldo base fixo, apenas pedidos a partir de hoje abatidos
 
 // FATURADOS: { codigo -> { wh, qtd, pedidos:[] } } — abatido do estoque nos cards
 let FAT = {};
