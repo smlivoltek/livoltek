@@ -342,6 +342,91 @@ const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra
 
 let ST=[], RES=[], CADASTRO={}, MODO='novo';
 let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[];
+
+// ══ CONFERÊNCIA TOTVS x SISTEMA ══
+// AUD_BASELINE: baseline "travada" por codigo|armazem, lida de data/overrides_estoque.csv (opcional).
+//   Enquanto existir baseline pra um codigo|armazem, o Saldo usado em TODO o dashboard (cards, abas,
+//   disponível) é o valor TRAVADO, não o TOTVS lido ao vivo — só muda quando você decide "Aceitar TOTVS".
+// AUD_DECISIONS: decisões em rascunho (localStorage), aguardando o download de "Baixar validações".
+let AUD_BASELINE={}, AUD_DECISIONS={}, AUD_DIVERGENTES=[];
+const AUD_KEY = (codigo,wh)=>`${codigo}|${wh}`;
+const AUD_LS_KEY = 'livoltek_audit_decisions';
+
+function parseOverridesEstoque(csv){
+  const clean=csv.replace(/^\uFEFF/,'');
+  const all=Papa.parse(clean,{header:true,skipEmptyLines:true,delimiter:';'}).data;
+  const map={};
+  all.forEach(r=>{
+    const codigo=String(r['codigo']||'').trim().toUpperCase();
+    const wh=String(r['armazem']||'').trim();
+    if(!codigo||!wh) return;
+    map[AUD_KEY(codigo,wh)]={
+      saldo: pn(r['saldo_validado']),
+      decisao: String(r['decisao']||'').trim(),
+      data: String(r['data']||'').trim()
+    };
+  });
+  return map;
+}
+
+function carregarDecisoesLocais(){
+  try{ AUD_DECISIONS = JSON.parse(localStorage.getItem(AUD_LS_KEY)||'{}'); }catch(e){ AUD_DECISIONS={}; }
+}
+
+function setDecisaoAudit(codigo, wh, decisao){
+  const k=AUD_KEY(codigo,wh);
+  const item=ST.find(s=>s.codigo===codigo&&s.wh===wh);
+  AUD_DECISIONS[k]={
+    decisao,
+    saldoAnterior: AUD_BASELINE[k]?AUD_BASELINE[k].saldo:null,
+    saldoTotvsAtual: item?item._saldoTotvsAtual??item.saldo:null,
+    ts: new Date().toISOString()
+  };
+  try{ localStorage.setItem(AUD_LS_KEY, JSON.stringify(AUD_DECISIONS)); }catch(e){}
+  rAudit();
+}
+
+// Aplica a baseline travada no array de itens (ANTES de reservas/faturados),
+// e guarda o valor TOTVS ao vivo em _saldoTotvsAtual só pra fins de comparação/exibição.
+function aplicarAuditBaseline(items){
+  AUD_DIVERGENTES=[];
+  items.forEach(it=>{
+    const k=AUD_KEY(it.codigo,it.wh);
+    it._saldoTotvsAtual = it.saldo; // valor lido agora do TOTVS
+    const base=AUD_BASELINE[k];
+    if(!base) return; // sem baseline travada → segue lendo TOTVS ao vivo (comportamento padrão)
+    if(base.saldo!==it.saldo){
+      AUD_DIVERGENTES.push({codigo:it.codigo, wh:it.wh, descricao:it.nomenclatura||it.descricao, saldoSistema:base.saldo, saldoTotvs:it.saldo});
+    }
+    it.saldo = base.saldo; // trava o saldo usado no resto do dashboard
+  });
+}
+
+function baixarValidacoesEstoque(){
+  const linhas=['codigo;armazem;saldo_validado;decisao;data'];
+  const hoje=new Date().toLocaleDateString('pt-BR');
+  const chaves=new Set([...Object.keys(AUD_BASELINE), ...Object.keys(AUD_DECISIONS)]);
+  chaves.forEach(k=>{
+    const [codigo,wh]=k.split('|');
+    const dec=AUD_DECISIONS[k];
+    const base=AUD_BASELINE[k];
+    let saldo, decisao, data;
+    if(dec){
+      decisao=dec.decisao;
+      data=hoje;
+      saldo = dec.decisao==='aceitar_totvs' ? dec.saldoTotvsAtual : (base?base.saldo:dec.saldoTotvsAtual);
+    } else if(base){
+      saldo=base.saldo; decisao=base.decisao; data=base.data;
+    } else return;
+    linhas.push(`${codigo};${wh};${saldo};${decisao};${data}`);
+  });
+  const blob=new Blob([linhas.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='overrides_estoque.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 let AUDIT_INCOMPLETO_ATIVO=false;
 const resExpanded = new Set();
 
@@ -902,6 +987,17 @@ function pCard(r, isMP){
     </div>`;
   }).join('');
 
+  // Detalhe de reserva por armazém usando _byWH.reserva (já acumulado em dedup)
+  const resWhRows=WH_LIST.map(w=>{
+    const d=r._byWH[w]; if(!d||!d.reserva) return '';
+    const c=WH_COLOR[w]; const ico=WH_ICON[w];
+    return `<div class="pc2-wh-row">
+      <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
+      <span class="pc2-wh-name">${w}</span>
+      <span class="pc2-wh-val" style="color:var(--pur)">${fmt(d.reserva)}</span>
+    </div>`;
+  }).join('');
+
   // Detalhe de faturado por armazém usando _byWH.fat (já acumulado em dedup)
   const fatWhRows=WH_LIST.map(w=>{
     const d=r._byWH[w]; if(!d||!d.fat) return '';
@@ -946,7 +1042,10 @@ function pCard(r, isMP){
     </div>
     <div class="pc2-tot-detail" style="display:none">
       <div class="pc2-totals" style="border-top:none;padding-top:0">
-        ${res>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(res)}</span></div>`:''}
+        ${res>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(res)}</span></div>
+          <div style="padding:2px 0 0 12px;display:flex;flex-direction:column;gap:2px">
+            ${resWhRows}
+          </div>`:''}
         ${fat>0?`
           <div class="pc2-total-row pc2-fat"><span><i class="ti ti-truck-delivery"></i> Faturado</span><span>${fmt(fat)}</span></div>
           <div style="padding:2px 0 0 12px;display:flex;flex-direction:column;gap:2px">
@@ -1354,8 +1453,50 @@ function rAudit(){
     {nome:'Cadastro de Produtos',ts:SRC_TS.cadastro,cnt:Object.keys(CADASTRO).length,unit:'SKUs'},
     {nome:'Armazéns',ts:SRC_TS.armazens,cnt:Object.keys(WH_MAP).length,unit:'armazéns'},
     {nome:'Reservas',ts:SRC_TS.reservas,cnt:RES.length,unit:'reservas'},
+    {nome:'Baseline travada (overrides_estoque.csv)',ts:Object.keys(AUD_BASELINE).length?SRC_TS.estoque:null,cnt:Object.keys(AUD_BASELINE).length,unit:'código+armazém'},
   ].map(f=>`<tr><td>${f.nome}</td><td style="text-align:right;font-family:'DM Mono',monospace">${f.cnt} ${f.unit}</td>
     <td>${fmtTS(f.ts)}</td><td>${f.ts?'✅':'❌'}</td></tr>`).join('');
+
+  // ── Conferência TOTVS x Sistema: baseline travada vs valor lido agora nos CSVs de estoque
+  const nDecididas = AUD_DIVERGENTES.filter(v=>AUD_DECISIONS[AUD_KEY(v.codigo,v.wh)]).length;
+  const decRows = AUD_DIVERGENTES.map(v=>{
+    const k=AUD_KEY(v.codigo,v.wh);
+    const dec=AUD_DECISIONS[k];
+    const decLabel=dec?({aceitar_totvs:'✅ Aceitar TOTVS',manter_sistema:'🔒 Manter Sistema',investigar:'🔎 Investigar'}[dec.decisao]||dec.decisao):'';
+    const diff=v.saldoTotvs-v.saldoSistema;
+    const diffCor=diff>0?'var(--grn-d)':'var(--red)';
+    return `<tr style="${dec?'background:#f0fdf4':''}">
+      <td style="font-family:'DM Mono',monospace;color:#7c3aed">${v.codigo}</td>
+      <td>${v.descricao||'—'}</td>
+      <td>${v.wh}</td>
+      <td style="text-align:right">${fmt(v.saldoSistema)}</td>
+      <td style="text-align:right">${fmt(v.saldoTotvs)}</td>
+      <td style="text-align:right;font-weight:700;color:${diffCor}">${diff>0?'+':''}${fmt(diff)}</td>
+      <td>${dec?`<span style="font-size:11px;font-weight:600">${decLabel}</span>`:`
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button onclick="setDecisaoAudit('${v.codigo}','${v.wh}','aceitar_totvs')" style="font-size:10px;padding:3px 7px;border:1px solid var(--grn-d);background:var(--grn-pale);color:var(--grn-d);border-radius:5px;cursor:pointer">Aceitar TOTVS</button>
+          <button onclick="setDecisaoAudit('${v.codigo}','${v.wh}','manter_sistema')" style="font-size:10px;padding:3px 7px;border:1px solid var(--pri);background:var(--pri-pale);color:var(--pri);border-radius:5px;cursor:pointer">Manter Sistema</button>
+          <button onclick="setDecisaoAudit('${v.codigo}','${v.wh}','investigar')" style="font-size:10px;padding:3px 7px;border:1px solid var(--amb-d);background:var(--amb-pale);color:var(--amb-d);border-radius:5px;cursor:pointer">Investigar</button>
+        </div>`}</td>
+    </tr>`;
+  }).join('');
+  const totvsBlock = AUD_DIVERGENTES.length ? `
+    <div class="aud-block">
+      <div class="aud-hdr" style="background:#fdf4ff;color:#7c3aed;justify-content:space-between">
+        <span><i class="ti ti-scale"></i> Conferência TOTVS x Sistema — ${AUD_DIVERGENTES.length} divergência${AUD_DIVERGENTES.length>1?'s':''}</span>
+        <button onclick="baixarValidacoesEstoque()" style="padding:5px 12px;border:1px solid #7c3aed;background:#7c3aed;color:#fff;border-radius:6px;font-size:11px;cursor:pointer;font-weight:600">
+          <i class="ti ti-download"></i> Baixar validações${nDecididas?` (${nDecididas})`:''}
+        </button>
+      </div>
+      <div style="background:#fdf4ff;border:1px solid #e9d5ff;border-top:none;padding:8px 14px;font-size:11px;color:#581c87">
+        <b>Saldo Sistema</b> = valor travado na última validação. <b>Saldo TOTVS</b> = o que veio no arquivo de estoque mais recente.
+        Decida linha a linha; ao terminar, baixe o arquivo e suba em <code>data/overrides_estoque.csv</code> — o dashboard assume o novo valor assim que a página recarregar, sem esperar a próxima atualização semanal de estoque.
+      </div>
+      <table class="aud-tbl" style="border:1px solid #e9d5ff;border-top:none">
+        <tr style="background:#fdf4ff"><th>Código</th><th>Produto</th><th>Armazém</th><th style="text-align:right">Saldo Sistema</th><th style="text-align:right">Saldo TOTVS</th><th style="text-align:right">Dif.</th><th>Decisão</th></tr>
+        ${decRows}
+      </table>
+    </div>` : '';
 
   const alertRows=SRC_ALERTS.map(a=>`<tr style="background:#fff5f5"><td colspan="2" style="color:#dc2626;font-weight:600">${a.fonte}</td><td colspan="2">${a.msg}</td></tr>`).join('');
 
@@ -1388,6 +1529,7 @@ function rAudit(){
 
   document.getElementById('audit-content').innerHTML=`
     ${resSemArmBlock}
+    ${totvsBlock}
     <div class="aud-block">
       <div class="aud-hdr" style="background:#e8eef6;color:#1E3A5F"><i class="ti ti-database"></i> Auditoria de Fontes</div>
       <table class="aud-tbl" style="border:1px solid var(--brd);border-top:none">
@@ -1521,6 +1663,17 @@ async function boot(){
   }));
   SRC_TS.estoque=new Date();
   if(!stItems.length){ showErr('Nenhum produto carregado. Verifique os arquivos de estoque.'); return; }
+
+  // 3.5 Conferência TOTVS x Sistema — overrides_estoque.csv é OPCIONAL.
+  // Se não existir no repo ainda, AUD_BASELINE fica vazio e tudo segue lendo TOTVS ao vivo (padrão de hoje).
+  AUD_BASELINE={};
+  try{
+    const rOv=await fetch('data/overrides_estoque.csv',{cache:'no-store'});
+    if(rOv.ok) AUD_BASELINE=parseOverridesEstoque(await rOv.text());
+  }catch(e){ /* arquivo opcional — silencioso */ }
+  carregarDecisoesLocais();
+  aplicarAuditBaseline(stItems);
+
   joinCadastro(stItems);
   ST=stItems;
 
