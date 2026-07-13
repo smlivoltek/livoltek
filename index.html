@@ -1714,21 +1714,27 @@ async function boot(){
   document.getElementById('mc').style.display='block';
 
   // 5. Pedidos Faturados — busca do repositório Pedidos-Livoltek
-  prog('Carregando pedidos faturados...');
+  // ══ TEMPORARIAMENTE DESATIVADO (a pedido da Cristiane em 13/07/2026) ══
+  // Aguardando confirmação de informação antes de reenviar o relatório de pedidos.
+  // Pra reativar: trocar false por true abaixo.
+  const FATURADOS_ATIVOS = false;
   FAT = {};
-  try{
-    const fatText = await fetchComTimeout(PEDIDOS_CSV_URL, 10);
-    FAT = parsePedidosFaturados(fatText);
-    const nFat = Object.keys(FAT).length;
-    if(nFat) console.log(`📋 Pedidos faturados: ${nFat} combinações produto+armazém desde ${DATA_CORTE_FATURADOS.toLocaleDateString('pt-BR')}`);
-  }catch(e){
-    SRC_ALERTS.push({fonte:'pedidos.csv (faturados)',msg:'Não foi possível carregar: '+e.message,ts:new Date()});
+  if (FATURADOS_ATIVOS) {
+    prog('Carregando pedidos faturados...');
+    try{
+      const fatText = await fetchComTimeout(PEDIDOS_CSV_URL, 10);
+      FAT = parsePedidosFaturados(fatText);
+      const nFat = Object.keys(FAT).length;
+      if(nFat) console.log(`📋 Pedidos faturados: ${nFat} combinações produto+armazém desde ${DATA_CORTE_FATURADOS.toLocaleDateString('pt-BR')}`);
+    }catch(e){
+      SRC_ALERTS.push({fonte:'pedidos.csv (faturados)',msg:'Não foi possível carregar: '+e.message,ts:new Date()});
+    }
+    // Descontar faturados do disponível (Disponível = Saldo - Reserva - Faturado)
+    applyFaturados();
+    // Revalida: sem isso, divergências causadas só pelo faturado (ex: saldo 0 + faturado > 0)
+    // ficariam de fora da Auditoria, pois validateAll() já tinha rodado antes dos faturados existirem
+    validateAll();
   }
-  // Descontar faturados do disponível (Disponível = Saldo - Reserva - Faturado)
-  applyFaturados();
-  // Revalida: sem isso, divergências causadas só pelo faturado (ex: saldo 0 + faturado > 0)
-  // ficariam de fora da Auditoria, pois validateAll() já tinha rodado antes dos faturados existirem
-  validateAll();
 
   // 6. Data de atualização: data do CSV mais recente via GitHub API
   prog('Verificando data dos dados...');
