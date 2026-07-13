@@ -1726,6 +1726,9 @@ async function boot(){
   }
   // Descontar faturados do disponível (Disponível = Saldo - Reserva - Faturado)
   applyFaturados();
+  // Revalida: sem isso, divergências causadas só pelo faturado (ex: saldo 0 + faturado > 0)
+  // ficariam de fora da Auditoria, pois validateAll() já tinha rodado antes dos faturados existirem
+  validateAll();
 
   // 6. Data de atualização: data do CSV mais recente via GitHub API
   prog('Verificando data dos dados...');
