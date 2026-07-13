@@ -726,6 +726,10 @@ function parseReservasSheets(csv){
 // ══ PARSER: Pedidos Faturados (abate do estoque a partir de DATA_CORTE_FATURADOS)
 // Lê o mesmo pedidos.csv do repositório Pedidos-Livoltek.
 // Filtra status ENVIADO PARA FATURAMENTO (PD) com data de envio >= DATA_CORTE_FATURADOS.
+// IMPORTANTE: o saldo do ESTOQUE.csv é o saldo pós-inventário e já reflete (líquido) tudo
+// que foi faturado ATÉ o dia do corte (inclusive). Por isso DATA_CORTE_FATURADOS deve ser o
+// dia SEGUINTE ao fechamento do inventário — senão o faturamento daquele dia é abatido 2x
+// (uma vez fisicamente no saldo, outra vez aqui).
 // Agrupa por Código Produto + Warehouse → soma qtd para abater do estoque disponível.
 function parsePedidosFaturados(csvText){
   const result = {}; // { 'wh|codigo': {wh, codigo, qtd, pedidos:[]} }
@@ -1587,7 +1591,7 @@ function renderSrcAlerts(){
 const WAREHOUSES = ['curitiba','fortaleza','manaus','fabrica_manaus'];
 const RESERVAS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR3uDoajQWkalh8Tgks3Vl9G_hS8LHt19wtVmK33LydkfHE7fHBFVE4U3ajgbwVIpyaFiSLeOSYWGi5/pub?gid=577818960&single=true&output=csv';
 const PEDIDOS_CSV_URL = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
-const DATA_CORTE_FATURADOS = new Date(2026, 6, 7); // 07/07/2026 — saldo base fixo, apenas pedidos a partir de hoje abatidos
+const DATA_CORTE_FATURADOS = new Date(2026, 6, 8); // 08/07/2026 — saldo do inventário já está líquido de tudo faturado até 07/07/2026 (inclusive), então só conta faturados a partir de 08/07 pra não abater 2x
 
 // FATURADOS: { codigo -> { wh, qtd, pedidos:[] } } — abatido do estoque nos cards
 let FAT = {};
