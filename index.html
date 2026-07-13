@@ -97,14 +97,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc2{background:var(--surf);border:1px solid var(--brd);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;height:100%}
 .pc2-top{padding:.75rem 1rem .375rem}
 .pc2-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem}
-.pc2-nom{font-size:11px;font-weight:400;color:var(--txtm);line-height:1.4;margin-top:3px;word-break:break-word}
-.pc2-pill{font-size:9px;font-weight:600;padding:2px 7px;border-radius:5px;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.pc2-nom{font-size:11px;font-weight:400;color:var(--txtm);line-height:1.4;margin-top:4px;word-break:break-word;
+  min-height:5.6em}
+.pc2-pill{font-size:9px;font-weight:600;padding:2px 7px;border-radius:5px;white-space:nowrap;
+  display:inline-block;margin-bottom:5px;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
 .pc2-cod{font-family:'Inter',sans-serif;font-size:15px;font-weight:700;color:var(--txt);margin-top:0;letter-spacing:-.01em}
 .pc2-disp-block{padding:.25rem 1rem .5rem}
 .pc2-disp-lbl{font-size:9px;font-weight:700;color:var(--grn-d);text-transform:uppercase;letter-spacing:.05em}
 .pc2-disp-val{font-family:'DM Mono',monospace;font-size:32px;font-weight:700;line-height:1}
 .pc2-wh-list{padding:.375rem 1rem .5rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:3px;flex:1}
 .pc2-wh-row{display:flex;align-items:center;gap:7px}
+.pc2-wh-row.pc2-wh-zero{opacity:.4}
 .pc2-wh-name{flex:1;font-size:12px;color:var(--txt2)}
 .pc2-wh-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--txt)}
 .pc2-no-stock{font-size:11px;color:var(--txtm)}
@@ -982,12 +985,12 @@ function pCard(r, isMP){
   const famBg=isMP?'var(--red-pale)':'var(--pri-pale)';
 
   const whRows=WH_LIST.map(w=>{
-    const d=r._byWH[w]; if(!d||!d.saldo) return '';
+    const d=r._byWH[w]; const saldoW=d?d.saldo:0;
     const c=WH_COLOR[w]; const ico=WH_ICON[w];
-    return `<div class="pc2-wh-row">
+    return `<div class="pc2-wh-row${saldoW?'':' pc2-wh-zero'}">
       <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
       <span class="pc2-wh-name">${w}</span>
-      <span class="pc2-wh-val">${fmt(d.saldo)}</span>
+      <span class="pc2-wh-val">${fmt(saldoW)}</span>
     </div>`;
   }).join('');
 
@@ -1021,9 +1024,9 @@ function pCard(r, isMP){
 
   return `<div class="pc2${isMP?' mp':''}">
     <div class="pc2-top">
+      ${famLabel?`<span class="pc2-pill" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
       <div class="pc2-head">
         <div class="pc2-cod">${r.codigo}</div>
-        ${famLabel?`<span class="pc2-pill" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
       </div>
       ${isMP?'<div class="mp-badge"><i class="ti ti-box" style="font-size:10px"></i> MATÉRIA-PRIMA</div>':''}
       <div class="pc2-nom">${nom}</div>
@@ -1032,7 +1035,7 @@ function pCard(r, isMP){
       <div class="pc2-disp-lbl">Disponível para Venda</div>
       <div class="pc2-disp-val" style="color:${dispCol}">${fmt(disp)}</div>
     </div>
-    <div class="pc2-wh-list" style="flex:1">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
+    <div class="pc2-wh-list" style="flex:1">${whRows}</div>
     <div class="pc2-totals">
       <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(sal)}</span></div>
     </div>
@@ -1255,19 +1258,22 @@ function buildProdCard(g, modoDiretoria, isFiltered){
   const nCli=new Set(g.reservas.map(r=>r.cliente)).size;
   const whMap={};
   stRows.forEach(r=>{whMap[r.wh]=(whMap[r.wh]||0)+r.saldo;});
-  const whRows=Object.entries(whMap).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1])
-    .map(([w,v])=>`<div class="pc2-wh-row"><i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'}"></i><span class="pc2-wh-name">${w}</span><span class="pc2-wh-val">${fmt(v)}</span></div>`).join('');
+  const whRows=WH_LIST.map(w=>{
+    const v=whMap[w]||0;
+    return `<div class="pc2-wh-row${v?'':' pc2-wh-zero'}"><i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'}"></i><span class="pc2-wh-name">${w}</span><span class="pc2-wh-val">${fmt(v)}</span></div>`;
+  }).join('');
 
   const dispLbl = isFiltered ? 'Disponível (filtro ativo)' : 'Disponível Total';
   const resLbl = isFiltered ? 'Reserva (filtro ativo)' : 'Reserva';
 
   return `<div class="pc2">
     <div class="pc2-top">
-      <div class="pc2-head"><div class="pc2-cod">${g.codigo}</div>${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}</div>
+      ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
+      <div class="pc2-head"><div class="pc2-cod">${g.codigo}</div></div>
       <div class="pc2-nom">${nom}</div>
     </div>
     <div class="pc2-disp-block"><div class="pc2-disp-lbl">${dispLbl}</div><div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispExibido)}</div></div>
-    <div class="pc2-wh-list">${whRows||'<span class="pc2-no-stock">Sem saldo em estoque</span>'}</div>
+    <div class="pc2-wh-list">${whRows}</div>
     <div class="pc2-totals"><div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> ${resLbl}</span><span>${fmt(reservaExibida)}</span></div>
     ${isFiltered?`<div class="pc2-note">Reserva total do produto (todas as diretorias/buscas): ${fmt(reservaTotalReal)}</div>`:''}
     </div>
@@ -1330,10 +1336,9 @@ function rExp(){
     const whRows=WH_LIST.map(w=>{
       const whrec=dd.find(r=>r._byWH&&r._byWH[w]);
       const sal=whrec?._byWH?.[w]?.saldo||0;
-      if(!sal) return '';
       const c=WH_COLOR[w]||'#64748b';
       const ico=WH_ICON[w]||'ti-building-warehouse';
-      return `<div class="pc2-wh-row">
+      return `<div class="pc2-wh-row${sal?'':' pc2-wh-zero'}">
         <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
         <span class="pc2-wh-name">${w}</span>
         <span class="pc2-wh-val">${fmt(sal)}</span>
@@ -1354,9 +1359,9 @@ function rExp(){
 
     return `<div class="pc2">
       <div class="pc2-top">
+        ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
         <div class="pc2-head">
           <div class="pc2-cod">${sku}</div>
-          <span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>
         </div>
         <div class="pc2-nom">${nom}</div>
       </div>
@@ -1365,7 +1370,7 @@ function rExp(){
         <div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispTotal)}</div>
       </div>
       <div class="pc2-wh-list" style="flex:1">
-        ${whRows||'<span class="pc2-no-stock">Sem estoque no ARMZ 7</span>'}
+        ${whRows}
       </div>
       <div class="pc2-totals">
         <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(salTotal)}</span></div>
