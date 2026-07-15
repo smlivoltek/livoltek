@@ -570,9 +570,16 @@ function parseCadastro(csv){
   return map;
 }
 
-function parseEstoqueWH(csv, whCodigo){
-  const WH_FROM_FILE = { curitiba:'Curitiba (Eletra)', fortaleza:'Fortaleza (Eletra)', manaus:'Manaus (Eletra)', fabrica_manaus:'Fábrica Livoltek' };
-  const whNome = WH_FROM_FILE[whCodigo] || whCodigo;
+// ══ Mapa fixo FL (código de filial TOTVS) → armazém canônico do dashboard.
+// FL 010107 (Fábrica Livoltek dentro do TOTVS) é ignorado aqui de propósito:
+// a Fábrica Manaus tem seu próprio arquivo (estoque_fabrica_manaus.csv, formato diferente).
+const FL_MAP = { '010102':'Fortaleza (Eletra)', '010106':'Manaus (Eletra)', '010108':'Curitiba (Eletra)' };
+
+// ══ estoque_geral.csv — arquivo único que substitui os 3 arquivos separados
+// (estoque_curitiba.csv, estoque_fortaleza.csv, estoque_manaus.csv).
+// Mesmo layout TOTVS de sempre (CODIGO;TP;GRUPO;DESCRICAO;U.M.;FL;ARMZ;SALDO EM ESTOQUE;...),
+// só que agora com os 3 armazéns misturados nas linhas, distinguidos pela coluna FL.
+function parseEstoqueGeral(csv){
   const clean=csv.replace(/^\uFEFF/,'');
   const all=Papa.parse(clean,{header:false,skipEmptyLines:true,delimiter:';'}).data;
   if(!all.length) return [];
@@ -583,13 +590,10 @@ function parseEstoqueWH(csv, whCodigo){
   }
   const hdr=all[hdrIdx].map(h=>String(h).trim());
   const ci=makeCI(hdr);
-  // FL (idx 5) = código do armazém principal (10108=Curitiba, etc.) — fixo por arquivo, não filtra
-  // ARMZ (idx 6) = sub-armazém dentro do armazém. ARMZ=7 é o único comercial válido.
-  const iCOD=ci('CODIGO'), iARMZ=ci('ARMZ'), iDESC=ci('DESCRICAO','DESCRIÇÃO');
+  const iCOD=ci('CODIGO'), iFL=ci('FL'), iARMZ=ci('ARMZ'), iDESC=ci('DESCRICAO','DESCRIÇÃO');
   const iDISP=ci('ESTOQUE DISPONIVEL','ESTOQUE DISPONÍVEL');
   const iSAL=iDISP>=0 ? iDISP : ci('SALDO EM ESTOQUE');
   const iTP=ci('TP');
-  const iARMZfinal = iARMZ>=0 ? iARMZ : 6; // fallback índice fixo 6
 
   const items=[];
   for(let i=hdrIdx+1;i<all.length;i++){
@@ -597,8 +601,14 @@ function parseEstoqueWH(csv, whCodigo){
     const codigo=String(r[iCOD]||'').trim().toUpperCase();
     if(!codigo) continue;
 
+    // FL identifica o armazém da linha. FL não mapeado (ex: 010107 = Fábrica Livoltek
+    // amostra do TOTVS) é ignorado — não é um dos 3 armazéns comerciais deste arquivo.
+    const flRaw=String(iFL>=0?r[iFL]:'').trim();
+    const whNome=FL_MAP[flRaw];
+    if(!whNome) continue;
+
     // Filtro ARMZ=7: comparação numérica para evitar problemas com espaços/zeros à esquerda
-    const armzRaw=String(r[iARMZfinal]||'').trim();
+    const armzRaw=String(iARMZ>=0?r[iARMZ]:'').trim();
     const armzNum=parseInt(armzRaw,10);
     if(armzRaw && armzNum!==7) continue;
 
@@ -609,13 +619,16 @@ function parseEstoqueWH(csv, whCodigo){
       categoria:'',familia:'',nomenclatura:'',isMP:false,_semCadastro:false,_incompleto:[],tp});
   }
 
-  // Linhas de exportação: SKUs fixos em QUALQUER ARMZ (sem filtro)
+  // Linhas de exportação: SKUs fixos em QUALQUER ARMZ (sem filtro), dentro dos 3 armazéns válidos
   // Guardados separadamente em EXP_RAW para a aba Exportação
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
     const codigo=String(r[iCOD]||'').trim().toUpperCase();
     if(!EXPORT_SKUS.includes(codigo)) continue;
-    const armzRaw=String(r[iARMZfinal]||'').trim();
+    const flRaw=String(iFL>=0?r[iFL]:'').trim();
+    const whNome=FL_MAP[flRaw];
+    if(!whNome) continue;
+    const armzRaw=String(iARMZ>=0?r[iARMZ]:'').trim();
     const armzNum=parseInt(armzRaw,10);
     if(armzNum===7) continue; // já incluído no estoque comercial
     if(ARMZ_EXCLUIR_EXP.has(armzNum)) continue; // excluir garantia(8), reparo(12), scrap(16)
@@ -637,14 +650,15 @@ function parseFabricaManaus(csv){
     if(joined.includes('HEXING')&&joined.includes('Saldo')){hdrIdx=i;break;}
   }
   const hdr=all[hdrIdx].map(h=>String(h).trim());
-  const iHEXING=hdr.findIndex(h=>h==='HEXING')>=0?hdr.findIndex(h=>h==='HEXING'):2;
+  // Código do produto vem da coluna TOP (não HEXING) — confirmado por Cristiane.
+  const iTOP=hdr.findIndex(h=>h==='TOP')>=0?hdr.findIndex(h=>h==='TOP'):0;
   const iSAL=hdr.findIndex(h=>h==='Saldo Estoque')>=0?hdr.findIndex(h=>h==='Saldo Estoque'):13;
   const iDESC=hdr.findIndex(h=>h==='Coluna6')>=0?hdr.findIndex(h=>h==='Coluna6'):6;
   const items=[];
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
     if(!r||r.length<3) continue;
-    const codigo=String(r[iHEXING]||'').trim().toUpperCase();
+    const codigo=String(r[iTOP]||'').trim().toUpperCase();
     if(!codigo) continue;
     const saldo=pn(r[iSAL]||0);
     const descricao=String(r[iDESC]||'').trim();
@@ -1593,7 +1607,6 @@ function renderSrcAlerts(){
 }
 
 // ══ BOOT ══
-const WAREHOUSES = ['curitiba','fortaleza','manaus','fabrica_manaus'];
 const RESERVAS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR3uDoajQWkalh8Tgks3Vl9G_hS8LHt19wtVmK33LydkfHE7fHBFVE4U3ajgbwVIpyaFiSLeOSYWGi5/pub?gid=577818960&single=true&output=csv';
 const PEDIDOS_CSV_URL = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
 const DATA_CORTE_FATURADOS = new Date(2026, 6, 8); // 08/07/2026 — saldo do inventário já está líquido de tudo faturado até 07/07/2026 (inclusive), então só conta faturados a partir de 08/07 pra não abater 2x
@@ -1655,19 +1668,25 @@ async function boot(){
     return;
   }
 
-  // 3. Estoques por armazém (paralelo)
+  // 3. Estoques: 2 arquivos — estoque_geral.csv (Fortaleza+Curitiba+Manaus, distinguidos por FL)
+  // e estoque_fabrica_manaus.csv (layout próprio, código na coluna TOP).
+  // Ambos em windows-1252 (TOTVS/Excel) — decodificados via arrayBuffer, não .text(),
+  // pra não corromper acentos/caracteres especiais (°, ², µ etc.), mesmo problema já visto no pedidos.csv.
   const stItems=[];
   prog('Carregando arquivos de estoque...');
-  await Promise.all(WAREHOUSES.map(async wh=>{
+  const ESTOQUE_FILES=[
+    {url:'data/estoque_geral.csv', label:'estoque_geral.csv', parser:parseEstoqueGeral},
+    {url:'data/estoque_fabrica_manaus.csv', label:'estoque_fabrica_manaus.csv', parser:parseFabricaManaus}
+  ];
+  await Promise.all(ESTOQUE_FILES.map(async f=>{
     try{
-      const fname = wh==='fabrica_manaus' ? 'data/estoque_fabrica_manaus.csv' : `data/estoque_${wh}.csv`;
-      const r=await fetch(fname,{cache:'no-store'});
+      const r=await fetch(f.url,{cache:'no-store'});
       if(!r.ok) throw new Error('HTTP '+r.status);
-      const txt=await r.text();
-      const items = wh==='fabrica_manaus' ? parseFabricaManaus(txt) : parseEstoqueWH(txt,wh);
-      stItems.push(...items);
+      const buf=await r.arrayBuffer();
+      const txt=new TextDecoder('windows-1252').decode(buf);
+      stItems.push(...f.parser(txt));
     }catch(e){
-      SRC_ALERTS.push({fonte:`estoque_${wh}.csv`,msg:`Arquivo não encontrado ou inválido: ${e.message}`,ts:new Date()});
+      SRC_ALERTS.push({fonte:f.label,msg:`Arquivo não encontrado ou inválido: ${e.message}`,ts:new Date()});
     }
   }));
   SRC_TS.estoque=new Date();
@@ -1741,8 +1760,8 @@ async function boot(){
   let dataCSV = null;
   try{
     const OWNER='smlivoltek', REPO='livoltek';
-    // Data do commit mais recente entre os 4 CSVs de estoque
-    const estoqueFiles=['data/estoque_curitiba.csv','data/estoque_fortaleza.csv','data/estoque_manaus.csv','data/estoque_fabrica_manaus.csv'];
+    // Data do commit mais recente entre os 2 CSVs de estoque
+    const estoqueFiles=['data/estoque_geral.csv','data/estoque_fabrica_manaus.csv'];
     const datas = await Promise.all(estoqueFiles.map(async f=>{
       try{
         const resp=await fetchComTimeout(`https://api.github.com/repos/${OWNER}/${REPO}/commits?path=${f}&per_page=1`,5);
