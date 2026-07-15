@@ -1657,11 +1657,16 @@ async function boot(){
   SRC_TS.armazens=new Date();
 
   // 2. cadastro_produtos.csv
+  // Decodificado como windows-1252 (mesmo motivo do pedidos.csv e dos estoque_*.csv):
+  // se o arquivo vier do Excel/TOTVS nesse encoding e for lido com .text() puro (UTF-8),
+  // acentos em "Categoria" (ex: MATÉRIA-PRIMA) e "Família" quebram e o isMP para de bater.
   prog('Carregando cadastro_produtos.csv...');
   try{
     const r=await fetch('data/cadastro_produtos.csv',{cache:'no-store'});
     if(!r.ok) throw new Error('HTTP '+r.status);
-    CADASTRO=parseCadastro(await r.text());
+    const buf=await r.arrayBuffer();
+    const txt=new TextDecoder('windows-1252').decode(buf);
+    CADASTRO=parseCadastro(txt);
   }catch(e){
     console.error('Erro ao processar cadastro_produtos.csv:', e);
     showErr('<b>data/cadastro_produtos.csv</b>: '+e.message);
