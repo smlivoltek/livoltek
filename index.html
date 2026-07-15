@@ -343,7 +343,7 @@ const WH_LIST  = ['Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','F�
 const WH_COLOR = {'Curitiba (Eletra)':'var(--cwb)','Fortaleza (Eletra)':'var(--for)','Manaus (Eletra)':'var(--mao-e)','Fábrica Livoltek':'var(--mao-l)'};
 const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra)':'ti-building-warehouse','Manaus (Eletra)':'ti-building-warehouse','Fábrica Livoltek':'ti-building-factory-2'};
 
-let ST=[], RES=[], CADASTRO={}, MODO='novo';
+let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, MODO='novo';
 let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[];
 
 // ══ CONFERÊNCIA TOTVS x SISTEMA ══
@@ -554,19 +554,26 @@ function parseCadastro(csv){
   const iCAT = ci('Categoria','CATEGORIA')>=0?ci('Categoria','CATEGORIA'):3;
   const iFAM = ci('Família','Familia','FAMILIA')>=0?ci('Família','Familia','FAMILIA'):4;
   const iNOM = ci('Nomenclatura','NOMENCLATURA')>=0?ci('Nomenclatura','NOMENCLATURA'):5;
-  const map={}, dupl=[];
+  const map={}, mapTop={}, dupl=[];
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
     const codigo=String(r[iCOD]||'').trim().toUpperCase().replace(/\.$/,''); // remove ponto final
     if(!codigo) continue;
     if(map[codigo]){ dupl.push(codigo); continue; }
-    map[codigo]={
+    const item={
       codigo, descricao:String(r[iDESC]||'').trim(), topManager:String(r[iTOP]||'').trim(),
       categoria:fixEnc(r[iCAT]), familia:String(r[iFAM]||'').trim(), nomenclatura:String(r[iNOM]||'').trim()
     };
+    map[codigo]=item;
+    // Índice secundário: código TopManager (ex: "106170") → registro do cadastro (ex: "106170M").
+    // A Fábrica Manaus reporta pelo código TopManager, que pode ser igual a uma CODIGO primária
+    // de outro item (ex: "106170" existe como PRODUTO E como TOP MANAGER de "106170M"/MATERIA-PRIMA) —
+    // por isso esse índice é separado, pra não confundir com o lookup por CODIGO principal.
+    if(item.topManager) mapTop[item.topManager.toUpperCase()]=item;
   }
   VAL_DUPLICADO=dupl.map(c=>({codigo:c,descricao:map[c]?.descricao||'',msg:'Código duplicado no cadastro_produtos'}));
   SRC_TS.cadastro=new Date();
+  CADASTRO_TOP=mapTop;
   return map;
 }
 
@@ -819,7 +826,11 @@ function joinCadastro(items){
     return u.includes('MATERIA')&&u.includes('PRIMA');
   };
   items.forEach(s=>{
-    const cad=CADASTRO[s.codigo];
+    // Itens da Fábrica Livoltek vêm com código do sistema TopManager (coluna TOP do relatório).
+    // Esse número pode coincidir com uma CODIGO primária de outro item no cadastro (ex: "106170"
+    // existe como PRODUTO comum), então pra esses itens buscamos primeiro pelo índice de
+    // CODIGO TOP MANAGER (CADASTRO_TOP) — só cai no lookup direto se não achar por lá.
+    const cad = (s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]) ? CADASTRO_TOP[s.codigo] : CADASTRO[s.codigo];
     s._semCadastro=!cad;
     if(cad){
       // Usa dado do ESTOQUE.csv se preenchido, senão cai no cadastro_produtos
@@ -827,10 +838,10 @@ function joinCadastro(items){
       if(!s.familia)      s.familia=cad.familia||'';
       if(!s.categoria)    s.categoria=(cad.categoria||'').toUpperCase();
     }
-    // isMP: sinal principal é a coluna TP do estoque_geral.csv (TP='MP'), confirmada nos dados reais.
-    // A Categoria do cadastro_produtos.csv é usada só como fallback (ex: itens da Fábrica Manaus,
-    // que não têm coluna TP) — o cadastro_produtos.csv hoje cobre pouquíssimos códigos com essa Categoria.
-    s.isMP=(s.tp==='MP')||isMP_cat(s.categoria);
+    // isMP: SEMPRE definido pela Categoria do cadastro_produtos.csv (busca por código),
+    // nunca pelo campo TP do estoque_geral.csv — instrução explícita da Cristiane.
+    // Se a Categoria estiver vazia/não cadastrada para o código, o item não conta como MP.
+    s.isMP=isMP_cat(s.categoria);
     // Recalcular _catTab com dados enriquecidos
     const FAM_ABA={'INVERSOR':'inv','CARREGADOR':'ev','BATERIA':'bess','BESS':'bess',
       'KIT SOLAR':'kit','STRING BOX':'strbox','MOTOR DE BARCO':'mot','HYPER':'inv'};
