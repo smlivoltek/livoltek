@@ -827,7 +827,10 @@ function joinCadastro(items){
       if(!s.familia)      s.familia=cad.familia||'';
       if(!s.categoria)    s.categoria=(cad.categoria||'').toUpperCase();
     }
-    s.isMP=isMP_cat(s.categoria);
+    // isMP: sinal principal é a coluna TP do estoque_geral.csv (TP='MP'), confirmada nos dados reais.
+    // A Categoria do cadastro_produtos.csv é usada só como fallback (ex: itens da Fábrica Manaus,
+    // que não têm coluna TP) — o cadastro_produtos.csv hoje cobre pouquíssimos códigos com essa Categoria.
+    s.isMP=(s.tp==='MP')||isMP_cat(s.categoria);
     // Recalcular _catTab com dados enriquecidos
     const FAM_ABA={'INVERSOR':'inv','CARREGADOR':'ev','BATERIA':'bess','BESS':'bess',
       'KIT SOLAR':'kit','STRING BOX':'strbox','MOTOR DE BARCO':'mot','HYPER':'inv'};
