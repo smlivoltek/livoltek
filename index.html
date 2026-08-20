@@ -165,6 +165,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
   .kcard{padding:12px}
   .kcard-val{font-size:20px}
   #sb-audit{display:none}
+  #dash-top10-fam{grid-template-columns:1fr!important}
 }
 @media(max-width:420px){ .k4{grid-template-columns:1fr} }
 </style>
@@ -266,6 +267,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
         <div id="dash-cat" style="margin-bottom:20px"></div>
         <div class="k4" id="dash-wh"></div>
         <div id="dash-top10"></div>
+        <div id="dash-top10-fam" style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px"></div>
       </div>
 
       <!-- ══ TODOS ══ -->
@@ -1269,6 +1271,27 @@ function rDash(){
         <span style="font-family:'DM Mono',monospace;font-weight:700">${fmt(r._disp)}</span>
       </div>`).join('')}
     </div>`;
+
+  // Top 10 por família (Inversores / Carregadores EV) — ranqueado por Disponível
+  // (saldo já líquido de reserva, igual ao Top 10 geral acima). Se a família tiver
+  // menos de 10 SKUs, mostra só 5 (ou menos, se nem 5 existir).
+  function topFamilia(tabId){
+    const rows=dedup(ST.filter(r=>getCatTab(r)===tabId)).sort((a,b)=>b._disp-a._disp);
+    const n = rows.length>=10 ? 10 : Math.min(5, rows.length);
+    return rows.slice(0, n);
+  }
+  function blocoTopFamilia(titulo, icone, rows){
+    return `<div style="background:var(--surf);border:1px solid var(--brd);border-radius:10px;padding:14px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:10px"><i class="ti ${icone}"></i> ${titulo}</div>
+      ${rows.length ? rows.map((r,i)=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd);font-size:12px">
+        <span>${i+1}. ${tr(r.nomenclatura||r.descricao,40)}</span>
+        <span style="font-family:'DM Mono',monospace;font-weight:700">${fmt(r._disp)}</span>
+      </div>`).join('') : `<div style="font-size:12px;color:var(--txtm);padding:6px 0">Nenhum item encontrado.</div>`}
+    </div>`;
+  }
+  document.getElementById('dash-top10-fam').innerHTML =
+    blocoTopFamilia('Top 10 Inversores — Maior Disponível', 'ti-bolt', topFamilia('inv')) +
+    blocoTopFamilia('Top 10 Carregadores EV — Maior Disponível', 'ti-charging-pile', topFamilia('ev'));
 }
 
 function rAll(){ renderCat('todos'); }
