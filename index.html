@@ -345,7 +345,7 @@ const WH_LIST  = ['Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','F�
 const WH_COLOR = {'Curitiba (Eletra)':'var(--cwb)','Fortaleza (Eletra)':'var(--for)','Manaus (Eletra)':'var(--mao-e)','Fábrica Livoltek':'var(--mao-l)'};
 const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra)':'ti-building-warehouse','Manaus (Eletra)':'ti-building-warehouse','Fábrica Livoltek':'ti-building-factory-2'};
 
-let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, MODO='novo';
+let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, CADASTRO_NOM={}, MODO='novo';
 let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[];
 
 // ══ CONFERÊNCIA TOTVS x SISTEMA ══
@@ -556,7 +556,7 @@ function parseCadastro(csv){
   const iCAT = ci('Categoria','CATEGORIA')>=0?ci('Categoria','CATEGORIA'):3;
   const iFAM = ci('Família','Familia','FAMILIA')>=0?ci('Família','Familia','FAMILIA'):4;
   const iNOM = ci('Nomenclatura','NOMENCLATURA')>=0?ci('Nomenclatura','NOMENCLATURA'):5;
-  const map={}, mapTop={}, dupl=[];
+  const map={}, mapTop={}, mapNomCount={}, mapNom={}, dupl=[];
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
     const codigo=String(r[iCOD]||'').trim().toUpperCase().replace(/\.$/,''); // remove ponto final
@@ -572,17 +572,31 @@ function parseCadastro(csv){
     // de outro item (ex: "106170" existe como PRODUTO E como TOP MANAGER de "106170M"/MATERIA-PRIMA) —
     // por isso esse índice é separado, pra não confundir com o lookup por CODIGO principal.
     if(item.topManager) mapTop[item.topManager.toUpperCase()]=item;
+    // Índice terciário: texto da Nomenclatura → registro. Alguns relatórios (ex: o Resumo
+    // da Fábrica/Eletra Manaus) reportam o "Product" usando o texto da Nomenclatura em vez
+    // de um código (ex: "GT3 -100K-1 380V AFCI"). Só usamos esse índice quando o texto é
+    // único no cadastro (não ambíguo) — se duas linhas tiverem a mesma Nomenclatura, nenhuma
+    // delas entra no índice, pra evitar resolver errado.
+    const nomKey=item.nomenclatura.toUpperCase();
+    if(nomKey){
+      mapNomCount[nomKey]=(mapNomCount[nomKey]||0)+1;
+      mapNom[nomKey]=item;
+    }
   }
+  Object.keys(mapNomCount).forEach(k=>{ if(mapNomCount[k]>1) delete mapNom[k]; });
   VAL_DUPLICADO=dupl.map(c=>({codigo:c,descricao:map[c]?.descricao||'',msg:'Código duplicado no cadastro_produtos'}));
   SRC_TS.cadastro=new Date();
   CADASTRO_TOP=mapTop;
+  CADASTRO_NOM=mapNom;
   return map;
 }
 
 // ══ Mapa fixo FL (código de filial TOTVS) → armazém canônico do dashboard.
-// FL 010107 (Fábrica Livoltek dentro do TOTVS) é ignorado aqui de propósito:
-// a Fábrica Manaus tem seu próprio arquivo (estoque_fabrica_manaus.csv, formato diferente).
-const FL_MAP = { '010102':'Fortaleza (Eletra)', '010106':'Manaus (Eletra)', '010108':'Curitiba (Eletra)' };
+// FL 010107 (Fábrica Livoltek dentro do TOTVS) é ignorado aqui de propósito.
+// FL 010106 (Manaus/Eletra) TAMBÉM não entra mais por aqui — desde 31/08/2026, a Cristiane
+// pediu pra usar os dados "Importado-TOTVS" do arquivo estoque_manaus_resumo.csv em vez do
+// estoque_geral.csv pra esse armazém, porque aquele relatório já vem líquido de produção/separação.
+const FL_MAP = { '010102':'Fortaleza (Eletra)', '010108':'Curitiba (Eletra)' };
 
 // ══ estoque_geral.csv — arquivo único que substitui os 3 arquivos separados
 // (estoque_curitiba.csv, estoque_fortaleza.csv, estoque_manaus.csv).
@@ -649,30 +663,62 @@ function parseEstoqueGeral(csv){
   return items;
 }
 
-function parseFabricaManaus(csv){
+// ══ estoque_manaus_resumo.csv — substitui o antigo parser TOP/HEXING.
+// Fonte: aba "Resumo" da planilha "Warehouse_Eletra_Livoltek_DD_MM_AAAA.xlsx", exportada em CSV.
+// Colunas: (vazia) | ID | Product | Quantily | Obs
+//
+// ID separa os dados em 2 armazéns diferentes:
+//   Nacional-Topmanger + Importado-Topmanger  → Fábrica Livoltek (Manaus)
+//   Importado-TOTVS                            → Manaus (Eletra) — substitui o FL 010106
+//   do estoque_geral.csv, porque esse relatório já vem líquido de produção/separação (dado real).
+//
+// Casos manuais confirmados pela Cristiane em 31/08/2026 (não tentar casar com o cadastro):
+//   "GT1 7-10KW" (Nacional-Topmanger) = matéria-prima, item próprio — não mesclar com
+//   nenhum candidato do cadastro (106171M / 7-10KW), fica separado mesmo.
+//   "LHE34DR" e "LHE12DR" ficam sem cadastro por enquanto (ambíguos, decisão pendente).
+const MANAUS_RESUMO_OVERRIDES = {
+  'GT1 7-10KW': { isMP:true, familia:'INVERSOR - GT1', nomenclatura:'GT1 7-10KW (Fábrica Manaus)' }
+};
+function parseManausResumo(csv){
   const clean=csv.replace(/^\uFEFF/,'');
   const all=Papa.parse(clean,{header:false,skipEmptyLines:true,delimiter:';'}).data;
   if(all.length<2) return [];
   let hdrIdx=0;
   for(let i=0;i<Math.min(5,all.length);i++){
-    const joined=all[i].join('|');
-    if(joined.includes('HEXING')&&joined.includes('Saldo')){hdrIdx=i;break;}
+    const joined=all[i].join('|').toUpperCase();
+    if(joined.includes('ID')&&(joined.includes('PRODUCT')||joined.includes('PRODUTO'))){hdrIdx=i;break;}
   }
   const hdr=all[hdrIdx].map(h=>String(h).trim());
-  // Código do produto vem da coluna TOP (não HEXING) — confirmado por Cristiane.
-  const iTOP=hdr.findIndex(h=>h==='TOP')>=0?hdr.findIndex(h=>h==='TOP'):0;
-  const iSAL=hdr.findIndex(h=>h==='Saldo Estoque')>=0?hdr.findIndex(h=>h==='Saldo Estoque'):13;
-  const iDESC=hdr.findIndex(h=>h==='Coluna6')>=0?hdr.findIndex(h=>h==='Coluna6'):6;
+  const ci=makeCI(hdr);
+  const iID=ci('ID')>=0?ci('ID'):1;
+  const iPROD=ci('Product','Produto')>=0?ci('Product','Produto'):2;
+  const iQTD=ci('Quantily','Quantity','Quantidade')>=0?ci('Quantily','Quantity','Quantidade'):3;
+
+  // Dedup de linhas coladas duas vezes por engano: mesma combinação ID+Product+Quantidade
+  // exata aparecendo repetida (confirmado pela Cristiane em 31/08/2026) conta só uma vez.
+  const seen=new Set();
   const items=[];
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
-    if(!r||r.length<3) continue;
-    const codigo=String(r[iTOP]||'').trim().toUpperCase();
+    const idRaw=String(iID>=0?r[iID]:'').trim();
+    if(!idRaw) continue;
+    const codigo=String(iPROD>=0?r[iPROD]:'').trim().toUpperCase();
     if(!codigo) continue;
-    const saldo=pn(r[iSAL]||0);
-    const descricao=String(r[iDESC]||'').trim();
-    items.push({codigo,descricao,wh:'Fábrica Livoltek',armz:'07',saldo,reserva:0,fat:0,disp:0,
-      categoria:'',familia:'',nomenclatura:'',isMP:false,_semCadastro:false,_incompleto:[],tp:''});
+    const saldo=pn(iQTD>=0?r[iQTD]:0);
+    const dupKey=`${idRaw}|${codigo}|${saldo}`;
+    if(seen.has(dupKey)) continue;
+    seen.add(dupKey);
+
+    const idNorm=idRaw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+    let wh;
+    if(idNorm.includes('IMPORTADO')&&idNorm.includes('TOTVS')) wh='Manaus (Eletra)';
+    else if(idNorm.includes('TOPMANGER')||idNorm.includes('TOPMANAGER')) wh='Fábrica Livoltek';
+    else continue; // categoria de ID desconhecida — não inclui, pra não classificar errado
+
+    const override=MANAUS_RESUMO_OVERRIDES[codigo];
+    items.push({codigo,descricao:codigo,wh,saldo,reserva:0,fat:0,disp:0,armz:'07',
+      categoria:override?.categoria||'',familia:override?.familia||'',nomenclatura:override?.nomenclatura||'',
+      isMP:!!override?.isMP,_semCadastro:false,_incompleto:[],tp:'',_forcado:!!override});
   }
   return items;
 }
@@ -836,11 +882,25 @@ function joinCadastro(items){
     return u.includes('MATERIA')&&u.includes('PRIMA');
   };
   items.forEach(s=>{
+    if(s._forcado){
+      // Override manual confirmado pela Cristiane (ex: "GT1 7-10KW" = matéria-prima, item
+      // próprio) — não tenta casar com o cadastro, mantém os valores já definidos no parser.
+      s._semCadastro=true;
+      const f=(s.familia||'').toUpperCase();
+      s._catTab='div';
+      const FAM_ABA_F={'INVERSOR':'inv','CARREGADOR':'ev','BATERIA':'bess','BESS':'bess',
+        'KIT SOLAR':'kit','STRING BOX':'strbox','MOTOR DE BARCO':'mot','HYPER':'inv'};
+      for(const [key,tab] of Object.entries(FAM_ABA_F)){ if(f.includes(key)){s._catTab=tab;break;} }
+      return;
+    }
     // Itens da Fábrica Livoltek vêm com código do sistema TopManager (coluna TOP do relatório).
     // Esse número pode coincidir com uma CODIGO primária de outro item no cadastro (ex: "106170"
     // existe como PRODUTO comum), então pra esses itens buscamos primeiro pelo índice de
     // CODIGO TOP MANAGER (CADASTRO_TOP) — só cai no lookup direto se não achar por lá.
-    const cad = (s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]) ? CADASTRO_TOP[s.codigo] : CADASTRO[s.codigo];
+    // Terceira tentativa: Nomenclatura exata (CADASTRO_NOM) — usado quando o relatório de origem
+    // reporta o texto da nomenclatura em vez de um código (ex: "GT3 -100K-1 380V AFCI").
+    const cad = (s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]) ? CADASTRO_TOP[s.codigo]
+      : (CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo]);
     s._semCadastro=!cad;
     if(cad){
       // Usa dado do ESTOQUE.csv se preenchido, senão cai no cadastro_produtos
@@ -1756,15 +1816,17 @@ async function boot(){
     return;
   }
 
-  // 3. Estoques: 2 arquivos — estoque_geral.csv (Fortaleza+Curitiba+Manaus, distinguidos por FL)
-  // e estoque_fabrica_manaus.csv (layout próprio, código na coluna TOP).
+  // 3. Estoques: 2 arquivos — estoque_geral.csv (Fortaleza+Curitiba, distinguidos por FL)
+  // e estoque_manaus_resumo.csv (aba Resumo da Warehouse_Eletra_Livoltek, cobre TANTO Fábrica
+  // Livoltek quanto Manaus/Eletra — desde 31/08/2026 esse arquivo substitui o FL 010106 do
+  // estoque_geral.csv e o antigo formato TOP/HEXING da Fábrica).
   // Ambos em windows-1252 (TOTVS/Excel) — decodificados via arrayBuffer, não .text(),
   // pra não corromper acentos/caracteres especiais (°, ², µ etc.), mesmo problema já visto no pedidos.csv.
   const stItems=[];
   prog('Carregando arquivos de estoque...');
   const ESTOQUE_FILES=[
     {url:'data/estoque_geral.csv', label:'estoque_geral.csv', parser:parseEstoqueGeral},
-    {url:'data/estoque_fabrica_manaus.csv', label:'estoque_fabrica_manaus.csv', parser:parseFabricaManaus}
+    {url:'data/estoque_manaus_resumo.csv', label:'estoque_manaus_resumo.csv', parser:parseManausResumo}
   ];
   await Promise.all(ESTOQUE_FILES.map(async f=>{
     try{
@@ -1850,7 +1912,7 @@ async function boot(){
   try{
     const OWNER='smlivoltek', REPO='livoltek';
     // Data do commit mais recente entre os 2 CSVs de estoque
-    const estoqueFiles=['data/estoque_geral.csv','data/estoque_fabrica_manaus.csv'];
+    const estoqueFiles=['data/estoque_geral.csv','data/estoque_manaus_resumo.csv'];
     const datas = await Promise.all(estoqueFiles.map(async f=>{
       try{
         const resp=await fetchComTimeout(`https://api.github.com/repos/${OWNER}/${REPO}/commits?path=${f}&per_page=1`,5);
