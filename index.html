@@ -593,10 +593,12 @@ function parseCadastro(csv){
 
 // ══ Mapa fixo FL (código de filial TOTVS) → armazém canônico do dashboard.
 // FL 010107 (Fábrica Livoltek dentro do TOTVS) é ignorado aqui de propósito.
-// FL 010106 (Manaus/Eletra) TAMBÉM não entra mais por aqui — desde 31/08/2026, a Cristiane
-// pediu pra usar os dados "Importado-TOTVS" do arquivo estoque_manaus_resumo.csv em vez do
-// estoque_geral.csv pra esse armazém, porque aquele relatório já vem líquido de produção/separação.
-const FL_MAP = { '010102':'Fortaleza (Eletra)', '010108':'Curitiba (Eletra)' };
+// FL 010106 (Manaus/Eletra) volta a ser lido daqui — o estoque_manaus_resumo.csv (Importado-TOTVS)
+// só cobre uma lista curada de SKUs (inversores/carregadores), não o armazém inteiro. Pra não
+// perder itens genéricos que só existem no TOTVS (ex: peças/acessórios), lemos os dois e o
+// merge no boot() dá prioridade ao Resumo pros códigos que aparecem lá, usando o estoque_geral.csv
+// só pra completar o que falta.
+const FL_MAP = { '010102':'Fortaleza (Eletra)', '010106':'Manaus (Eletra)', '010108':'Curitiba (Eletra)' };
 
 // ══ estoque_geral.csv — arquivo único que substitui os 3 arquivos separados
 // (estoque_curitiba.csv, estoque_fortaleza.csv, estoque_manaus.csv).
@@ -1559,11 +1561,15 @@ function rRes(){
 
 // ══ SIDEBAR / SELECTS ══
 function updateSidebar(){
-  const tabs=['inv','ev','bess','kit','strbox','div','mot','mp'];
+  // 'mp' NÃO é um valor que getCatTab() retorna — a aba Matéria-Prima é filtrada por
+  // r.isMP (independente da família), então o contador dela precisa ser calculado à parte;
+  // do jeito antigo (contando via getCatTab(r)==='mp'), o contador ficava sempre em 0.
+  const tabs=['inv','ev','bess','kit','strbox','div','mot'];
   tabs.forEach(tb=>{
     const n=new Set(ST.filter(r=>getCatTab(r)===tb).map(r=>r.codigo)).size;
     const el=document.getElementById('sc-'+tb); if(el) el.textContent=n;
   });
+  document.getElementById('sc-mp').textContent=new Set(ST.filter(r=>r.isMP).map(r=>r.codigo)).size;
   document.getElementById('sc-todos').textContent=new Set(ST.map(r=>r.codigo)).size;
   document.getElementById('sc-res').textContent=new Set(RES.map(r=>r.codigo)).size;
 }
@@ -1816,17 +1822,22 @@ async function boot(){
     return;
   }
 
-  // 3. Estoques: 2 arquivos — estoque_geral.csv (Fortaleza+Curitiba, distinguidos por FL)
-  // e estoque_manaus_resumo.csv (aba Resumo da Warehouse_Eletra_Livoltek, cobre TANTO Fábrica
-  // Livoltek quanto Manaus/Eletra — desde 31/08/2026 esse arquivo substitui o FL 010106 do
-  // estoque_geral.csv e o antigo formato TOP/HEXING da Fábrica).
+  // 3. Estoques: 2 arquivos — estoque_geral.csv (Fortaleza+Curitiba+Manaus, por FL) e
+  // estoque_manaus_resumo.csv (aba Resumo da Warehouse_Eletra_Livoltek: Fábrica Livoltek +
+  // uma lista CURADA de SKUs de Manaus/Eletra, já líquidos de produção/separação).
+  // O Resumo não cobre o armazém de Manaus inteiro — só os SKUs que aparecem nele (inversores,
+  // carregadores etc.). Por isso fazemos merge: pros códigos que o Resumo cobre em Manaus
+  // (Eletra), o valor dele tem prioridade (mais confiável); pra qualquer outro código de Manaus
+  // que só existe no TOTVS (ex: peças/acessórios genéricos), usamos o estoque_geral.csv — senão
+  // o item some do dashboard inteiro (bug real visto em 15/09/2026 com o código 4010401450).
   // Ambos em windows-1252 (TOTVS/Excel) — decodificados via arrayBuffer, não .text(),
   // pra não corromper acentos/caracteres especiais (°, ², µ etc.), mesmo problema já visto no pedidos.csv.
   const stItems=[];
   prog('Carregando arquivos de estoque...');
+  let geralItems=[], resumoItems=[];
   const ESTOQUE_FILES=[
-    {url:'data/estoque_geral.csv', label:'estoque_geral.csv', parser:parseEstoqueGeral},
-    {url:'data/estoque_manaus_resumo.csv', label:'estoque_manaus_resumo.csv', parser:parseManausResumo}
+    {url:'data/estoque_geral.csv', label:'estoque_geral.csv', parser:parseEstoqueGeral, target:'geral'},
+    {url:'data/estoque_manaus_resumo.csv', label:'estoque_manaus_resumo.csv', parser:parseManausResumo, target:'resumo'}
   ];
   await Promise.all(ESTOQUE_FILES.map(async f=>{
     try{
@@ -1834,11 +1845,15 @@ async function boot(){
       if(!r.ok) throw new Error('HTTP '+r.status);
       const buf=await r.arrayBuffer();
       const txt=new TextDecoder('windows-1252').decode(buf);
-      stItems.push(...f.parser(txt));
+      const items=f.parser(txt);
+      if(f.target==='geral') geralItems=items; else resumoItems=items;
     }catch(e){
       SRC_ALERTS.push({fonte:f.label,msg:`Arquivo não encontrado ou inválido: ${e.message}`,ts:new Date()});
     }
   }));
+  const codigosManausResumo=new Set(resumoItems.filter(i=>i.wh==='Manaus (Eletra)').map(i=>i.codigo));
+  const geralSemDuplicarManaus=geralItems.filter(i=>!(i.wh==='Manaus (Eletra)'&&codigosManausResumo.has(i.codigo)));
+  stItems.push(...geralSemDuplicarManaus, ...resumoItems);
   SRC_TS.estoque=new Date();
   if(!stItems.length){ showErr('Nenhum produto carregado. Verifique os arquivos de estoque.'); return; }
 
