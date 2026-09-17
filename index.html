@@ -1598,12 +1598,8 @@ function populateSelects(){
 function rAudit(){
   const N=fmt;
   const fmtTS=ts=>ts?ts.toLocaleString('pt-BR'):'—';
-  const toggleBtn=`<button onclick="AUDIT_INCOMPLETO_ATIVO=!AUDIT_INCOMPLETO_ATIVO;validateAll();rAudit();"
-    style="padding:4px 10px;border:1px solid ${AUDIT_INCOMPLETO_ATIVO?'var(--grn-d)':'var(--brd)'};border-radius:6px;
-    background:${AUDIT_INCOMPLETO_ATIVO?'var(--grn-pale)':'var(--surf)'};font-size:11px;cursor:pointer;margin-left:8px">
-    ${AUDIT_INCOMPLETO_ATIVO?'✅ Ativo':'☐ Ativar'}</button>`;
 
-  const fonteRows=[
+  const fonteDefs=[
     {nome:'Estoque (CSVs)',ts:SRC_TS.estoque,cnt:ST.length,unit:'registros'},
     {nome:'Cadastro de Produtos',ts:SRC_TS.cadastro,cnt:Object.keys(CADASTRO).length,unit:'SKUs'},
     // Armazéns não vêm de um arquivo — é uma lista fixa no próprio código (WH_LIST/FL_MAP),
@@ -1611,11 +1607,16 @@ function rAudit(){
     {nome:'Armazéns',ts:SRC_TS.estoque,cnt:WH_LIST.length,unit:'armazéns',fixo:true},
     {nome:'Reservas',ts:SRC_TS.reservas,cnt:RES.length,unit:'reservas'},
     {nome:'Baseline travada (overrides_estoque.csv)',ts:Object.keys(AUD_BASELINE).length?SRC_TS.estoque:null,cnt:Object.keys(AUD_BASELINE).length,unit:'código+armazém',opcional:true},
-  ].map(f=>{
+  ];
+  const fonteRows=fonteDefs.map(f=>{
     const status = f.fixo ? '✅' : (f.opcional && !f.ts) ? '<span style="color:#9ca3af">— não configurado</span>' : (f.ts?'✅':'❌');
     return `<tr><td>${f.nome}</td><td style="text-align:right;font-family:'DM Mono',monospace">${f.cnt} ${f.unit}</td>
     <td>${f.opcional&&!f.ts?'—':fmtTS(f.ts)}</td><td>${status}</td></tr>`;
   }).join('');
+  // Só considera "com problema" as fontes obrigatórias (não fixas, não opcionais) sem timestamp,
+  // ou qualquer alerta de erro real (SRC_ALERTS) — Baseline vazio (opcional) e Armazéns (fixo)
+  // nunca contam como problema.
+  const fontesOk = !SRC_ALERTS.length && fonteDefs.every(f=>f.fixo||f.opcional||f.ts);
 
   // ── Conferência TOTVS x Sistema: baseline travada vs valor lido agora nos CSVs de estoque
   const nDecididas = AUD_DIVERGENTES.filter(v=>AUD_DECISIONS[AUD_KEY(v.codigo,v.wh)]).length;
@@ -1710,31 +1711,51 @@ function rAudit(){
   // ── Conferência de Totais: total de itens nos arquivos de origem x total efetivamente
   // carregado no dashboard, pra confirmar que nada se perdeu no meio do caminho (merge,
   // parsing, etc). Pedido pela Cristiane em 16/09/2026 pra validação rápida a cada atualização.
+  // Simplificado em 17/09/2026 a pedido dela: só mostra a tabela detalhada quando dá algo
+  // errado — quando está tudo ok, mostra só uma linha de resumo, sem precisar clicar em nada.
   const rec = ESTOQUE_RECONCILIACAO;
   const codigosUnicosDash = new Set(ST.map(r=>r.codigo)).size;
   const linhasVirtuais = rec ? (ST.length - rec.totalLinhasST) : 0;
-  const totaisBlock = rec ? `
+  const saldoDashTotal = ST.reduce((a,r)=>a+(r.saldo||0),0);
+  const checkLinhas = rec ? rec.totalLinhasST===rec.totalLinhasEsperado : true;
+  const checkCodigos = rec ? codigosUnicosDash>=rec.codigosUnicosEsperado : true;
+  const checkSaldoPorWh = rec ? WH_LIST.every(w=>Math.abs(ST.filter(r=>r.wh===w).reduce((a,r)=>a+(r.saldo||0),0)-(rec.saldoPorArmazemEsperado[w]||0))<0.01) : true;
+  const checkSaldoTotal = rec ? Math.abs(saldoDashTotal-rec.saldoTotalEsperado)<0.01 : true;
+
+  const totaisBlock = !rec ? '' : (checkLinhas && checkCodigos) ? `
     <div class="aud-block">
-      <div class="aud-hdr" style="background:#eff6ff;color:#1d4ed8"><i class="ti ti-list-check"></i> Conferência de Totais — arquivo x dashboard</div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:13px;color:#166534;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-circle-check"></i> <b>Conferência de totais: tudo bate</b> — arquivo e dashboard concordam (linhas e códigos).
+      </div>
+    </div>` : `
+    <div class="aud-block">
+      <div class="aud-hdr" style="background:#eff6ff;color:#1d4ed8"><i class="ti ti-list-check"></i> Conferência de Totais — arquivo x dashboard ⚠️</div>
       <table class="aud-tbl" style="border:1px solid #bfdbfe;border-top:none">
         <tr style="background:#eff6ff"><th>O que</th><th style="text-align:right">Quantidade</th></tr>
         <tr><td>Linhas comerciais em <code>estoque_geral.csv</code> (ARMZ=07, Fortaleza+Curitiba+Manaus)</td><td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.geralLinhas)}</td></tr>
         <tr><td>Linhas em <code>estoque_manaus_resumo.csv</code> (Fábrica Livoltek + Manaus/Eletra curado)</td><td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.resumoLinhas)}</td></tr>
         <tr><td style="color:#6b7280">— removidas por sobreposição (código já coberto pelo Resumo, evita duplicar)</td><td style="text-align:right;font-family:'DM Mono',monospace;color:#6b7280">−${N(rec.geralRemovidasPorMerge)}</td></tr>
         <tr style="font-weight:700"><td>Total esperado após o merge</td><td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.totalLinhasEsperado)}</td></tr>
-        <tr style="font-weight:700;background:${rec.totalLinhasST===rec.totalLinhasEsperado?'#f0fdf4':'#fef2f2'}">
-          <td>Total efetivamente carregado no dashboard ${rec.totalLinhasST===rec.totalLinhasEsperado?'✅':'⚠️'}</td>
+        <tr style="font-weight:700;background:${checkLinhas?'#f0fdf4':'#fef2f2'}">
+          <td>Total efetivamente carregado no dashboard ${checkLinhas?'✅':'⚠️'}</td>
           <td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.totalLinhasST)}</td>
         </tr>
         ${linhasVirtuais?`<tr><td style="color:#6b7280">+ linhas virtuais (reservas sem estoque correspondente, ver acima)</td><td style="text-align:right;font-family:'DM Mono',monospace;color:#6b7280">+${N(linhasVirtuais)}</td></tr>`:''}
         <tr><td>Códigos únicos esperados (arquivo)</td><td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.codigosUnicosEsperado)}</td></tr>
-        <tr style="font-weight:700;background:${codigosUnicosDash>=rec.codigosUnicosEsperado?'#f0fdf4':'#fef2f2'}">
-          <td>Códigos únicos no dashboard (aba "Todos") ${codigosUnicosDash>=rec.codigosUnicosEsperado?'✅':'⚠️'}</td>
+        <tr style="font-weight:700;background:${checkCodigos?'#f0fdf4':'#fef2f2'}">
+          <td>Códigos únicos no dashboard (aba "Todos") ${checkCodigos?'✅':'⚠️'}</td>
           <td style="text-align:right;font-family:'DM Mono',monospace">${N(codigosUnicosDash)}</td>
         </tr>
       </table>
-      <table class="aud-tbl" style="border:1px solid #bfdbfe;border-top:none;margin-top:1px">
-        <tr style="background:#eff6ff"><th>Saldo total por armazém</th><th style="text-align:right">Esperado (arquivo)</th><th style="text-align:right">No dashboard</th><th></th></tr>
+    </div>`;
+
+  // ── Saldo por armazém: sempre visível (não entra no "esconder se tudo ok") — a Cristiane
+  // usa essa tabela pra conferir quantidade manualmente toda vez, mesmo quando está tudo certo.
+  const saldoBlock = !rec ? '' : `
+    <div class="aud-block">
+      <div class="aud-hdr" style="background:#eff6ff;color:#1d4ed8"><i class="ti ti-list-check"></i> Saldo total por armazém — arquivo x dashboard</div>
+      <table class="aud-tbl" style="border:1px solid #bfdbfe;border-top:none">
+        <tr style="background:#eff6ff"><th>Armazém</th><th style="text-align:right">Esperado (arquivo)</th><th style="text-align:right">No dashboard</th><th></th></tr>
         ${WH_LIST.map(w=>{
           const esperado = rec.saldoPorArmazemEsperado[w]||0;
           const noDash = ST.filter(r=>r.wh===w).reduce((a,r)=>a+(r.saldo||0),0);
@@ -1746,29 +1767,31 @@ function rAudit(){
         <tr style="font-weight:700;background:#f8fafc">
           <td>Total (saldo de todos os armazéns somado)</td>
           <td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.saldoTotalEsperado)}</td>
-          <td style="text-align:right;font-family:'DM Mono',monospace">${N(ST.reduce((a,r)=>a+(r.saldo||0),0))}</td>
-          <td>${Math.abs(ST.reduce((a,r)=>a+(r.saldo||0),0)-rec.saldoTotalEsperado)<0.01?'✅':'⚠️'}</td>
+          <td style="text-align:right;font-family:'DM Mono',monospace">${N(saldoDashTotal)}</td>
+          <td>${checkSaldoTotal?'✅':'⚠️'}</td>
         </tr>
       </table>
-      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-top:none;padding:8px 14px;font-size:11px;color:#1e40af">
-        Se "Total efetivamente carregado" ≠ "Total esperado" (⚠️), algum código está sendo descartado no meio do
-        processamento — investigue a causa antes de confiar nos números. Pequena diferença nos códigos únicos é normal (linhas
-        virtuais de reservas adicionam códigos que não estão no estoque).
-      </div>
-    </div>` : '';
+    </div>`;
 
   document.getElementById('audit-content').innerHTML=`
     ${totaisBlock}
+    ${saldoBlock}
     ${resSemArmBlock}
     ${resCodInvBlock}
     ${totvsBlock}
+    ${fontesOk ? `
     <div class="aud-block">
-      <div class="aud-hdr" style="background:#e8eef6;color:#1E3A5F"><i class="ti ti-database"></i> Auditoria de Fontes</div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:13px;color:#166534;display:flex;align-items:center;gap:8px">
+        <i class="ti ti-circle-check"></i> <b>Fontes de dados: tudo ok</b> — Estoque, Cadastro, Armazéns e Reservas carregaram sem erro.
+      </div>
+    </div>` : `
+    <div class="aud-block">
+      <div class="aud-hdr" style="background:#e8eef6;color:#1E3A5F"><i class="ti ti-database"></i> Auditoria de Fontes ⚠️</div>
       <table class="aud-tbl" style="border:1px solid var(--brd);border-top:none">
         <tr style="background:#f8fafc"><th>Fonte</th><th style="text-align:right">Registros</th><th>Última Atualização</th><th>Status</th></tr>
         ${fonteRows}${alertRows}
       </table>
-    </div>
+    </div>`}
     ${VAL_SEM_CADASTRO.length?`<div class="aud-block">
       <div class="aud-hdr" style="background:#fee2e2;color:#991b1b"><i class="ti ti-alert-circle"></i> Produtos sem Cadastro Mestre — ${VAL_SEM_CADASTRO.length}</div>
       <table class="aud-tbl" style="border:1px solid #fca5a5;border-top:none">
@@ -1784,10 +1807,9 @@ function rAudit(){
       <table class="aud-tbl" style="border:1px solid #fca5a5;border-top:none">
         <tr style="background:#fff5f5"><th>Código</th><th>Produto</th><th>Armazém</th><th style="text-align:right">Saldo</th><th style="text-align:right">Reserva</th><th style="text-align:right">Disp.</th></tr>${insufRows}
       </table></div>`:''}
-    <div style="padding:8px 12px;font-size:11px;color:var(--txtm);border:1px solid var(--brd);border-radius:8px">
-      Validação de <b>Cadastro Incompleto</b> ${toggleBtn}
-      ${VAL_DUPLICADO.length?`<br>⚠️ <b>${VAL_DUPLICADO.length} código(s) duplicado(s)</b>: ${VAL_DUPLICADO.map(v=>v.codigo).slice(0,5).join(', ')}`:''}
-    </div>`;
+    ${VAL_DUPLICADO.length?`<div style="padding:8px 12px;font-size:11px;color:var(--txtm);border:1px solid var(--brd);border-radius:8px">
+      ⚠️ <b>${VAL_DUPLICADO.length} código(s) duplicado(s)</b> no cadastro: ${VAL_DUPLICADO.map(v=>v.codigo).slice(0,5).join(', ')}
+    </div>`:''}`;
 }
 
 function setStatus(s){
