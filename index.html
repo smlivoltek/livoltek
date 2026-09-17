@@ -597,11 +597,9 @@ function parseCadastro(csv){
 
 // ══ Mapa fixo FL (código de filial TOTVS) → armazém canônico do dashboard.
 // FL 010107 (Fábrica Livoltek dentro do TOTVS) é ignorado aqui de propósito.
-// FL 010106 (Manaus/Eletra) volta a ser lido daqui — o estoque_manaus_resumo.csv (Importado-TOTVS)
-// só cobre uma lista curada de SKUs (inversores/carregadores), não o armazém inteiro. Pra não
-// perder itens genéricos que só existem no TOTVS (ex: peças/acessórios), lemos os dois e o
-// merge no boot() dá prioridade ao Resumo pros códigos que aparecem lá, usando o estoque_geral.csv
-// só pra completar o que falta.
+// FL 010106 (Manaus/Eletra) vem inteiro daqui — voltamos ao formato antigo em 17/09/2026:
+// a Fábrica Manaus agora tem seu próprio arquivo (estoque_fabrica_manaus.csv, formato
+// TOP/HEXING/Coluna6/Saldo Estoque, sem relação com o TOTVS), sem merge com o estoque_geral.csv.
 const FL_MAP = { '010102':'Fortaleza (Eletra)', '010106':'Manaus (Eletra)', '010108':'Curitiba (Eletra)' };
 
 // ══ estoque_geral.csv — arquivo único que substitui os 3 arquivos separados
@@ -669,62 +667,41 @@ function parseEstoqueGeral(csv){
   return items;
 }
 
-// ══ estoque_manaus_resumo.csv — substitui o antigo parser TOP/HEXING.
+// ══ estoque_fabrica_manaus.csv — aba EXPEDIÇÃO-TOP, formato TopManager (voltamos a esse
+// formato em 17/09/2026 a pedido da Cristiane).
 // Fonte: aba "Resumo" da planilha "Warehouse_Eletra_Livoltek_DD_MM_AAAA.xlsx", exportada em CSV.
-// Colunas: (vazia) | ID | Product | Quantily | Obs
+// Colunas: TOP | HEXING | Coluna3 | Coluna4 | Coluna5 | Coluna6 (descrição) | Coluna7 | Coluna8
+// | Coluna9 | Coluna10 | Coluna11 | Coluna12 | Saldo Estoque
 //
-// ID separa os dados em 2 armazéns diferentes:
-//   Nacional-Topmanger + Importado-Topmanger  → Fábrica Livoltek (Manaus)
-//   Importado-TOTVS                            → Manaus (Eletra) — substitui o FL 010106
-//   do estoque_geral.csv, porque esse relatório já vem líquido de produção/separação (dado real).
-//
-// Casos manuais confirmados pela Cristiane em 31/08/2026 (não tentar casar com o cadastro):
-//   "GT1 7-10KW" (Nacional-Topmanger) = matéria-prima, item próprio — não mesclar com
-//   nenhum candidato do cadastro (106171M / 7-10KW), fica separado mesmo.
-//   "LHE34DR" e "LHE12DR" ficam sem cadastro por enquanto (ambíguos, decisão pendente).
-const MANAUS_RESUMO_OVERRIDES = {
-  'GT1 7-10KW': { isMP:true, familia:'INVERSOR - GT1', nomenclatura:'GT1 7-10KW (Fábrica Manaus)' }
-};
-function parseManausResumo(csv){
+// Código do produto vem da coluna TOP (não HEXING) — com o TOP certo, o cruzamento com o
+// cadastro_produtos.csv funciona direto pelo índice CODIGO TOP MANAGER (CADASTRO_TOP), sem
+// precisar de overrides manuais — ex: TOP=106171 já resolve sozinho pra "106171M"
+// (MATERIA-PRIMA, INVERSOR - GT1), sem precisar mais do caso especial "GT1 7-10KW" de antes.
+function parseFabricaManaus(csv){
   const clean=csv.replace(/^\uFEFF/,'');
   const all=Papa.parse(clean,{header:false,skipEmptyLines:true,delimiter:';'}).data;
   if(all.length<2) return [];
   let hdrIdx=0;
   for(let i=0;i<Math.min(5,all.length);i++){
     const joined=all[i].join('|').toUpperCase();
-    if(joined.includes('ID')&&(joined.includes('PRODUCT')||joined.includes('PRODUTO'))){hdrIdx=i;break;}
+    if(joined.includes('TOP')&&joined.includes('SALDO')){hdrIdx=i;break;}
   }
   const hdr=all[hdrIdx].map(h=>String(h).trim());
   const ci=makeCI(hdr);
-  const iID=ci('ID')>=0?ci('ID'):1;
-  const iPROD=ci('Product','Produto')>=0?ci('Product','Produto'):2;
-  const iQTD=ci('Quantily','Quantity','Quantidade')>=0?ci('Quantily','Quantity','Quantidade'):3;
+  const iTOP=ci('TOP')>=0?ci('TOP'):0;
+  const iDESC=ci('Coluna6')>=0?ci('Coluna6'):5;
+  const iSAL=ci('Saldo Estoque')>=0?ci('Saldo Estoque'):hdr.length-1;
 
-  // Dedup de linhas coladas duas vezes por engano: mesma combinação ID+Product+Quantidade
-  // exata aparecendo repetida (confirmado pela Cristiane em 31/08/2026) conta só uma vez.
-  const seen=new Set();
   const items=[];
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
-    const idRaw=String(iID>=0?r[iID]:'').trim();
-    if(!idRaw) continue;
-    const codigo=String(iPROD>=0?r[iPROD]:'').trim().toUpperCase();
+    if(!r||r.length<3) continue;
+    const codigo=String(r[iTOP]||'').trim().toUpperCase();
     if(!codigo) continue;
-    const saldo=pn(iQTD>=0?r[iQTD]:0);
-    const dupKey=`${idRaw}|${codigo}|${saldo}`;
-    if(seen.has(dupKey)) continue;
-    seen.add(dupKey);
-
-    const idNorm=idRaw.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
-    let wh;
-    if(idNorm.includes('IMPORTADO')&&idNorm.includes('TOTVS')) wh='Manaus (Eletra)';
-    else if(idNorm.includes('TOPMANGER')||idNorm.includes('TOPMANAGER')) wh='Fábrica Livoltek';
-    else continue; // categoria de ID desconhecida — não inclui, pra não classificar errado
-
-    const override=MANAUS_RESUMO_OVERRIDES[codigo];
-    items.push({codigo,descricao:codigo,wh,saldo,reserva:0,fat:0,disp:0,armz:'07',
-      categoria:override?.categoria||'',familia:override?.familia||'',nomenclatura:override?.nomenclatura||'',
-      isMP:!!override?.isMP,_semCadastro:false,_incompleto:[],tp:'',_forcado:!!override});
+    const saldo=pn(r[iSAL]||0);
+    const descricao=String(r[iDESC]||'').trim();
+    items.push({codigo,descricao,wh:'Fábrica Livoltek',armz:'07',saldo,reserva:0,fat:0,disp:0,
+      categoria:'',familia:'',nomenclatura:'',isMP:false,_semCadastro:false,_incompleto:[],tp:''});
   }
   return items;
 }
@@ -888,25 +865,30 @@ function joinCadastro(items){
     return u.includes('MATERIA')&&u.includes('PRIMA');
   };
   items.forEach(s=>{
-    if(s._forcado){
-      // Override manual confirmado pela Cristiane (ex: "GT1 7-10KW" = matéria-prima, item
-      // próprio) — não tenta casar com o cadastro, mantém os valores já definidos no parser.
-      s._semCadastro=true;
-      const f=(s.familia||'').toUpperCase();
-      s._catTab='div';
-      const FAM_ABA_F={'INVERSOR':'inv','CARREGADOR':'ev','BATERIA':'bess','BESS':'bess',
-        'KIT SOLAR':'kit','STRING BOX':'strbox','MOTOR DE BARCO':'mot','HYPER':'inv'};
-      for(const [key,tab] of Object.entries(FAM_ABA_F)){ if(f.includes(key)){s._catTab=tab;break;} }
-      return;
-    }
     // Itens da Fábrica Livoltek vêm com código do sistema TopManager (coluna TOP do relatório).
     // Esse número pode coincidir com uma CODIGO primária de outro item no cadastro (ex: "106170"
     // existe como PRODUTO comum), então pra esses itens buscamos primeiro pelo índice de
     // CODIGO TOP MANAGER (CADASTRO_TOP) — só cai no lookup direto se não achar por lá.
     // Terceira tentativa: Nomenclatura exata (CADASTRO_NOM) — usado quando o relatório de origem
     // reporta o texto da nomenclatura em vez de um código (ex: "GT3 -100K-1 380V AFCI").
+    // Quarta tentativa: trecho da Nomenclatura (busca por substring) — usado quando o relatório
+    // da Fábrica reporta só um pedaço do nome (ex: "GT3 -100K-1 380V AFCI"), sem o prefixo
+    // completo ("INVERSOR ON-GRID TRIFASICO GT3 -100K-1 380V AFCI" no cadastro).
+    // Só resolve automático se TODOS os candidatos encontrados concordam em Categoria (não vazia)
+    // e Família — aí a ambiguidade é inofensiva (dá na mesma classificação de qualquer jeito).
+    // Se divergirem (caso do LHE12DR/LHE34DR, que a Cristiane pediu pra deixar pendente), fica
+    // sem cadastro mesmo, pra revisão manual — nunca adivinha.
+    const buscarPorNomenclaturaParcial = texto=>{
+      const alvo=String(texto||'').toUpperCase().replace(/\s+/g,' ').trim();
+      if(!alvo) return null;
+      const candidatos=Object.values(CADASTRO).filter(c=>String(c.nomenclatura||'').toUpperCase().replace(/\s+/g,' ').includes(alvo));
+      if(!candidatos.length) return null;
+      const primeiro=candidatos[0];
+      const concordam=candidatos.every(c=>c.categoria&&c.categoria===primeiro.categoria&&c.familia===primeiro.familia);
+      return concordam ? primeiro : null;
+    };
     const cad = (s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]) ? CADASTRO_TOP[s.codigo]
-      : (CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo]);
+      : (CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo] || (s.wh==='Fábrica Livoltek' ? buscarPorNomenclaturaParcial(s.codigo) : null));
     s._semCadastro=!cad;
     if(cad){
       // Usa dado do ESTOQUE.csv se preenchido, senão cai no cadastro_produtos
@@ -1733,7 +1715,7 @@ function rAudit(){
       <table class="aud-tbl" style="border:1px solid #bfdbfe;border-top:none">
         <tr style="background:#eff6ff"><th>O que</th><th style="text-align:right">Quantidade</th></tr>
         <tr><td>Linhas comerciais em <code>estoque_geral.csv</code> (ARMZ=07, Fortaleza+Curitiba+Manaus)</td><td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.geralLinhas)}</td></tr>
-        <tr><td>Linhas em <code>estoque_manaus_resumo.csv</code> (Fábrica Livoltek + Manaus/Eletra curado)</td><td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.resumoLinhas)}</td></tr>
+        <tr><td>Linhas em <code>estoque_fabrica_manaus.csv</code> (Fábrica Livoltek, aba EXPEDIÇÃO-TOP)</td><td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.resumoLinhas)}</td></tr>
         <tr><td style="color:#6b7280">— removidas por sobreposição (código já coberto pelo Resumo, evita duplicar)</td><td style="text-align:right;font-family:'DM Mono',monospace;color:#6b7280">−${N(rec.geralRemovidasPorMerge)}</td></tr>
         <tr style="font-weight:700"><td>Total esperado após o merge</td><td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.totalLinhasEsperado)}</td></tr>
         <tr style="font-weight:700;background:${checkLinhas?'#f0fdf4':'#fef2f2'}">
@@ -1904,22 +1886,19 @@ async function boot(){
     return;
   }
 
-  // 3. Estoques: 2 arquivos — estoque_geral.csv (Fortaleza+Curitiba+Manaus, por FL) e
-  // estoque_manaus_resumo.csv (aba Resumo da Warehouse_Eletra_Livoltek: Fábrica Livoltek +
-  // uma lista CURADA de SKUs de Manaus/Eletra, já líquidos de produção/separação).
-  // O Resumo não cobre o armazém de Manaus inteiro — só os SKUs que aparecem nele (inversores,
-  // carregadores etc.). Por isso fazemos merge: pros códigos que o Resumo cobre em Manaus
-  // (Eletra), o valor dele tem prioridade (mais confiável); pra qualquer outro código de Manaus
-  // que só existe no TOTVS (ex: peças/acessórios genéricos), usamos o estoque_geral.csv — senão
-  // o item some do dashboard inteiro (bug real visto em 15/09/2026 com o código 4010401450).
+  // 3. Estoques: 2 arquivos — estoque_geral.csv (Fortaleza+Curitiba+Manaus/Eletra, todos os 3
+  // armazéns TOTVS via FL) e estoque_fabrica_manaus.csv (aba EXPEDIÇÃO-TOP, formato
+  // TOP/HEXING/Coluna6/Saldo Estoque — sistema TopManager da Fábrica, sem relação com o TOTVS).
+  // Voltamos a esse formato em 17/09/2026 a pedido da Cristiane. Sem sobreposição entre os
+  // dois arquivos — cada um cobre um armazém diferente, então só concatena, sem merge.
   // Ambos em windows-1252 (TOTVS/Excel) — decodificados via arrayBuffer, não .text(),
   // pra não corromper acentos/caracteres especiais (°, ², µ etc.), mesmo problema já visto no pedidos.csv.
   const stItems=[];
   prog('Carregando arquivos de estoque...');
-  let geralItems=[], resumoItems=[];
+  let geralItems=[], fabricaItems=[];
   const ESTOQUE_FILES=[
     {url:'data/estoque_geral.csv', label:'estoque_geral.csv', parser:parseEstoqueGeral, target:'geral'},
-    {url:'data/estoque_manaus_resumo.csv', label:'estoque_manaus_resumo.csv', parser:parseManausResumo, target:'resumo'}
+    {url:'data/estoque_fabrica_manaus.csv', label:'estoque_fabrica_manaus.csv', parser:parseFabricaManaus, target:'fabrica'}
   ];
   await Promise.all(ESTOQUE_FILES.map(async f=>{
     try{
@@ -1928,14 +1907,12 @@ async function boot(){
       const buf=await r.arrayBuffer();
       const txt=new TextDecoder('windows-1252').decode(buf);
       const items=f.parser(txt);
-      if(f.target==='geral') geralItems=items; else resumoItems=items;
+      if(f.target==='geral') geralItems=items; else fabricaItems=items;
     }catch(e){
       SRC_ALERTS.push({fonte:f.label,msg:`Arquivo não encontrado ou inválido: ${e.message}`,ts:new Date()});
     }
   }));
-  const codigosManausResumo=new Set(resumoItems.filter(i=>i.wh==='Manaus (Eletra)').map(i=>i.codigo));
-  const geralSemDuplicarManaus=geralItems.filter(i=>!(i.wh==='Manaus (Eletra)'&&codigosManausResumo.has(i.codigo)));
-  stItems.push(...geralSemDuplicarManaus, ...resumoItems);
+  stItems.push(...geralItems, ...fabricaItems);
   // Produtos únicos por armazém (não confundir com "linhas": um código pode ter mais de uma
   // linha no mesmo arquivo, ex: matéria-prima em ARMZ diferentes já filtrados, ou repetido
   // entre armazéns).
@@ -1958,16 +1935,16 @@ async function boot(){
     geralLinhas: geralItems.length,
     geralProdutosUnicos: new Set(geralItems.map(i=>i.codigo)).size,
     geralProdutosPorArmazem: produtosPorArmazem(geralItems),
-    geralRemovidasPorMerge: geralItems.length - geralSemDuplicarManaus.length,
-    resumoLinhas: resumoItems.length,
-    resumoProdutosUnicos: new Set(resumoItems.map(i=>i.codigo)).size,
-    resumoProdutosPorArmazem: produtosPorArmazem(resumoItems),
-    totalLinhasEsperado: geralSemDuplicarManaus.length + resumoItems.length,
+    geralRemovidasPorMerge: 0,
+    resumoLinhas: fabricaItems.length,
+    resumoProdutosUnicos: new Set(fabricaItems.map(i=>i.codigo)).size,
+    resumoProdutosPorArmazem: produtosPorArmazem(fabricaItems),
+    totalLinhasEsperado: geralItems.length + fabricaItems.length,
     totalLinhasST: stItems.length,
-    codigosUnicosEsperado: new Set([...geralSemDuplicarManaus, ...resumoItems].map(i=>i.codigo)).size,
-    produtosPorArmazemEsperado: produtosPorArmazem([...geralSemDuplicarManaus, ...resumoItems]),
-    saldoPorArmazemEsperado: saldoPorArmazem([...geralSemDuplicarManaus, ...resumoItems]),
-    saldoTotalEsperado: somaSaldo([...geralSemDuplicarManaus, ...resumoItems]),
+    codigosUnicosEsperado: new Set([...geralItems, ...fabricaItems].map(i=>i.codigo)).size,
+    produtosPorArmazemEsperado: produtosPorArmazem([...geralItems, ...fabricaItems]),
+    saldoPorArmazemEsperado: saldoPorArmazem([...geralItems, ...fabricaItems]),
+    saldoTotalEsperado: somaSaldo([...geralItems, ...fabricaItems]),
   };
   SRC_TS.estoque=new Date();
   if(!stItems.length){ showErr('Nenhum produto carregado. Verifique os arquivos de estoque.'); return; }
@@ -2042,7 +2019,7 @@ async function boot(){
   try{
     const OWNER='smlivoltek', REPO='livoltek';
     // Data do commit mais recente entre os 2 CSVs de estoque
-    const estoqueFiles=['data/estoque_geral.csv','data/estoque_manaus_resumo.csv'];
+    const estoqueFiles=['data/estoque_geral.csv','data/estoque_fabrica_manaus.csv'];
     const datas = await Promise.all(estoqueFiles.map(async f=>{
       try{
         const resp=await fetchComTimeout(`https://api.github.com/repos/${OWNER}/${REPO}/commits?path=${f}&per_page=1`,5);
