@@ -1398,6 +1398,7 @@ function buildProdCard(g, modoDiretoria, isFiltered){
   return `<div class="pc2">
     <div class="pc2-top">
       ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
+      ${st?.isFiname?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
       <div class="pc2-head"><div class="pc2-cod">${g.codigo}</div></div>
       <div class="pc2-nom">${nom}</div>
     </div>
@@ -1489,6 +1490,7 @@ function rExp(){
     return `<div class="pc2">
       <div class="pc2-top">
         ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
+        ${FINAME_CODES.has(sku)?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
         <div class="pc2-head">
           <div class="pc2-cod">${sku}</div>
         </div>
