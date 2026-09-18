@@ -319,7 +319,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
         </div>
         <div id="res-summary"></div>
         <div style="font-size:11px;color:var(--txtm);margin:6px 0 10px">
-          <span id="res-cnt">0</span> reservas comprometidas · <span id="res-prod-cnt">0</span> produtos
+          <span id="res-cnt">0</span> unidades reservadas · <span id="res-prod-cnt">0</span> produtos
         </div>
         <div class="cgrid" id="res-cards"></div>
       </div>
@@ -358,6 +358,10 @@ let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE
 //   disponível) é o valor TRAVADO, não o TOTVS lido ao vivo — só muda quando você decide "Aceitar TOTVS".
 // AUD_DECISIONS: decisões em rascunho (localStorage), aguardando o download de "Baixar validações".
 let AUD_BASELINE={}, AUD_DECISIONS={}, AUD_DIVERGENTES=[];
+// Códigos de produtos elegíveis a financiamento FINAME, lidos de data/finame.csv (opcional).
+// Cristiane mantém essa lista subindo o arquivo direto no GitHub — sem arquivo, fica vazio
+// e nenhum produto é marcado, sem erro.
+let FINAME_CODES = new Set();
 const AUD_KEY = (codigo,wh)=>`${codigo}|${wh}`;
 const AUD_LS_KEY = 'livoltek_audit_decisions';
 
@@ -1121,6 +1125,7 @@ function pCard(r, isMP){
   return `<div class="pc2${isMP?' mp':''}">
     <div class="pc2-top">
       ${famLabel?`<span class="pc2-pill" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
+      ${r.isFiname?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
       <div class="pc2-head">
         <div class="pc2-cod">${r.codigo}</div>
       </div>
@@ -1538,7 +1543,7 @@ function rRes(){
     byCode[r.codigo].reservas.push(r); byCode[r.codigo].totalQtd+=r.qtd; if(r.wh) byCode[r.codigo].whs.add(r.wh);
   });
   const grupos=Object.values(byCode).sort((a,b)=>b.totalQtd-a.totalQtd);
-  document.getElementById('res-cnt').textContent=rows.length;
+  document.getElementById('res-cnt').textContent=fmt(rows.reduce((a,r)=>a+(r.qtd||0),0));
   document.getElementById('res-prod-cnt').textContent=grupos.length;
   const el=document.getElementById('res-cards');
   el.innerHTML = grupos.length ? grupos.map(g=>buildProdCard(g,!!dir,isFiltered)).join('') :
@@ -1961,6 +1966,21 @@ async function boot(){
 
   joinCadastro(stItems);
   ST=stItems;
+
+  // 3.6 FINAME — data/finame.csv é OPCIONAL. Um código por linha (com ou sem cabeçalho
+  // "CODIGO"). Sem o arquivo, nenhum produto é marcado — sem erro.
+  FINAME_CODES=new Set();
+  try{
+    const rFin=await fetch('data/finame.csv',{cache:'no-store'});
+    if(rFin.ok){
+      const txtFin=await rFin.text();
+      Papa.parse(txtFin.replace(/^\uFEFF/,''),{header:false,skipEmptyLines:true,delimiter:txtFin.includes(';')?';':','}).data.forEach(r=>{
+        const c=String(r[0]||'').trim().toUpperCase();
+        if(c&&c!=='CODIGO'&&c!=='CÓDIGO') FINAME_CODES.add(c);
+      });
+    }
+  }catch(e){ /* arquivo opcional — silencioso */ }
+  ST.forEach(r=>{ r.isFiname=FINAME_CODES.has(r.codigo); });
 
   // 4. Reservas — Google Sheets em tempo real (com fallback local)
   if(RESERVAS_SHEET_URL){
