@@ -623,7 +623,15 @@ function parseEstoqueGeral(csv){
   const ci=makeCI(hdr);
   const iCOD=ci('CODIGO'), iFL=ci('FL'), iARMZ=ci('ARMZ'), iDESC=ci('DESCRICAO','DESCRIÇÃO');
   const iDISP=ci('ESTOQUE DISPONIVEL','ESTOQUE DISPONÍVEL');
-  const iSAL=iDISP>=0 ? iDISP : ci('SALDO EM ESTOQUE');
+  // ESTOQUE DISPONIVEL é a única fonte aceita pra quantidade — sem fallback silencioso pra
+  // SALDO EM ESTOQUE (que não desconta empenho, dá número errado sem avisar). Se a coluna não
+  // existir no arquivo, aborta o parse desse arquivo inteiro e avisa claramente, em vez de
+  // seguir com dado potencialmente errado.
+  if(iDISP<0){
+    SRC_ALERTS.push({fonte:'estoque_geral.csv',msg:'⚠️ Erro na fonte de estoque: coluna ESTOQUE DISPONIVEL não encontrada.',ts:new Date()});
+    return [];
+  }
+  const iSAL=iDISP;
   const iTP=ci('TP');
 
   const items=[];
