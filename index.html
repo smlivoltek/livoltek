@@ -1383,11 +1383,15 @@ function buildProdCard(g, modoDiretoria, isFiltered){
   const reservaTotalReal=dedup(stRows).reduce((a,r)=>a+r._res,0);
   const dispTotalReal=dedup(stRows).reduce((a,r)=>a+r._disp,0);
 
-  // Quando há filtro ativo (busca/diretoria/armazém), a Reserva e o Disponível exibidos
-  // refletem SÓ o que está filtrado na tela — para não contradizer a lista de clientes
-  // abaixo, que também é filtrada. Sem filtro, os dois valores são iguais ao total real.
-  const reservaExibida = isFiltered ? g.totalQtd : reservaTotalReal;
-  const dispExibido = isFiltered ? (sal - g.totalQtd) : dispTotalReal;
+  // Disponível e Reserva SEMPRE mostram o total real do produto — igual em Todos, Reservas,
+  // BESS ou qualquer outra aba. Um filtro de diretoria/busca não pode fazer o produto parecer
+  // mais disponível do que está: mostrar só a reserva de uma diretoria e omitir a de outras
+  // dava um "disponível" que não existe de verdade (caso real: 300un aparecendo disponível
+  // com filtro, quando o produto está 100% reservado — corrigido em 21/09/2026).
+  // Com filtro ativo, a reserva filtrada aparece só como nota secundária, pra explicar por que
+  // a lista de clientes abaixo é menor que o total.
+  const reservaExibida = reservaTotalReal;
+  const dispExibido = dispTotalReal;
 
   const dispCol=dispExibido>0?'var(--grn-d)':dispExibido===0&&sal>0?'var(--amb-d)':'var(--red)';
   const sortedRes=g.reservas.slice().sort((a,b)=>b.qtd-a.qtd);
@@ -1400,8 +1404,8 @@ function buildProdCard(g, modoDiretoria, isFiltered){
     return `<div class="pc2-wh-row${v?'':' pc2-wh-zero'}"><i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'}"></i><span class="pc2-wh-name">${w}</span><span class="pc2-wh-val">${fmt(v)}</span></div>`;
   }).join('');
 
-  const dispLbl = isFiltered ? 'Disponível (filtro ativo)' : 'Disponível Total';
-  const resLbl = isFiltered ? 'Reserva (filtro ativo)' : 'Reserva';
+  const dispLbl = 'Disponível Total';
+  const resLbl = 'Reserva';
 
   return `<div class="pc2">
     <div class="pc2-top">
@@ -1413,7 +1417,7 @@ function buildProdCard(g, modoDiretoria, isFiltered){
     <div class="pc2-disp-block"><div class="pc2-disp-lbl">${dispLbl}</div><div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispExibido)}</div></div>
     <div class="pc2-wh-list">${whRows}</div>
     <div class="pc2-totals"><div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> ${resLbl}</span><span>${fmt(reservaExibida)}</span></div>
-    ${isFiltered?`<div class="pc2-note">Reserva total do produto (todas as diretorias/buscas): ${fmt(reservaTotalReal)}</div>`:''}
+    ${isFiltered?`<div class="pc2-note">Reserva do filtro atual (lista de clientes abaixo): ${fmt(g.totalQtd)}</div>`:''}
     </div>
     <div class="pc2-cli-toggle${expanded?' open':''}" onclick="toggleResCard('${g.codigo}')">
       <span><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''} · ${fmt(g.totalQtd)} un.</span>
