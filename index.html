@@ -362,6 +362,9 @@ let AUD_BASELINE={}, AUD_DECISIONS={}, AUD_DIVERGENTES=[];
 // Cristiane mantém essa lista subindo o arquivo direto no GitHub — sem arquivo, fica vazio
 // e nenhum produto é marcado, sem erro.
 let FINAME_CODES = new Set();
+// Códigos "sem AFCI" (proteção contra arco elétrico), lidos de data/sem_afci.csv (opcional).
+// Mesma lógica do FINAME — Cristiane mantém a lista subindo o arquivo, sem mexer no código.
+let SEM_AFCI_CODES = new Set();
 const AUD_KEY = (codigo,wh)=>`${codigo}|${wh}`;
 const AUD_LS_KEY = 'livoltek_audit_decisions';
 
@@ -1134,6 +1137,7 @@ function pCard(r, isMP){
     <div class="pc2-top">
       ${famLabel?`<span class="pc2-pill" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
       ${r.isFiname?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
+      ${r.isSemAfci?`<span class="pc2-pill" style="color:#374151;background:#f3f4f6;border:1px solid #d1d5db;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
       <div class="pc2-head">
         <div class="pc2-cod">${r.codigo}</div>
       </div>
@@ -1411,6 +1415,7 @@ function buildProdCard(g, modoDiretoria, isFiltered){
     <div class="pc2-top">
       ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
       ${st?.isFiname?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
+      ${st?.isSemAfci?`<span class="pc2-pill" style="color:#374151;background:#f3f4f6;border:1px solid #d1d5db;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
       <div class="pc2-head"><div class="pc2-cod">${g.codigo}</div></div>
       <div class="pc2-nom">${nom}</div>
     </div>
@@ -1503,6 +1508,7 @@ function rExp(){
       <div class="pc2-top">
         ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
         ${FINAME_CODES.has(sku)?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
+        ${SEM_AFCI_CODES.has(sku)?`<span class="pc2-pill" style="color:#374151;background:#f3f4f6;border:1px solid #d1d5db;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
         <div class="pc2-head">
           <div class="pc2-cod">${sku}</div>
         </div>
@@ -1995,6 +2001,20 @@ async function boot(){
     }
   }catch(e){ /* arquivo opcional — silencioso */ }
   ST.forEach(r=>{ r.isFiname=FINAME_CODES.has(r.codigo); });
+
+  // 3.7 Exportação-S/AFCI — data/sem_afci.csv é OPCIONAL, mesmo formato do finame.csv.
+  SEM_AFCI_CODES=new Set();
+  try{
+    const rAfci=await fetch('data/sem_afci.csv',{cache:'no-store'});
+    if(rAfci.ok){
+      const txtAfci=await rAfci.text();
+      Papa.parse(txtAfci.replace(/^\uFEFF/,''),{header:false,skipEmptyLines:true,delimiter:txtAfci.includes(';')?';':','}).data.forEach(r=>{
+        const c=String(r[0]||'').trim().toUpperCase();
+        if(c&&c!=='CODIGO'&&c!=='CÓDIGO') SEM_AFCI_CODES.add(c);
+      });
+    }
+  }catch(e){ /* arquivo opcional — silencioso */ }
+  ST.forEach(r=>{ r.isSemAfci=SEM_AFCI_CODES.has(r.codigo); });
 
   // 4. Reservas — Google Sheets em tempo real (com fallback local)
   if(RESERVAS_SHEET_URL){
