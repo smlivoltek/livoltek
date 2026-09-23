@@ -1137,7 +1137,7 @@ function pCard(r, isMP){
     <div class="pc2-top">
       ${famLabel?`<span class="pc2-pill" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
       ${r.isFiname?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
-      ${r.isSemAfci?`<span class="pc2-pill" style="color:#374151;background:#f3f4f6;border:1px solid #d1d5db;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
+      ${r.isSemAfci?`<span class="pc2-pill" style="color:#ffffff;background:#dc2626;border:1px solid #dc2626;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
       <div class="pc2-head">
         <div class="pc2-cod">${r.codigo}</div>
       </div>
@@ -1415,7 +1415,7 @@ function buildProdCard(g, modoDiretoria, isFiltered){
     <div class="pc2-top">
       ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
       ${st?.isFiname?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
-      ${st?.isSemAfci?`<span class="pc2-pill" style="color:#374151;background:#f3f4f6;border:1px solid #d1d5db;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
+      ${st?.isSemAfci?`<span class="pc2-pill" style="color:#ffffff;background:#dc2626;border:1px solid #dc2626;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
       <div class="pc2-head"><div class="pc2-cod">${g.codigo}</div></div>
       <div class="pc2-nom">${nom}</div>
     </div>
@@ -1508,7 +1508,7 @@ function rExp(){
       <div class="pc2-top">
         ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
         ${FINAME_CODES.has(sku)?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
-        ${SEM_AFCI_CODES.has(sku)?`<span class="pc2-pill" style="color:#374151;background:#f3f4f6;border:1px solid #d1d5db;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
+        ${SEM_AFCI_CODES.has(sku)?`<span class="pc2-pill" style="color:#ffffff;background:#dc2626;border:1px solid #dc2626;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
         <div class="pc2-head">
           <div class="pc2-cod">${sku}</div>
         </div>
