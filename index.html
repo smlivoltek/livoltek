@@ -1219,15 +1219,19 @@ function renderCat(tabId){
   // Aba MP: mostra todos os isMP=true independente do _catTab
   // Outras abas: filtra por _catTab E separa MP em seção inferior
   let baseRows, baseMPRows=[];
+  // Produtos de EXPORT_SKUS só podem aparecer na aba Exportação — em nenhuma outra (Todos,
+  // categorias, Matéria-Prima). Antes, se o código também tivesse saldo em ARMZ=07, ele
+  // aparecia normal em Inversores/etc, confundindo o time de vendas (achavam que dava pra
+  // vender no mercado interno). Corrigido em 22/09/2026.
   if(tabId==='todos'){
-    baseRows = ST.filter(r=>!r.isMP);
-    baseMPRows = ST.filter(r=>r.isMP);
+    baseRows = ST.filter(r=>!r.isMP && !EXPORT_SKUS.includes(r.codigo));
+    baseMPRows = ST.filter(r=>r.isMP && !EXPORT_SKUS.includes(r.codigo));
   } else if(tabId==='mp'){
-    baseRows = ST.filter(r=>r.isMP);
+    baseRows = ST.filter(r=>r.isMP && !EXPORT_SKUS.includes(r.codigo));
     baseMPRows = [];
   } else {
-    baseRows = ST.filter(r=>getCatTab(r)===tabId && !r.isMP);
-    baseMPRows = ST.filter(r=>getCatTab(r)===tabId && r.isMP);
+    baseRows = ST.filter(r=>getCatTab(r)===tabId && !r.isMP && !EXPORT_SKUS.includes(r.codigo));
+    baseMPRows = ST.filter(r=>getCatTab(r)===tabId && r.isMP && !EXPORT_SKUS.includes(r.codigo));
   }
 
   renderFamPills(tabId, [...baseRows,...baseMPRows]);
@@ -1269,6 +1273,10 @@ function renderCat(tabId){
 
 // ══ DASHBOARD ══
 function rDash(){
+  // STV = ST sem os produtos de EXPORT_SKUS — o Dashboard (categorias, armazéns, Top 10)
+  // não pode contar estoque de exportação junto com o comercial normal, senão os números
+  // e rankings ficam inflados com produto que o vendedor não pode oferecer no mercado interno.
+  const STV = ST.filter(r=>!EXPORT_SKUS.includes(r.codigo));
   const CAT_DEFS=[
     {tab:'inv',label:'Inversores',ico:'ti-bolt',col:'var(--cwb)',bg:'#dbeafe'},
     {tab:'ev',label:'Carregadores EV',ico:'ti-charging-pile',col:'var(--grn-d)',bg:'var(--grn-pale)'},
@@ -1280,7 +1288,7 @@ function rDash(){
     {tab:'mp',label:'Matéria-Prima',ico:'ti-building-factory-2',col:'var(--red)',bg:'var(--red-pale)'},
   ];
   const catData=CAT_DEFS.map(def=>{
-    const rows=ST.filter(r=>getCatTab(r)===def.tab);
+    const rows=STV.filter(r=>getCatTab(r)===def.tab);
     const disp=rows.reduce((a,r)=>a+r.disp,0);
     const skus=new Set(rows.map(r=>r.codigo)).size;
     return {...def,disp,skus};
@@ -1315,7 +1323,7 @@ function rDash(){
 
   // Cards por armazém
   document.getElementById('dash-wh').innerHTML = WH_LIST.map(w=>{
-    const rows=ST.filter(r=>r.wh===w);
+    const rows=STV.filter(r=>r.wh===w);
     const disp=rows.reduce((a,r)=>a+r.disp,0);
     const sal=rows.reduce((a,r)=>a+r.saldo,0);
     const skus=new Set(rows.map(r=>r.codigo)).size;
@@ -1327,7 +1335,7 @@ function rDash(){
   }).join('');
 
   // Top 10 disponível
-  const top10=dedup(ST).sort((a,b)=>b._disp-a._disp).slice(0,10);
+  const top10=dedup(STV).sort((a,b)=>b._disp-a._disp).slice(0,10);
   document.getElementById('dash-top10').innerHTML = `
     <div style="background:var(--surf);border:1px solid var(--brd);border-radius:10px;padding:14px;margin-top:18px">
       <div style="font-weight:700;font-size:13px;margin-bottom:10px"><i class="ti ti-trophy"></i> Top 10 — Maior Disponível</div>
@@ -1338,7 +1346,7 @@ function rDash(){
   // (saldo já líquido de reserva, igual ao Top 10 geral acima). Se a família tiver
   // menos de 10 SKUs, mostra só 5 (ou menos, se nem 5 existir).
   function topFamilia(tabId){
-    const rows=dedup(ST.filter(r=>getCatTab(r)===tabId)).sort((a,b)=>b._disp-a._disp);
+    const rows=dedup(STV.filter(r=>getCatTab(r)===tabId)).sort((a,b)=>b._disp-a._disp);
     const n = rows.length>=10 ? 10 : Math.min(5, rows.length);
     return rows.slice(0, n);
   }
@@ -1577,11 +1585,11 @@ function updateSidebar(){
   // do jeito antigo (contando via getCatTab(r)==='mp'), o contador ficava sempre em 0.
   const tabs=['inv','ev','bess','kit','strbox','div','mot'];
   tabs.forEach(tb=>{
-    const n=new Set(ST.filter(r=>getCatTab(r)===tb).map(r=>r.codigo)).size;
+    const n=new Set(ST.filter(r=>getCatTab(r)===tb && !EXPORT_SKUS.includes(r.codigo)).map(r=>r.codigo)).size;
     const el=document.getElementById('sc-'+tb); if(el) el.textContent=n;
   });
-  document.getElementById('sc-mp').textContent=new Set(ST.filter(r=>r.isMP).map(r=>r.codigo)).size;
-  document.getElementById('sc-todos').textContent=new Set(ST.map(r=>r.codigo)).size;
+  document.getElementById('sc-mp').textContent=new Set(ST.filter(r=>r.isMP && !EXPORT_SKUS.includes(r.codigo)).map(r=>r.codigo)).size;
+  document.getElementById('sc-todos').textContent=new Set(ST.filter(r=>!EXPORT_SKUS.includes(r.codigo)).map(r=>r.codigo)).size;
   document.getElementById('sc-res').textContent=new Set(RES.map(r=>r.codigo)).size;
 }
 
