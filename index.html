@@ -498,6 +498,7 @@ function go(id){
   document.getElementById('tab-'+id)?.classList.add('on');
   document.getElementById('content').scrollTop=0;
   closeMobMenu();
+  if(id==='audit') carregarVariacaoEstoque();
 }
 
 // ── Helpers ──
@@ -1793,6 +1794,7 @@ function rAudit(){
   document.getElementById('audit-content').innerHTML=`
     ${totaisBlock}
     ${saldoBlock}
+    <div id="aud-variacao"></div>
     ${resSemArmBlock}
     ${resCodInvBlock}
     ${totvsBlock}
@@ -1827,6 +1829,123 @@ function rAudit(){
     ${VAL_DUPLICADO.length?`<div style="padding:8px 12px;font-size:11px;color:var(--txtm);border:1px solid var(--brd);border-radius:8px">
       ⚠️ <b>${VAL_DUPLICADO.length} código(s) duplicado(s)</b> no cadastro: ${VAL_DUPLICADO.map(v=>v.codigo).slice(0,5).join(', ')}
     </div>`:''}`;
+  renderVariacao();
+}
+
+// ══ VARIAÇÃO DE ESTOQUE vs. versão anterior (histórico de commits do GitHub) ══
+// Pedido da Cristiane: ver o que aumentou/diminuiu desde a atualização anterior, sem rotina
+// manual. Só roda quando a aba Auditoria é aberta (evita gastar o limite da API do GitHub
+// a cada acesso). Compara arquivo contra arquivo (ESTOQUE DISPONIVEL / Saldo Estoque), com os
+// mesmos parsers do dashboard. Depende do repositório ser público; se não for, avisa.
+const GH_REPO='smlivoltek/livoltek';
+let ESTOQUE_TXT={}, ESTOQUE_ITENS_ATUAIS={geral:[],fabrica:[]};
+let VARIACAO={estado:'idle',linhas:[],fontes:[],filtro:'todos',erro:''};
+
+async function ghVersaoAnterior(arquivo, textoAtual){
+  const norm=t=>String(t||'').replace(/\r\n/g,'\n').trim();
+  const rc=await fetch(`https://api.github.com/repos/${GH_REPO}/commits?path=data/${arquivo}&per_page=8`);
+  if(!rc.ok) throw new Error('GitHub respondeu HTTP '+rc.status);
+  const commits=await rc.json();
+  let n=0;
+  for(const c of commits){
+    if(n++>=6) break;
+    const rr=await fetch(`https://raw.githubusercontent.com/${GH_REPO}/${c.sha}/data/${arquivo}`);
+    if(!rr.ok) continue;
+    const txt=new TextDecoder('windows-1252').decode(await rr.arrayBuffer());
+    if(norm(txt)!==norm(textoAtual)) return {txt, data:new Date(c.commit.committer.date), sha:c.sha.slice(0,7)};
+  }
+  return null;
+}
+
+// Os parsers têm efeito colateral (EXP_RAW, SRC_ALERTS) — isolo pra não contaminar a aba Exportação.
+function parseIsolado(parser, txt){
+  const bakExp=EXP_RAW, nAl=SRC_ALERTS.length;
+  EXP_RAW=[];
+  try{ return parser(txt); } finally { EXP_RAW=bakExp; SRC_ALERTS.length=nAl; }
+}
+
+function somaPorChave(items){
+  const m=new Map();
+  items.forEach(i=>{
+    const k=i.wh+'|'+i.codigo;
+    const o=m.get(k)||{codigo:i.codigo,wh:i.wh,descricao:i.descricao||'',saldo:0};
+    o.saldo+=i.saldo||0; if(!o.descricao&&i.descricao) o.descricao=i.descricao;
+    m.set(k,o);
+  });
+  return m;
+}
+
+function compararEstoque(antes, agora){
+  const A=somaPorChave(antes), B=somaPorChave(agora), out=[];
+  new Set([...A.keys(),...B.keys()]).forEach(k=>{
+    const a=A.get(k), b=B.get(k);
+    const ant=a?a.saldo:0, atu=b?b.saldo:0, dif=atu-ant;
+    if(!dif) return;
+    const base=b||a;
+    const cad=(base.wh==='Fábrica Livoltek'?(CADASTRO_TOP[base.codigo]||CADASTRO[base.codigo]):CADASTRO[base.codigo])||{};
+    out.push({codigo:base.codigo, wh:base.wh, nome:cad.nomenclatura||base.descricao||'',
+      ant, atu, dif, tipo: !a?'novo':(!b?'saiu':(dif>0?'subiu':'caiu'))});
+  });
+  return out;
+}
+
+async function carregarVariacaoEstoque(forcar){
+  if(VARIACAO.estado==='loading') return;
+  if(VARIACAO.estado==='ok'&&!forcar) return;
+  VARIACAO={estado:'loading',linhas:[],fontes:[],filtro:'todos',erro:''};
+  renderVariacao();
+  try{
+    const defs=[
+      {arquivo:'estoque_geral.csv', alvo:'geral', parser:parseEstoqueGeral},
+      {arquivo:'estoque_fabrica_manaus.csv', alvo:'fabrica', parser:parseFabricaManaus},
+    ];
+    for(const d of defs){
+      if(!ESTOQUE_TXT[d.alvo]) continue;
+      const ant=await ghVersaoAnterior(d.arquivo, ESTOQUE_TXT[d.alvo]);
+      if(!ant){ VARIACAO.fontes.push({arquivo:d.arquivo, semAnterior:true}); continue; }
+      const itensAnt=parseIsolado(d.parser, ant.txt);
+      VARIACAO.linhas.push(...compararEstoque(itensAnt, ESTOQUE_ITENS_ATUAIS[d.alvo]||[]));
+      VARIACAO.fontes.push({arquivo:d.arquivo, data:ant.data, sha:ant.sha});
+    }
+    VARIACAO.linhas.sort((x,y)=>Math.abs(y.dif)-Math.abs(x.dif));
+    VARIACAO.estado='ok';
+  }catch(e){
+    VARIACAO.estado='erro';
+    VARIACAO.erro=e.message||String(e);
+  }
+  renderVariacao();
+}
+
+function setFiltroVariacao(f){ VARIACAO.filtro=f; renderVariacao(); }
+
+function renderVariacao(){
+  const el=document.getElementById('aud-variacao'); if(!el) return;
+  const hdr=`<div class="aud-hdr" style="background:#eff6ff;color:#1d4ed8"><i class="ti ti-arrows-up-down"></i> Variação de estoque vs. atualização anterior</div>`;
+  const box=(inner)=>`<div class="aud-block">${hdr}<div style="border:1px solid #bfdbfe;border-top:none;padding:12px 14px;font-size:13px">${inner}</div></div>`;
+  if(VARIACAO.estado==='idle'||VARIACAO.estado==='loading'){ el.innerHTML=box('<span style="color:var(--txtm)">Buscando a versão anterior no histórico do GitHub…</span>'); return; }
+  if(VARIACAO.estado==='erro'){
+    el.innerHTML=box(`⚠️ Não consegui consultar o histórico (${VARIACAO.erro}). Pode ser o limite de requisições do GitHub ou o repositório estar privado. <button onclick="carregarVariacaoEstoque(true)" style="margin-left:8px;padding:3px 10px;border:1px solid var(--brd);border-radius:6px;background:var(--surf);cursor:pointer">Tentar de novo</button>`);
+    return;
+  }
+  const L=VARIACAO.linhas, N=fmt;
+  const cont=t=>L.filter(x=>x.tipo===t).length;
+  const fontesTxt=VARIACAO.fontes.map(f=>f.semAnterior
+    ? `<b>${f.arquivo}</b>: sem versão anterior diferente no histórico`
+    : `<b>${f.arquivo}</b>: versão de ${f.data.toLocaleString('pt-BR')} (commit ${f.sha})`).join(' · ');
+  const chip=(k,lbl,n)=>`<button onclick="setFiltroVariacao('${k}')" style="padding:4px 10px;border:1px solid ${VARIACAO.filtro===k?'#1d4ed8':'var(--brd)'};border-radius:999px;background:${VARIACAO.filtro===k?'#dbeafe':'var(--surf)'};font-size:12px;cursor:pointer;margin-right:6px">${lbl} (${n})</button>`;
+  const vis=VARIACAO.filtro==='todos'?L:L.filter(x=>VARIACAO.filtro==='sobem'?(x.tipo==='subiu'||x.tipo==='novo'):(x.tipo==='caiu'||x.tipo==='saiu'));
+  const tag={subiu:'',caiu:'',novo:' <span style="font-size:10px;color:#1d4ed8">(novo)</span>',saiu:' <span style="font-size:10px;color:#991b1b">(saiu do arquivo)</span>'};
+  const linhas=vis.map(x=>`<tr><td style="font-family:'DM Mono',monospace;font-weight:700">${x.codigo}</td>
+    <td>${tr(x.nome,48)}${tag[x.tipo]}</td><td>${x.wh}</td>
+    <td style="text-align:right;font-family:'DM Mono',monospace;color:var(--txtm)">${N(x.ant)}</td>
+    <td style="text-align:right;font-family:'DM Mono',monospace">${N(x.atu)}</td>
+    <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${x.dif>0?'var(--grn-d)':'var(--red)'}">${x.dif>0?'+':''}${N(x.dif)}</td></tr>`).join('');
+  const corpo = L.length ? `
+      <div style="margin-bottom:8px">${chip('todos','Todos',L.length)}${chip('sobem','Aumentaram / novos',cont('subiu')+cont('novo'))}${chip('caem','Diminuíram / saíram',cont('caiu')+cont('saiu'))}</div>
+      <div style="max-height:420px;overflow:auto;border:1px solid var(--brd);border-radius:8px">
+        <table class="aud-tbl" style="width:100%"><tr style="background:#f8fafc;position:sticky;top:0"><th>Código</th><th>Produto</th><th>Armazém</th><th style="text-align:right">Anterior</th><th style="text-align:right">Atual</th><th style="text-align:right">Variação</th></tr>${linhas}</table>
+      </div>` : '<span style="color:var(--grn-d)">Nenhuma diferença de quantidade entre as duas versões.</span>';
+  el.innerHTML=box(`<div style="font-size:11px;color:var(--txtm);margin-bottom:8px">Comparando com: ${fontesTxt||'—'}</div>${corpo}`);
 }
 
 function setStatus(s){
@@ -1941,6 +2060,7 @@ async function boot(){
       if(!r.ok) throw new Error('HTTP '+r.status);
       const buf=await r.arrayBuffer();
       const txt=new TextDecoder('windows-1252').decode(buf);
+      ESTOQUE_TXT[f.target]=txt;
       const items=f.parser(txt);
       if(f.target==='geral') geralItems=items; else fabricaItems=items;
     }catch(e){
@@ -1948,6 +2068,7 @@ async function boot(){
     }
   }));
   stItems.push(...geralItems, ...fabricaItems);
+  ESTOQUE_ITENS_ATUAIS={geral:geralItems, fabrica:fabricaItems};
   // Produtos únicos por armazém (não confundir com "linhas": um código pode ter mais de uma
   // linha no mesmo arquivo, ex: matéria-prima em ARMZ diferentes já filtrados, ou repetido
   // entre armazéns).
