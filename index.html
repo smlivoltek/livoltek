@@ -110,6 +110,11 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc2-wh-row.pc2-wh-zero{opacity:.4}
 .pc2-wh-name{flex:1;font-size:12px;color:var(--txt2)}
 .pc2-wh-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--txt)}
+.pc2-wh-head{display:flex;align-items:center;gap:7px;font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--txtm);padding-bottom:2px}
+.pc2-wh-head .pc2-wh-name{font-size:9.5px;color:var(--txtm)}
+.pc2-wh-col{width:58px;text-align:right}
+.pc2-wh-sal{font-family:'DM Mono',monospace;font-size:12px;font-weight:500;color:var(--txtm);width:58px;text-align:right}
+.pc2-wh-disp{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;width:58px;text-align:right}
 .pc2-no-stock{font-size:11px;color:var(--txtm)}
 .pc2-totals{padding:.375rem 1rem .5rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:3px}
 .pc2-total-row{display:flex;justify-content:space-between;font-size:12px;color:var(--txt2)}
@@ -1050,6 +1055,26 @@ function syncWHFromMap(){
 }
 
 
+// ══ Linhas de armazém do card: Estoque (cinza) + Disponível (colorido) por armazém.
+// Disponível por armazém = saldo − reserva − faturado daquele armazém (já vem em _byWH[w].disp).
+// Assim dá pra bater o olho e ver ONDE está o disponível (e onde está negativo/estourado).
+function whListHtml(byWH){
+  const head=`<div class="pc2-wh-head"><span class="pc2-wh-name"></span><span class="pc2-wh-col">Estoque</span><span class="pc2-wh-col">Disp.</span></div>`;
+  const rows=WH_LIST.map(w=>{
+    const d=(byWH&&byWH[w])||{saldo:0,reserva:0,fat:0,disp:0};
+    const sal=d.saldo||0, disp=d.disp||0;
+    const vazio=!sal&&!d.reserva&&!d.fat;
+    const col=disp>0?'var(--grn-d)':disp<0?'var(--red)':'var(--amb-d)';
+    return `<div class="pc2-wh-row${vazio?' pc2-wh-zero':''}">
+      <i class="ti ${WH_ICON[w]||'ti-building-warehouse'}" style="color:${WH_COLOR[w]||'#94a3b8'};font-size:12px"></i>
+      <span class="pc2-wh-name">${w}</span>
+      <span class="pc2-wh-sal">${fmt(sal)}</span>
+      <span class="pc2-wh-disp" style="color:${vazio?'inherit':col}">${fmt(disp)}</span>
+    </div>`;
+  }).join('');
+  return head+rows;
+}
+
 // ══ DEDUP ══
 function dedup(items){
   const m={};
@@ -1095,15 +1120,7 @@ function pCard(r, isMP){
   const famCol=isMP?'var(--red)':'var(--pri)';
   const famBg=isMP?'var(--red-pale)':'var(--pri-pale)';
 
-  const whRows=WH_LIST.map(w=>{
-    const d=r._byWH[w]; const saldoW=d?d.saldo:0;
-    const c=WH_COLOR[w]; const ico=WH_ICON[w];
-    return `<div class="pc2-wh-row${saldoW?'':' pc2-wh-zero'}">
-      <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
-      <span class="pc2-wh-name">${w}</span>
-      <span class="pc2-wh-val">${fmt(saldoW)}</span>
-    </div>`;
-  }).join('');
+  const whRows=whListHtml(r._byWH);
 
   // Detalhe de reserva por armazém usando _byWH.reserva (já acumulado em dedup)
   const resWhRows=WH_LIST.map(w=>{
@@ -1409,12 +1426,7 @@ function buildProdCard(g, modoDiretoria, isFiltered){
   const sortedRes=g.reservas.slice().sort((a,b)=>b.qtd-a.qtd);
   const expanded=resExpanded.has(g.codigo);
   const nCli=new Set(g.reservas.map(r=>r.cliente)).size;
-  const whMap={};
-  stRows.forEach(r=>{whMap[r.wh]=(whMap[r.wh]||0)+r.saldo;});
-  const whRows=WH_LIST.map(w=>{
-    const v=whMap[w]||0;
-    return `<div class="pc2-wh-row${v?'':' pc2-wh-zero'}"><i class="ti ti-building-warehouse" style="color:${WH_COLOR[w]||'#94a3b8'}"></i><span class="pc2-wh-name">${w}</span><span class="pc2-wh-val">${fmt(v)}</span></div>`;
-  }).join('');
+  const whRows=whListHtml((dedup(stRows)[0]||{})._byWH);
 
   const dispLbl = 'Disponível Total';
   const resLbl = 'Reserva';
@@ -1487,18 +1499,8 @@ function rExp(){
     const dispCol=dispTotal>0?'var(--grn-d)':dispTotal===0&&salTotal>0?'var(--amb-d)':'var(--red)';
     const expanded=expExpanded.has(sku);
 
-    // Linhas de armazéns comerciais (ARMZ=7) agrupadas por armazém
-    const whRows=WH_LIST.map(w=>{
-      const whrec=dd.find(r=>r._byWH&&r._byWH[w]);
-      const sal=whrec?._byWH?.[w]?.saldo||0;
-      const c=WH_COLOR[w]||'#64748b';
-      const ico=WH_ICON[w]||'ti-building-warehouse';
-      return `<div class="pc2-wh-row${sal?'':' pc2-wh-zero'}">
-        <i class="ti ${ico}" style="color:${c};font-size:12px"></i>
-        <span class="pc2-wh-name">${w}</span>
-        <span class="pc2-wh-val">${fmt(sal)}</span>
-      </div>`;
-    }).join('');
+    // Linhas de armazéns comerciais (ARMZ=7): Estoque + Disponível por armazém
+    const whRows=whListHtml((dd[0]||{})._byWH);
 
     // Linhas dos outros armazéns (trânsito, exportação, etc.) — expandíveis
     const outrosDetalhes=expRows.map(r=>{
