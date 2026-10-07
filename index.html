@@ -363,13 +363,15 @@ let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE
 //   disponível) é o valor TRAVADO, não o TOTVS lido ao vivo — só muda quando você decide "Aceitar TOTVS".
 // AUD_DECISIONS: decisões em rascunho (localStorage), aguardando o download de "Baixar validações".
 let AUD_BASELINE={}, AUD_DECISIONS={}, AUD_DIVERGENTES=[];
-// Códigos de produtos elegíveis a financiamento FINAME, lidos de data/finame.csv (opcional).
-// Cristiane mantém essa lista subindo o arquivo direto no GitHub — sem arquivo, fica vazio
-// e nenhum produto é marcado, sem erro.
-let FINAME_CODES = new Set();
-// Códigos "sem AFCI" (proteção contra arco elétrico), lidos de data/sem_afci.csv (opcional).
-// Mesma lógica do FINAME — Cristiane mantém a lista subindo o arquivo, sem mexer no código.
-let SEM_AFCI_CODES = new Set();
+// Tags FINAME e Exportação-S/AFCI vêm do cadastro_produtos.csv (decisão da Cristiane):
+//   coluna NACIONAL    marcada → produto nacional, elegível a FINAME  (tag ⭐ FINAME)
+//   coluna EXPORTAÇÃO  marcada → equipamento de exportação sem AFCI   (tag Exportação-S/AFCI)
+// "Marcada" = qualquer valor preenchido (X, S, SIM, 1...), exceto negativas explícitas
+// (NÃO, N, 0, FALSO, -). Célula vazia = não. Mantém tudo numa tabela só: o cadastro.
+const celulaMarcada = v=>{
+  const t=String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().trim();
+  return t!=='' && !['NAO','N','0','FALSE','FALSO','-'].includes(t);
+};
 const AUD_KEY = (codigo,wh)=>`${codigo}|${wh}`;
 const AUD_LS_KEY = 'livoltek_audit_decisions';
 
@@ -573,6 +575,11 @@ function parseCadastro(csv){
   const iCAT = ci('Categoria','CATEGORIA')>=0?ci('Categoria','CATEGORIA'):3;
   const iFAM = ci('Família','Familia','FAMILIA')>=0?ci('Família','Familia','FAMILIA'):4;
   const iNOM = ci('Nomenclatura','NOMENCLATURA')>=0?ci('Nomenclatura','NOMENCLATURA'):5;
+  // Colunas das tags (sem posição padrão: se não existirem, avisa — nada de falha silenciosa).
+  const iNAC = ci('NACIONAL');
+  const iEXP = ci('EXPORTACAO','EXPORTAÇÃO');
+  if(iNAC<0) SRC_ALERTS.push({fonte:'cadastro_produtos.csv',msg:'⚠️ Coluna NACIONAL não encontrada no cadastro — as tags FINAME não serão exibidas.',ts:new Date()});
+  if(iEXP<0) SRC_ALERTS.push({fonte:'cadastro_produtos.csv',msg:'⚠️ Coluna EXPORTAÇÃO não encontrada no cadastro — as tags Exportação-S/AFCI não serão exibidas.',ts:new Date()});
   const map={}, mapTop={}, mapNomCount={}, mapNom={}, dupl=[];
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
@@ -581,7 +588,8 @@ function parseCadastro(csv){
     if(map[codigo]){ dupl.push(codigo); continue; }
     const item={
       codigo, descricao:String(r[iDESC]||'').trim(), topManager:String(r[iTOP]||'').trim(),
-      categoria:fixEnc(r[iCAT]), familia:String(r[iFAM]||'').trim(), nomenclatura:String(r[iNOM]||'').trim()
+      categoria:fixEnc(r[iCAT]), familia:String(r[iFAM]||'').trim(), nomenclatura:String(r[iNOM]||'').trim(),
+      nacional: iNAC>=0 && celulaMarcada(r[iNAC]), exportacao: iEXP>=0 && celulaMarcada(r[iEXP])
     };
     map[codigo]=item;
     // Índice secundário: código TopManager (ex: "106170") → registro do cadastro (ex: "106170M").
@@ -911,6 +919,8 @@ function joinCadastro(items){
     const cad = (s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]) ? CADASTRO_TOP[s.codigo]
       : (CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo] || (s.wh==='Fábrica Livoltek' ? buscarPorNomenclaturaParcial(s.codigo) : null));
     s._semCadastro=!cad;
+    s.isFiname=!!(cad&&cad.nacional);
+    s.isSemAfci=!!(cad&&cad.exportacao);
     if(cad){
       // Usa dado do ESTOQUE.csv se preenchido, senão cai no cadastro_produtos
       if(!s.nomenclatura) s.nomenclatura=cad.nomenclatura||s.descricao;
@@ -988,7 +998,7 @@ function applyReservas(){
       descricao: cadItem.descricao||codigo,
       nomenclatura: cadItem.nomenclatura||cadItem.descricao||codigo,
       familia: cadItem.familia||'', categoria: cadItem.categoria||'',
-      isMP: isMP_v, _semCadastro:!cadItem.nomenclatura, _incompleto:[],
+      isMP: isMP_v, _semCadastro:!cadItem.nomenclatura, isFiname:!!cadItem.nacional, isSemAfci:!!cadItem.exportacao, _incompleto:[],
       _byWH:byWH_v, _sal:0, _res:qtd, _fat:0, _disp:-qtd, tp:''
     };
     ST.push(linhaVirtual);
@@ -1025,7 +1035,7 @@ function applyFaturados(){
         descricao:cadItem.descricao||codigo,
         nomenclatura:cadItem.nomenclatura||cadItem.descricao||codigo,
         familia:cadItem.familia||'', categoria:cadItem.categoria||'',
-        isMP:false, _semCadastro:!cadItem.nomenclatura, _incompleto:[],
+        isMP:false, _semCadastro:!cadItem.nomenclatura, isFiname:!!cadItem.nacional, isSemAfci:!!cadItem.exportacao, _incompleto:[],
         _byWH:{}, _sal:0, _res:0, _fat:v.qtd, _disp:-v.qtd, tp:''
       });
       aplicadoFat.add(k);
@@ -1518,8 +1528,8 @@ function rExp(){
     return `<div class="pc2">
       <div class="pc2-top">
         ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
-        ${FINAME_CODES.has(sku)?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
-        ${SEM_AFCI_CODES.has(sku)?`<span class="pc2-pill" style="color:#ffffff;background:#dc2626;border:1px solid #dc2626;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
+        ${(stRows.some(r=>r.isFiname)||!!(CADASTRO[sku]||{}).nacional)?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
+        ${(stRows.some(r=>r.isSemAfci)||!!(CADASTRO[sku]||{}).exportacao)?`<span class="pc2-pill" style="color:#ffffff;background:#dc2626;border:1px solid #dc2626;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
         <div class="pc2-head">
           <div class="pc2-cod">${sku}</div>
         </div>
@@ -2117,35 +2127,6 @@ async function boot(){
 
   joinCadastro(stItems);
   ST=stItems;
-
-  // 3.6 FINAME — data/finame.csv é OPCIONAL. Um código por linha (com ou sem cabeçalho
-  // "CODIGO"). Sem o arquivo, nenhum produto é marcado — sem erro.
-  FINAME_CODES=new Set();
-  try{
-    const rFin=await fetch('data/finame.csv',{cache:'no-store'});
-    if(rFin.ok){
-      const txtFin=await rFin.text();
-      Papa.parse(txtFin.replace(/^\uFEFF/,''),{header:false,skipEmptyLines:true,delimiter:txtFin.includes(';')?';':','}).data.forEach(r=>{
-        const c=String(r[0]||'').trim().toUpperCase();
-        if(c&&c!=='CODIGO'&&c!=='CÓDIGO') FINAME_CODES.add(c);
-      });
-    }
-  }catch(e){ /* arquivo opcional — silencioso */ }
-  ST.forEach(r=>{ r.isFiname=FINAME_CODES.has(r.codigo); });
-
-  // 3.7 Exportação-S/AFCI — data/sem_afci.csv é OPCIONAL, mesmo formato do finame.csv.
-  SEM_AFCI_CODES=new Set();
-  try{
-    const rAfci=await fetch('data/sem_afci.csv',{cache:'no-store'});
-    if(rAfci.ok){
-      const txtAfci=await rAfci.text();
-      Papa.parse(txtAfci.replace(/^\uFEFF/,''),{header:false,skipEmptyLines:true,delimiter:txtAfci.includes(';')?';':','}).data.forEach(r=>{
-        const c=String(r[0]||'').trim().toUpperCase();
-        if(c&&c!=='CODIGO'&&c!=='CÓDIGO') SEM_AFCI_CODES.add(c);
-      });
-    }
-  }catch(e){ /* arquivo opcional — silencioso */ }
-  ST.forEach(r=>{ r.isSemAfci=SEM_AFCI_CODES.has(r.codigo); });
 
   // 4. Reservas — Google Sheets em tempo real (com fallback local)
   if(RESERVAS_SHEET_URL){
