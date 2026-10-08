@@ -149,6 +149,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
   font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;font-family:inherit;white-space:nowrap}
 .fam-pill:hover{border-color:var(--pri);color:var(--pri)}
 .fam-pill.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.fam-pill.finame{background:#fef3c7;border-color:#fcd34d;color:#92400e;font-weight:700}
+.fam-pill.finame:hover{border-color:#f59e0b;color:#92400e}
+.fam-pill.finame.on{background:#f59e0b;border-color:#f59e0b;color:#fff}
 
 /* ── Auditoria ── */
 .aud-block{margin-bottom:20px}
@@ -1220,6 +1223,13 @@ function toggleTotCard(codigo, btn){
 }
 
 const famFilters={};
+// Filtro FINAME por aba (liga/desliga, combina com o filtro de família). Pedido da Cristiane:
+// o vendedor clica e vê só os produtos Finame.
+const finameFilters={};
+function toggleFiname(tabId){
+  finameFilters[tabId]=!finameFilters[tabId];
+  renderCat(tabId);
+}
 
 function setFam(tabId, fam){
   famFilters[tabId] = (famFilters[tabId]===fam) ? '' : fam; // clicar de novo desmarca
@@ -1231,9 +1241,13 @@ function renderFamPills(tabId, baseRows){
   if(!pillsEl) return;
   // Extrai famílias únicas da coluna FAMILIA do cadastro_produtos, só com produtos desta aba
   const familias=[...new Set(baseRows.map(r=>r.familia).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  if(!familias.length){ pillsEl.innerHTML=''; return; }
+  // Botão FINAME: só aparece se a aba tem algum produto Finame (coluna Nacional do cadastro).
+  const nFin=new Set(baseRows.filter(r=>r.isFiname).map(r=>r.codigo)).size;
+  if(!nFin) finameFilters[tabId]=false; // sem produto Finame na aba, não deixa o filtro preso ligado
+  if(!familias.length && !nFin){ pillsEl.innerHTML=''; return; }
   const ativa=famFilters[tabId]||'';
-  pillsEl.innerHTML = familias.map(f=>{
+  const finBtn = nFin ? `<button class="fam-pill finame${finameFilters[tabId]?' on':''}" onclick="toggleFiname('${tabId}')" title="Mostrar só produtos Finame">⭐ FINAME (${nFin})</button>` : '';
+  pillsEl.innerHTML = finBtn + familias.map(f=>{
     const on = f===ativa;
     return `<button class="fam-pill${on?' on':''}" onclick="setFam('${tabId}','${f.replace(/'/g,"\\'")}')">${f}</button>`;
   }).join('');
@@ -1267,6 +1281,7 @@ function renderCat(tabId){
   // Filtros nos produtos normais
   let rows = baseRows;
   if(famAtiva) rows=rows.filter(r=>r.familia===famAtiva);
+  if(finameFilters[tabId]) rows=rows.filter(r=>r.isFiname);
   if(q) rows=rows.filter(r=> (r.nomenclatura||'').toLowerCase().includes(q)||(r.descricao||'').toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q));
   if(wh) rows=rows.filter(r=>r.wh===wh);
   const dd=dedup(rows).sort((a,b)=>(a.nomenclatura||a.descricao||'').localeCompare(b.nomenclatura||b.descricao||'','pt-BR'));
@@ -1281,6 +1296,7 @@ function renderCat(tabId){
     let mpRows = baseMPRows;
     if(q) mpRows=mpRows.filter(r=>(r.nomenclatura||'').toLowerCase().includes(q)||(r.descricao||'').toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q));
     if(wh) mpRows=mpRows.filter(r=>r.wh===wh);
+    if(finameFilters[tabId]) mpRows=mpRows.filter(r=>r.isFiname);
     const mpdd=dedup(mpRows).sort((a,b)=>(a.nomenclatura||a.descricao||'').localeCompare(b.nomenclatura||b.descricao||'','pt-BR'));
     if(mpdd.length){
       mpSecEl.style.display='block';
