@@ -357,8 +357,8 @@ const WH_LIST  = ['Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','F�
 const WH_COLOR = {'Curitiba (Eletra)':'var(--cwb)','Fortaleza (Eletra)':'var(--for)','Manaus (Eletra)':'var(--mao-e)','Fábrica Livoltek':'var(--mao-l)'};
 const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra)':'ti-building-warehouse','Manaus (Eletra)':'ti-building-warehouse','Fábrica Livoltek':'ti-building-factory-2'};
 
-let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, CADASTRO_NOM={}, MODO='novo';
-let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[];
+let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, CADASTRO_NACTOP={}, CADASTRO_NOM={}, MODO='novo';
+let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[], VAL_FABRICA_HEXING=[], VAL_TOP_REPETIDO=[];
 
 // ══ CONFERÊNCIA TOTVS x SISTEMA ══
 // AUD_BASELINE: baseline "travada" por codigo|armazem, lida de data/overrides_estoque.csv (opcional).
@@ -574,32 +574,41 @@ function parseCadastro(csv){
   const ci=makeCI(hdr);
   const iCOD = ci('CODIGO','CÓDIGO')>=0?ci('CODIGO','CÓDIGO'):0;
   const iDESC= ci('DESCRICAO')>=0?ci('DESCRICAO'):1;
-  const iTOP = ci('TOP MANAGER','CODIGO TOP MANAGER')>=0?ci('TOP MANAGER','CODIGO TOP MANAGER'):2;
+  const iTOP = ci('TOP MANAGER','CODIGO TOP MANAGER'); // opcional: se a coluna não existir, fica -1 (não lê outra coluna no lugar)
   const iCAT = ci('Categoria','CATEGORIA')>=0?ci('Categoria','CATEGORIA'):3;
   const iFAM = ci('Família','Familia','FAMILIA')>=0?ci('Família','Familia','FAMILIA'):4;
-  const iNOM = ci('Nomenclatura','NOMENCLATURA')>=0?ci('Nomenclatura','NOMENCLATURA'):5;
-  // Colunas das tags (sem posição padrão: se não existirem, avisa — nada de falha silenciosa).
+  const iNOM = ci('Nomenclatura','NOMENCLATURA'); // opcional: sem a coluna, o nome do produto é a DESCRICAO do cadastro
+  // TOP Manager = código NUMÉRICO do sistema da Fábrica (não dá pra personalizar). No cadastro:
+  //  • CODIGO = código Hexing/TOTVS do produto (uma linha por produto);
+  //  • CODIGO TOP MANAGER          = código(s) LOCAL (não nacional) do produto na Fábrica Manaus;
+  //  • CODIGO TOP MANAGER NACIONAL = código(s) do produto NACIONAL (Finame). Nacional não tem Hexing.
+  // Mais de um código na mesma célula: separados por "/". Formato antigo aceito: coluna "Nacional"
+  // com SIM (a própria linha é o produto nacional).
+  const iTOPN = ci('CODIGO TOP MANAGER NACIONAL','TOP MANAGER NACIONAL','CODIGO TOP NACIONAL','TOP NACIONAL');
   const iNAC = ci('NACIONAL');
   const iEXP = ci('EXPORTACAO','EXPORTAÇÃO');
-  if(iNAC<0) SRC_ALERTS.push({fonte:'cadastro_produtos.csv',msg:'⚠️ Coluna NACIONAL não encontrada no cadastro — as tags FINAME não serão exibidas.',ts:new Date()});
+  const splitCod = v=>String(v||'').split(/[\/;,|]+/).map(x=>x.trim().toUpperCase().replace(/\.0$/,'').replace(/\.$/,'')).filter(Boolean);
+  const repetidos=[];
+  if(iTOPN<0 && iNAC<0) SRC_ALERTS.push({fonte:'cadastro_produtos.csv',msg:'⚠️ Coluna CODIGO TOP MANAGER NACIONAL não encontrada no cadastro — as tags FINAME não serão exibidas.',ts:new Date()});
   if(iEXP<0) SRC_ALERTS.push({fonte:'cadastro_produtos.csv',msg:'⚠️ Coluna EXPORTAÇÃO não encontrada no cadastro — as tags Exportação-S/AFCI não serão exibidas.',ts:new Date()});
-  const map={}, mapTop={}, mapNomCount={}, mapNom={}, dupl=[];
+  const map={}, mapTop={}, mapNac={}, mapNomCount={}, mapNom={}, dupl=[];
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
     const codigo=String(r[iCOD]||'').trim().toUpperCase().replace(/\.$/,''); // remove ponto final
     if(!codigo) continue;
     if(map[codigo]){ dupl.push(codigo); continue; }
+    const topLocal = iTOP>=0 ? splitCod(r[iTOP]) : [];
+    const topNacional = iTOPN>=0 ? splitCod(r[iTOPN]) : ((iNAC>=0 && celulaMarcada(r[iNAC])) ? [codigo] : []);
     const item={
-      codigo, descricao:String(r[iDESC]||'').trim(), topManager:String(r[iTOP]||'').trim(),
-      categoria:fixEnc(r[iCAT]), familia:String(r[iFAM]||'').trim(), nomenclatura:String(r[iNOM]||'').trim(),
-      nacional: iNAC>=0 && celulaMarcada(r[iNAC]), exportacao: iEXP>=0 && celulaMarcada(r[iEXP])
+      codigo, descricao:String(r[iDESC]||'').trim(), topLocal, topNacional, nacional: topNacional.length>0,
+      categoria:fixEnc(r[iCAT]), familia:String(r[iFAM]||'').trim(), nomenclatura:((iNOM>=0?String(r[iNOM]||'').trim():'')||String(r[iDESC]||'').trim()),
+      exportacao: iEXP>=0 && celulaMarcada(r[iEXP])
     };
     map[codigo]=item;
-    // Índice secundário: código TopManager (ex: "106170") → registro do cadastro (ex: "106170M").
-    // A Fábrica Manaus reporta pelo código TopManager, que pode ser igual a uma CODIGO primária
-    // de outro item (ex: "106170" existe como PRODUTO E como TOP MANAGER de "106170M"/MATERIA-PRIMA) —
-    // por isso esse índice é separado, pra não confundir com o lookup por CODIGO principal.
-    if(item.topManager) mapTop[item.topManager.toUpperCase()]=item;
+    // Índices dos códigos TOP (a Fábrica Manaus reporta por TOP): local → produto Hexing; nacional → produto nacional.
+    // Um mesmo código TOP não pode estar em dois produtos: se estiver, vai pra Auditoria.
+    topLocal.forEach(c=>{ if((mapTop[c]&&mapTop[c]!==item)||(mapNac[c]&&mapNac[c]!==item)) repetidos.push({top:c,a:(mapTop[c]||mapNac[c]).codigo,b:codigo}); mapTop[c]=item; });
+    topNacional.forEach(c=>{ if((mapNac[c]&&mapNac[c]!==item)||(mapTop[c]&&mapTop[c]!==item)) repetidos.push({top:c,a:(mapNac[c]||mapTop[c]).codigo,b:codigo}); mapNac[c]=item; });
     // Índice terciário: texto da Nomenclatura → registro. Alguns relatórios (ex: o Resumo
     // da Fábrica/Eletra Manaus) reportam o "Product" usando o texto da Nomenclatura em vez
     // de um código (ex: "GT3 -100K-1 380V AFCI"). Só usamos esse índice quando o texto é
@@ -612,9 +621,11 @@ function parseCadastro(csv){
     }
   }
   Object.keys(mapNomCount).forEach(k=>{ if(mapNomCount[k]>1) delete mapNom[k]; });
+  VAL_TOP_REPETIDO=repetidos;
   VAL_DUPLICADO=dupl.map(c=>({codigo:c,descricao:map[c]?.descricao||'',msg:'Código duplicado no cadastro_produtos'}));
   SRC_TS.cadastro=new Date();
   CADASTRO_TOP=mapTop;
+  CADASTRO_NACTOP=mapNac;
   CADASTRO_NOM=mapNom;
   return map;
 }
@@ -723,6 +734,7 @@ function parseFabricaManaus(csv){
   const iTOP=ci('TOP')>=0?ci('TOP'):0;
   const iDESC=ci('Coluna6')>=0?ci('Coluna6'):5;
   const iSAL=ci('Saldo Estoque')>=0?ci('Saldo Estoque'):hdr.length-1;
+  const iHEX=ci('HEXING'); // só para a Auditoria — o código do produto na Fábrica continua sendo o TOP
 
   const items=[];
   for(let i=hdrIdx+1;i<all.length;i++){
@@ -733,9 +745,31 @@ function parseFabricaManaus(csv){
     const saldo=pn(r[iSAL]||0);
     const descricao=String(r[iDESC]||'').trim();
     items.push({codigo,descricao,wh:'Fábrica Livoltek',armz:'07',saldo,reserva:0,fat:0,disp:0,
-      categoria:'',familia:'',nomenclatura:'',isMP:false,_semCadastro:false,_incompleto:[],tp:''});
+      categoria:'',familia:'',nomenclatura:'',isMP:false,_semCadastro:false,_incompleto:[],tp:'',
+      hexing: iHEX>=0 ? String(r[iHEX]||'').trim().toUpperCase() : ''});
   }
   return items;
+}
+
+// Auditoria da Fábrica (roda depois do join, sobre as linhas já resolvidas):
+//  1) mais de um código TOP LOCAL no mesmo produto Hexing — o estoque deles soma na mesma linha
+//     "Fábrica Livoltek", então vale conferir se é isso mesmo (ex.: GT3-100K-1R11002);
+//  2) o mesmo TOP aparecendo com 2+ Hexing diferentes no relatório da Fábrica.
+function auditarHexingFabrica(items){
+  const out=[];
+  const locais={}, hexPorTop={};
+  items.filter(i=>i.wh==='Fábrica Livoltek').forEach(i=>{
+    if(i._top){ (locais[i.codigo]=locais[i.codigo]||{})[i._top]=((locais[i.codigo]||{})[i._top]||0)+(i.saldo||0); }
+    if(i.hexing){ const t=i._top||i.codigo; (hexPorTop[t]=hexPorTop[t]||new Set()).add(i.hexing); }
+  });
+  Object.entries(locais).forEach(([hex,tops])=>{
+    const lista=Object.keys(tops);
+    if(lista.length>=2) out.push({tipo:'Mais de um TOP local no mesmo Hexing (somados na linha da Fábrica)',hexing:hex,detalhe:lista.map(t=>`TOP ${t}: ${fmt(tops[t])} un.`).join(' · ')});
+  });
+  Object.entries(hexPorTop).forEach(([top,hs])=>{
+    if(hs.size>=2) out.push({tipo:'Mesmo TOP com mais de um Hexing no relatório',hexing:[...hs].join(' / '),detalhe:`TOP ${top}`});
+  });
+  return out;
 }
 
 // Mapa fixo de código numérico de armazém → nome canônico
@@ -888,6 +922,19 @@ function parseReservasLocal(csv){
 }
 
 // ── JOIN ──
+// Produto Finame (Nacional=SIM no cadastro, código = TOP) que não aparece em nenhum relatório de
+// estoque entra com uma linha zerada na Fábrica — o vendedor vê "FINAME" com estoque 0 em vez de
+// não ver o produto (decisão da Cristiane). Retorna as linhas criadas, ainda sem enriquecimento.
+function linhasFinameZeradas(items){
+  const tem=new Set(items.map(s=>s.codigo));
+  const out=[];
+  Object.values(CADASTRO).forEach(c=>(c.topNacional||[]).forEach(t=>{
+    if(!tem.has(t)) out.push({codigo:t, descricao:c.descricao, wh:'Fábrica Livoltek', armz:'07', saldo:0, reserva:0, fat:0, disp:0,
+      categoria:'', familia:'', nomenclatura:'', isMP:false, _semCadastro:false, _incompleto:[], tp:''});
+  }));
+  return out;
+}
+
 function joinCadastro(items){
   // ESTOQUE.csv já traz Categoria, Família e Nomenclatura nas colunas 15-17.
   // joinCadastro complementa com dados do cadastro_produtos.csv quando disponível,
@@ -919,10 +966,16 @@ function joinCadastro(items){
       const concordam=candidatos.every(c=>c.categoria&&c.categoria===primeiro.categoria&&c.familia===primeiro.familia);
       return concordam ? primeiro : null;
     };
-    const cad = (s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]) ? CADASTRO_TOP[s.codigo]
-      : (CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo] || (s.wh==='Fábrica Livoltek' ? buscarPorNomenclaturaParcial(s.codigo) : null));
+    // Fábrica (código TOP): 1) TOP NACIONAL → card próprio do nacional, com o código TOP e a FINAME;
+    // os dados (descrição, família, categoria) vêm da linha do cadastro que lista esse TOP;
+    // 2) TOP local → vira o produto Hexing (soma na linha "Fábrica Livoltek" do card dele);
+    // 3) senão, lookup direto por CODIGO / nomenclatura, como sempre foi.
+    let cad=null, ehNac=false;
+    if(s.wh==='Fábrica Livoltek' && CADASTRO_NACTOP[s.codigo]){ cad=CADASTRO_NACTOP[s.codigo]; ehNac=true; }
+    else if(s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]){ cad=CADASTRO_TOP[s.codigo]; s._top=s.codigo; s.codigo=cad.codigo; }
+    else cad=(CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo] || (s.wh==='Fábrica Livoltek' ? buscarPorNomenclaturaParcial(s.codigo) : null));
     s._semCadastro=!cad;
-    s.isFiname=!!(cad&&cad.nacional);
+    s.isFiname=ehNac;
     s.isSemAfci=!!(cad&&cad.exportacao);
     if(cad){
       // Usa dado do ESTOQUE.csv se preenchido, senão cai no cadastro_produtos
@@ -1001,7 +1054,7 @@ function applyReservas(){
       descricao: cadItem.descricao||codigo,
       nomenclatura: cadItem.nomenclatura||cadItem.descricao||codigo,
       familia: cadItem.familia||'', categoria: cadItem.categoria||'',
-      isMP: isMP_v, _semCadastro:!cadItem.nomenclatura, isFiname:!!cadItem.nacional, isSemAfci:!!cadItem.exportacao, _incompleto:[],
+      isMP: isMP_v, _semCadastro:!cadItem.nomenclatura, isFiname:false, isSemAfci:!!cadItem.exportacao, _incompleto:[],
       _byWH:byWH_v, _sal:0, _res:qtd, _fat:0, _disp:-qtd, tp:''
     };
     ST.push(linhaVirtual);
@@ -1038,7 +1091,7 @@ function applyFaturados(){
         descricao:cadItem.descricao||codigo,
         nomenclatura:cadItem.nomenclatura||cadItem.descricao||codigo,
         familia:cadItem.familia||'', categoria:cadItem.categoria||'',
-        isMP:false, _semCadastro:!cadItem.nomenclatura, isFiname:!!cadItem.nacional, isSemAfci:!!cadItem.exportacao, _incompleto:[],
+        isMP:false, _semCadastro:!cadItem.nomenclatura, isFiname:false, isSemAfci:!!cadItem.exportacao, _incompleto:[],
         _byWH:{}, _sal:0, _res:0, _fat:v.qtd, _disp:-v.qtd, tp:''
       });
       aplicadoFat.add(k);
@@ -1544,7 +1597,7 @@ function rExp(){
     return `<div class="pc2">
       <div class="pc2-top">
         ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
-        ${(stRows.some(r=>r.isFiname)||!!(CADASTRO[sku]||{}).nacional)?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
+        ${stRows.some(r=>r.isFiname)?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
         ${(stRows.some(r=>r.isSemAfci)||!!(CADASTRO[sku]||{}).exportacao)?`<span class="pc2-pill" style="color:#ffffff;background:#dc2626;border:1px solid #dc2626;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
         <div class="pc2-head">
           <div class="pc2-cod">${sku}</div>
@@ -1736,6 +1789,26 @@ function rAudit(){
 
   // ── Bloco: reservas com "código" que não parece um SKU real (ex: texto/observação
   // digitado na coluna Código por engano). Não vira card navegável, só aparece aqui.
+  const topRepBlock = VAL_TOP_REPETIDO.length ? `
+    <div class="aud-block">
+      <div class="aud-hdr" style="background:#dc2626;color:#fff;font-size:14px">
+        <i class="ti ti-alert-triangle"></i> CADASTRO — MESMO CÓDIGO TOP EM MAIS DE UM PRODUTO · ${VAL_TOP_REPETIDO.length}
+      </div>
+      <table class="aud-tbl" style="border:1px solid #dc2626;border-top:none">
+        <tr style="background:#fef2f2"><th>Código TOP</th><th>Produto</th><th>Produto</th></tr>
+        ${VAL_TOP_REPETIDO.map(v=>`<tr><td style="font-family:'DM Mono',monospace;font-weight:700;color:#991b1b">${v.top}</td><td>${v.a}</td><td>${v.b}</td></tr>`).join('')}
+      </table>
+    </div>` : '';
+  const fabHexBlock = VAL_FABRICA_HEXING.length ? `
+    <div class="aud-block">
+      <div class="aud-hdr" style="background:#fef3c7;color:#92400e;font-size:14px">
+        <i class="ti ti-alert-circle"></i> FÁBRICA — HEXING PARA CONFERIR · ${VAL_FABRICA_HEXING.length}
+      </div>
+      <table class="aud-tbl" style="border:1px solid #fcd34d;border-top:none">
+        <tr style="background:#fffbeb"><th>O que</th><th>Hexing</th><th>Códigos TOP no relatório</th></tr>
+        ${VAL_FABRICA_HEXING.map(v=>`<tr><td>${v.tipo}</td><td style="font-family:'DM Mono',monospace;font-weight:700">${v.hexing}</td><td>${v.detalhe}</td></tr>`).join('')}
+      </table>
+    </div>` : '';
   const resCodInvBlock = VAL_RES_CODIGO_INVALIDO.length ? `
     <div class="aud-block">
       <div class="aud-hdr" style="background:#dc2626;color:#fff;font-size:15px">
@@ -1784,7 +1857,7 @@ function rAudit(){
           <td>Total efetivamente carregado no dashboard ${checkLinhas?'✅':'⚠️'}</td>
           <td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.totalLinhasST)}</td>
         </tr>
-        ${linhasVirtuais?`<tr><td style="color:#6b7280">+ linhas virtuais (reservas sem estoque correspondente, ver acima)</td><td style="text-align:right;font-family:'DM Mono',monospace;color:#6b7280">+${N(linhasVirtuais)}</td></tr>`:''}
+        ${linhasVirtuais?`<tr><td style="color:#6b7280">+ linhas virtuais (reservas sem estoque e produtos Finame sem estoque)</td><td style="text-align:right;font-family:'DM Mono',monospace;color:#6b7280">+${N(linhasVirtuais)}</td></tr>`:''}
         <tr><td>Códigos únicos esperados (arquivo)</td><td style="text-align:right;font-family:'DM Mono',monospace">${N(rec.codigosUnicosEsperado)}</td></tr>
         <tr style="font-weight:700;background:${checkCodigos?'#f0fdf4':'#fef2f2'}">
           <td>Códigos únicos no dashboard (aba "Todos") ${checkCodigos?'✅':'⚠️'}</td>
@@ -1823,6 +1896,8 @@ function rAudit(){
     <div id="aud-variacao"></div>
     ${resSemArmBlock}
     ${resCodInvBlock}
+    ${topRepBlock}
+    ${fabHexBlock}
     ${totvsBlock}
     ${fontesOk ? `
     <div class="aud-block">
@@ -1908,7 +1983,7 @@ function compararEstoque(antes, agora){
     const ant=a?a.saldo:0, atu=b?b.saldo:0, dif=atu-ant;
     if(!dif) return;
     const base=b||a;
-    const cad=(base.wh==='Fábrica Livoltek'?(CADASTRO_TOP[base.codigo]||CADASTRO[base.codigo]):CADASTRO[base.codigo])||{};
+    const cad=(base.wh==='Fábrica Livoltek'?(CADASTRO_NACTOP[base.codigo]||CADASTRO_TOP[base.codigo]||CADASTRO[base.codigo]):CADASTRO[base.codigo])||{};
     out.push({codigo:base.codigo, wh:base.wh, nome:cad.nomenclatura||base.descricao||'',
       ant, atu, dif, tipo: !a?'novo':(!b?'saiu':(dif>0?'subiu':'caiu'))});
   });
@@ -1930,6 +2005,8 @@ async function carregarVariacaoEstoque(forcar){
       const ant=await ghVersaoAnterior(d.arquivo, ESTOQUE_TXT[d.alvo]);
       if(!ant){ VARIACAO.fontes.push({arquivo:d.arquivo, semAnterior:true}); continue; }
       const itensAnt=parseIsolado(d.parser, ant.txt);
+      // mesma regra do dashboard: TOP local da Fábrica vira o código Hexing (nacional mantém o TOP)
+      itensAnt.forEach(i=>{ if(i.wh==='Fábrica Livoltek' && !CADASTRO_NACTOP[i.codigo] && CADASTRO_TOP[i.codigo]) i.codigo=CADASTRO_TOP[i.codigo].codigo; });
       VARIACAO.linhas.push(...compararEstoque(itensAnt, ESTOQUE_ITENS_ATUAIS[d.alvo]||[]));
       VARIACAO.fontes.push({arquivo:d.arquivo, data:ant.data, sha:ant.sha});
     }
@@ -2141,8 +2218,16 @@ async function boot(){
   carregarDecisoesLocais();
   aplicarAuditBaseline(stItems);
 
+  stItems.push(...linhasFinameZeradas(stItems));
   joinCadastro(stItems);
   ST=stItems;
+  VAL_FABRICA_HEXING=auditarHexingFabrica(stItems);
+  // Códigos únicos "esperados": contados depois da unificação TOP local → Hexing (senão a conferência
+  // da Auditoria acusaria falta falsa, porque o mesmo produto passa a ser um código só).
+  if(ESTOQUE_RECONCILIACAO){
+    ESTOQUE_RECONCILIACAO.codigosUnicosEsperado=new Set([...geralItems,...fabricaItems].map(i=>i.codigo)).size;
+    ESTOQUE_RECONCILIACAO.produtosPorArmazemEsperado=produtosPorArmazem([...geralItems,...fabricaItems]);
+  }
 
   // 4. Reservas — Google Sheets em tempo real (com fallback local)
   if(RESERVAS_SHEET_URL){
@@ -2163,6 +2248,9 @@ async function boot(){
     }catch(e){}
   }
 
+  // Reserva é pelo código do produto: se vier com o código TOP LOCAL de um produto, vale o Hexing dele
+  // (o nacional já é identificado pelo próprio TOP). Nada é rejeitado nem adivinhado.
+  RES.forEach(r=>{ const k0=String(r.codigo||'').trim().toUpperCase(); if(!CADASTRO[k0] && !CADASTRO_NACTOP[k0] && CADASTRO_TOP[k0]) r.codigo=CADASTRO_TOP[k0].codigo; });
   applyReservas();
   validateAll();
   renderSrcAlerts();
