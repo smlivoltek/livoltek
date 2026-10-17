@@ -755,17 +755,11 @@ function parseFabricaManaus(csv){
 //  1) mais de um código TOP LOCAL no mesmo produto Hexing — o estoque deles soma na mesma linha
 //     "Fábrica Livoltek", então vale conferir se é isso mesmo (ex.: GT3-100K-1R11002);
 //  2) o mesmo TOP aparecendo com 2+ Hexing diferentes no relatório da Fábrica.
+// Auditoria da Fábrica: o mesmo TOP aparecendo com 2+ Hexing diferentes no relatório da Fábrica
+// (cada código TOP tem o seu card; o Hexing do relatório é só referência e já veio errado em versões antigas).
 function auditarHexingFabrica(items){
-  const out=[];
-  const locais={}, hexPorTop={};
-  items.filter(i=>i.wh==='Fábrica Livoltek').forEach(i=>{
-    if(i._top){ (locais[i.codigo]=locais[i.codigo]||{})[i._top]=((locais[i.codigo]||{})[i._top]||0)+(i.saldo||0); }
-    if(i.hexing){ const t=i._top||i.codigo; (hexPorTop[t]=hexPorTop[t]||new Set()).add(i.hexing); }
-  });
-  Object.entries(locais).forEach(([hex,tops])=>{
-    const lista=Object.keys(tops);
-    if(lista.length>=2) out.push({tipo:'Mais de um TOP local no mesmo Hexing (somados na linha da Fábrica)',hexing:hex,detalhe:lista.map(t=>`TOP ${t}: ${fmt(tops[t])} un.`).join(' · ')});
-  });
+  const out=[], hexPorTop={};
+  items.filter(i=>i.wh==='Fábrica Livoltek' && i.hexing).forEach(i=>{ (hexPorTop[i.codigo]=hexPorTop[i.codigo]||new Set()).add(i.hexing); });
   Object.entries(hexPorTop).forEach(([top,hs])=>{
     if(hs.size>=2) out.push({tipo:'Mesmo TOP com mais de um Hexing no relatório',hexing:[...hs].join(' / '),detalhe:`TOP ${top}`});
   });
@@ -966,13 +960,13 @@ function joinCadastro(items){
       const concordam=candidatos.every(c=>c.categoria&&c.categoria===primeiro.categoria&&c.familia===primeiro.familia);
       return concordam ? primeiro : null;
     };
-    // Fábrica (código TOP): 1) TOP NACIONAL → card próprio do nacional, com o código TOP e a FINAME;
-    // os dados (descrição, família, categoria) vêm da linha do cadastro que lista esse TOP;
-    // 2) TOP local → vira o produto Hexing (soma na linha "Fábrica Livoltek" do card dele);
-    // 3) senão, lookup direto por CODIGO / nomenclatura, como sempre foi.
+    // CADA CÓDIGO TEM O SEU CARD — o vendedor sempre informa o código do produto que tem estoque.
+    // Fábrica (código TOP): o card mantém o código TOP; os dados (descrição, família, categoria,
+    // exportação) vêm da linha do cadastro que lista esse TOP. 1) TOP NACIONAL → card Finame;
+    // 2) TOP local → card do código local, sem tag; 3) senão, lookup direto por CODIGO / nomenclatura.
     let cad=null, ehNac=false;
     if(s.wh==='Fábrica Livoltek' && CADASTRO_NACTOP[s.codigo]){ cad=CADASTRO_NACTOP[s.codigo]; ehNac=true; }
-    else if(s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]){ cad=CADASTRO_TOP[s.codigo]; s._top=s.codigo; s.codigo=cad.codigo; }
+    else if(s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]){ cad=CADASTRO_TOP[s.codigo]; }
     else cad=(CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo] || (s.wh==='Fábrica Livoltek' ? buscarPorNomenclaturaParcial(s.codigo) : null));
     s._semCadastro=!cad;
     s.isFiname=ehNac;
@@ -1040,7 +1034,7 @@ function applyReservas(){
     if(aplicado.has(k)) return; // já foi aplicado em linha real do ST
     const [wh, ...codParts] = k.split('|');
     const codigo = codParts.join('|');
-    const cadItem = CADASTRO[codigo] || {};
+    const cadItem = CADASTRO[codigo] || CADASTRO_NACTOP[codigo] || CADASTRO_TOP[codigo] || {};
     const pareceCodigoValido = !!cadItem.nomenclatura || /\d/.test(codigo);
     if(!pareceCodigoValido){
       VAL_RES_CODIGO_INVALIDO.push({codigo, wh, qtd, msg:'Não parece ser um código de produto válido — verifique a coluna Código na planilha de Reservas'});
@@ -1085,7 +1079,7 @@ function applyFaturados(){
     }
     // Se não existe linha em ST para esse produto+armazém faturado, cria linha virtual
     if(!aplicadoFat.has(k)){
-      const cadItem=CADASTRO[codigo]||{};
+      const cadItem=CADASTRO[codigo]||CADASTRO_NACTOP[codigo]||CADASTRO_TOP[codigo]||{};
       ST.push({
         codigo, wh, saldo:0, reserva:0, fat:v.qtd, disp:-v.qtd, armz:'07',
         descricao:cadItem.descricao||codigo,
@@ -2005,8 +1999,6 @@ async function carregarVariacaoEstoque(forcar){
       const ant=await ghVersaoAnterior(d.arquivo, ESTOQUE_TXT[d.alvo]);
       if(!ant){ VARIACAO.fontes.push({arquivo:d.arquivo, semAnterior:true}); continue; }
       const itensAnt=parseIsolado(d.parser, ant.txt);
-      // mesma regra do dashboard: TOP local da Fábrica vira o código Hexing (nacional mantém o TOP)
-      itensAnt.forEach(i=>{ if(i.wh==='Fábrica Livoltek' && !CADASTRO_NACTOP[i.codigo] && CADASTRO_TOP[i.codigo]) i.codigo=CADASTRO_TOP[i.codigo].codigo; });
       VARIACAO.linhas.push(...compararEstoque(itensAnt, ESTOQUE_ITENS_ATUAIS[d.alvo]||[]));
       VARIACAO.fontes.push({arquivo:d.arquivo, data:ant.data, sha:ant.sha});
     }
@@ -2248,9 +2240,6 @@ async function boot(){
     }catch(e){}
   }
 
-  // Reserva é pelo código do produto: se vier com o código TOP LOCAL de um produto, vale o Hexing dele
-  // (o nacional já é identificado pelo próprio TOP). Nada é rejeitado nem adivinhado.
-  RES.forEach(r=>{ const k0=String(r.codigo||'').trim().toUpperCase(); if(!CADASTRO[k0] && !CADASTRO_NACTOP[k0] && CADASTRO_TOP[k0]) r.codigo=CADASTRO_TOP[k0].codigo; });
   applyReservas();
   validateAll();
   renderSrcAlerts();
