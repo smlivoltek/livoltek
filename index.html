@@ -153,6 +153,10 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
   font-size:12px;font-weight:600;color:var(--txt2);cursor:pointer;font-family:inherit;white-space:nowrap}
 .fam-pill:hover{border-color:var(--pri);color:var(--pri)}
 .fam-pill.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.fam-pill .fam-n{font-weight:400;font-size:10px;color:var(--txtm);margin-left:4px}
+.fam-pill.on .fam-n{color:#fff}
+.fam-sub{flex-basis:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 2px;padding:2px 0 2px 10px;border-left:3px solid var(--pri)}
+.fam-sub-lbl{font-size:11px;font-weight:700;color:var(--pri);margin-right:2px}
 .fam-pill.finame{background:#fef3c7;border-color:#fcd34d;color:#92400e;font-weight:700}
 .fam-pill.finame:hover{border-color:#f59e0b;color:#92400e}
 .fam-pill.finame.on{background:#f59e0b;border-color:#f59e0b;color:#fff}
@@ -1311,6 +1315,27 @@ function toggleTotCard(codigo, btn){
 }
 
 const famFilters={};
+const grpFilters={};   // grupo de famílias ativo por aba (1º nível dos botões)
+
+// Agrupa as famílias em 2 níveis para os botões. "INVERSOR - GT1-5K" → grupo "GT1" (sub-família "GT1-5K");
+// "INVERSOR - GT3 -20K" → grupo "GT3"; "INVERSOR - HP1" → grupo "HP1"; "INVERSOR - MATERIA-PRIMA" e
+// "CARREGADOR - 60kW" ficam como grupo de uma família só. O grupo é o trecho do modelo (letras+número) antes do 1º "-".
+function famGrupo(fam){
+  const f=String(fam||'').trim();
+  if(!f) return {chave:'',pref:'',grupo:'',resto:''};
+  const m=f.match(/^(.*?)\s*-\s*(.*)$/);
+  if(!m) return {chave:f,pref:f,grupo:f,resto:f};
+  const pref=m[1].trim(), resto=m[2].trim();
+  const seg=resto.split('-')[0].trim();
+  const grupo=/^[A-Za-z]+\d+$/.test(seg) ? seg : resto;
+  return {chave:pref+' - '+grupo,pref,grupo,resto};
+}
+const natCmp=(a,b)=>String(a).localeCompare(String(b),'pt-BR',{numeric:true});
+function setGrp(tabId, chave){
+  grpFilters[tabId] = (grpFilters[tabId]===chave) ? '' : chave; // clicar de novo desmarca
+  famFilters[tabId] = '';                                        // trocar de grupo limpa a sub-família
+  renderCat(tabId);
+}
 // Filtro FINAME por aba (liga/desliga, combina com o filtro de família). Pedido da Cristiane:
 // o vendedor clica e vê só os produtos Finame.
 const finameFilters={};
@@ -1327,18 +1352,37 @@ function setFam(tabId, fam){
 function renderFamPills(tabId, baseRows){
   const pillsEl=document.getElementById(tabId+'-pills');
   if(!pillsEl) return;
-  // Extrai famílias únicas da coluna FAMILIA do cadastro_produtos, só com produtos desta aba
-  const familias=[...new Set(baseRows.map(r=>r.familia).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  // Botão FINAME: só aparece se a aba tem algum produto Finame (coluna Nacional do cadastro).
+  const esc=t=>String(t).replace(/'/g,"\\'");
+  // famílias da aba (só com produtos desta aba), com os códigos de cada uma
+  const porFam={};
+  baseRows.forEach(r=>{ if(r.familia) (porFam[r.familia]=porFam[r.familia]||new Set()).add(r.codigo); });
+  // 1º nível: grupos
+  const grupos={};
+  Object.keys(porFam).forEach(f=>{
+    const g=famGrupo(f);
+    const o=grupos[g.chave]||(grupos[g.chave]={chave:g.chave,pref:g.pref,grupo:g.grupo,fams:[],cods:new Set()});
+    o.fams.push(f); porFam[f].forEach(c=>o.cods.add(c));
+  });
+  const lista=Object.values(grupos).sort((a,b)=>natCmp(a.chave,b.chave));
+  // Botão FINAME: só aparece se a aba tem algum produto Finame
   const nFin=new Set(baseRows.filter(r=>r.isFiname).map(r=>r.codigo)).size;
   if(!nFin) finameFilters[tabId]=false; // sem produto Finame na aba, não deixa o filtro preso ligado
-  if(!familias.length && !nFin){ pillsEl.innerHTML=''; return; }
-  const ativa=famFilters[tabId]||'';
+  if(!lista.length && !nFin){ pillsEl.innerHTML=''; return; }
+  // filtros ativos que não existem mais nesta aba são limpos
+  if(grpFilters[tabId] && !grupos[grpFilters[tabId]]){ grpFilters[tabId]=''; famFilters[tabId]=''; }
+  if(famFilters[tabId] && !porFam[famFilters[tabId]]) famFilters[tabId]='';
+  const gAtivo=grpFilters[tabId]||'', fAtiva=famFilters[tabId]||'';
+  const mostrarPref=new Set(lista.map(g=>g.pref)).size>1; // aba com mais de um tipo (ex.: Todos): mostra "INVERSOR - GT1"
   const finBtn = nFin ? `<button class="fam-pill finame${finameFilters[tabId]?' on':''}" onclick="toggleFiname('${tabId}')" title="Mostrar só produtos Finame">⭐ FINAME (${nFin})</button>` : '';
-  pillsEl.innerHTML = finBtn + familias.map(f=>{
-    const on = f===ativa;
-    return `<button class="fam-pill${on?' on':''}" onclick="setFam('${tabId}','${f.replace(/'/g,"\\'")}')">${f}</button>`;
-  }).join('');
+  const nivel1 = lista.map(g=>`<button class="fam-pill${g.chave===gAtivo?' on':''}" onclick="setGrp('${tabId}','${esc(g.chave)}')">${mostrarPref?g.chave:g.grupo}<span class="fam-n">${g.cods.size}</span></button>`).join('');
+  // 2º nível: sub-famílias do grupo selecionado (só quando o grupo tem 2 ou mais)
+  let nivel2='';
+  const ga=grupos[gAtivo];
+  if(ga && ga.fams.length>=2){
+    const subs=[...ga.fams].sort(natCmp).map(f=>`<button class="fam-pill${f===fAtiva?' on':''}" onclick="setFam('${tabId}','${esc(f)}')">${f===ga.chave?ga.grupo+' (outros)':famGrupo(f).resto}<span class="fam-n">${porFam[f].size}</span></button>`).join('');
+    nivel2=`<div class="fam-sub"><span class="fam-sub-lbl">${mostrarPref?ga.chave:ga.grupo}</span><button class="fam-pill${fAtiva?'':' on'}" onclick="setFam('${tabId}','')">Todos<span class="fam-n">${ga.cods.size}</span></button>${subs}</div>`;
+  }
+  pillsEl.innerHTML = finBtn + nivel1 + nivel2;
 }
 
 function renderCat(tabId){
@@ -1368,7 +1412,9 @@ function renderCat(tabId){
 
   // Filtros nos produtos normais
   let rows = baseRows;
+  const gAtivo=grpFilters[tabId]||'';
   if(famAtiva) rows=rows.filter(r=>r.familia===famAtiva);
+  else if(gAtivo) rows=rows.filter(r=>famGrupo(r.familia).chave===gAtivo);
   if(finameFilters[tabId]) rows=rows.filter(r=>r.isFiname);
   if(q) rows=rows.filter(r=> (r.nomenclatura||'').toLowerCase().includes(q)||(r.descricao||'').toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q));
   if(wh) rows=rows.filter(r=>r.wh===wh);
