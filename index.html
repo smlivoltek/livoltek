@@ -101,13 +101,17 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc3-cp:hover{border-color:var(--pri);color:var(--pri)}
 .pc3-cp.ok{border-color:var(--grn-d);color:var(--grn-d)}
 .pc3-tbl{padding:.375rem 1rem .5rem;border-top:1px solid var(--brd);flex:1}
-.pc3-th,.pc3-tr{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px 50px;gap:6px;align-items:center}
-.pc3-th{font-size:10px;font-weight:700;color:var(--txtm);text-transform:uppercase;letter-spacing:.03em;padding-bottom:3px}
+.pc3-th,.pc3-tr{display:grid;grid-template-columns:minmax(0,1fr) 50px 50px 54px;gap:6px;align-items:center}
+.pc3-th{font-size:10px;font-weight:600;color:var(--txtm);padding-bottom:4px;border-bottom:1px solid var(--brd);margin-bottom:2px}
 .pc3-th span:not(:first-child),.pc3-tr .n{text-align:right}
 .pc3-tr{padding:4px 0;border-top:1px solid var(--brd)}
 .pc3-tr:first-of-type{border-top:none}
 .pc3-wn{font-size:12px;font-weight:500;color:var(--txt);display:flex;gap:5px;align-items:center}
-.pc3-cd{font-size:10px;color:var(--txtm);font-family:'DM Mono',monospace;word-break:break-all}
+.pc3-cd{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:center;margin-top:1px}
+.pc3-cdc{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm);overflow-wrap:anywhere}
+.pc3-cds{font-size:9px;font-weight:600;padding:0 6px;border-radius:4px;background:#f1f5f9;color:var(--txt2);white-space:nowrap}
+.pc3-tot .pc2-total-row{color:var(--txtm)}
+.pc3-tot .pc2-total-row span:last-child{color:var(--txtm);font-weight:400}
 .pc3-tr .n{font-family:'DM Mono',monospace;font-size:12px}
 .pc3-tr.z .pc3-wn,.pc3-tr.z .n,.pc3-tr.z .pc3-cd{color:var(--txtm);font-weight:400}
 
@@ -1327,7 +1331,7 @@ function pCardProd(p, isMP){
   const dispCol=disp>0?'var(--grn-d)':disp===0?'var(--amb-d)':'var(--red)';
   const famLabel=p.familia||p.categoria||'';
   const famCol=isMP?'var(--red)':'var(--pri)', famBg=isMP?'var(--red-pale)':'var(--pri-pale)';
-  const meta=[ (cad&&cad.modelo)?`Modelo ${cad.modelo}`:'', (cad&&cad.potenciaKW!=null)?`${fmtPot(cad.potenciaKW)} kW`:'' ].filter(Boolean).join(' · ');
+  const meta=(cad&&cad.modelo)?`Modelo ${cad.modelo}`:''; // a potência não é mostrada no card (continua valendo na busca)
   const sl=slotsCodigos(p);
   // rótulo (e a origem do sistema logo abaixo); onde não há código fica "-" e preenche sozinho quando surgir
   const linhaCod=(rot,sub,lista)=> (lista.length?lista:[null]).map(c=>`<div class="pc3-cr"><span class="pc3-cl">${rot}${sub?`<small>${sub}</small>`:''}</span>${c
@@ -1345,17 +1349,18 @@ function pCardProd(p, isMP){
   const linhas=Object.values(mapa).sort((a,b)=>(WH_LIST.indexOf(a.wh)-WH_LIST.indexOf(b.wh))||(ordSis(a)-ordSis(b))||String(a.codigo).localeCompare(String(b.codigo)));
   const tbl=linhas.map(o=>{
     const zero=!o.saldo&&!o.reserva;
-    const col=o.disp>0?'var(--grn-d)':o.disp<0?'var(--red)':'var(--amb-d)';
+    const col=o.disp>0?'var(--grn-d)':o.disp<0?'var(--red)':'var(--txtm)';
     const aviso=o.virtual?'Reserva sem estoque neste código':(o.disp<0?'Reserva maior que o estoque':'');
+    const sis=o.sistema==='TOTVS'?'TOTVS':(o.origem==='Nacional'?'TOP Manager · Nacional':'TOP Manager');
     return `<div class="pc3-tr${zero?' z':''}">
       <div><div class="pc3-wn"><i class="ti ${WH_ICON[o.wh]||'ti-building-warehouse'}" style="color:${WH_COLOR[o.wh]||'#94a3b8'};font-size:12px"></i>${o.wh}</div>
-      <div class="pc3-cd">${o.codigo} · ${o.sistema==='TOTVS'?'TOTVS':'TOP'} · ${o.origem}</div></div>
-      <span class="n">${fmt(o.saldo)}</span>
-      <span class="n" style="${o.reserva?'color:var(--pur)':''}">${o.reserva?fmt(o.reserva):'—'}</span>
+      <div class="pc3-cd"><span class="pc3-cdc">${o.codigo}</span><span class="pc3-cds">${sis}</span></div></div>
+      <span class="n" style="color:var(--txt2);font-weight:400">${fmt(o.saldo)}</span>
+      <span class="n" style="${o.reserva?'color:var(--pur)':'color:var(--txtm)'}">${o.reserva?fmt(o.reserva):'-'}</span>
       <span class="n" style="font-weight:600;${zero?'':'color:'+col}">${fmt(o.disp)}${aviso?` <i class="ti ti-alert-triangle" style="color:var(--red)" title="${aviso}"></i>`:''}</span>
     </div>`;
   }).join('');
-  return `<div class="pc2${isMP?' mp':''}">
+  return `<div class="pc2${isMP?' mp':''}" data-prod="${String(p.id).replace(/"/g,'')}">
     <div class="pc2-top">
       ${famLabel?`<span class="pc2-pill" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
       ${p.isFiname?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
@@ -1375,10 +1380,10 @@ function pCardProd(p, isMP){
       <div class="pc2-disp-val" style="color:${dispCol}">${fmt(disp)}</div>
     </div>
     ${codigosHtml}
-    <div class="pc3-tbl"><div class="pc3-th"><span>Armazém · código</span><span>Estoque</span><span>Reserv.</span><span>Disp.</span></div>${tbl}</div>
-    <div class="pc2-totals">
+    <div class="pc3-tbl"><div class="pc3-th"><span>Armazém · código</span><span>Estoque</span><span>Reserva</span><span>Disp.</span></div>${tbl}</div>
+    <div class="pc2-totals pc3-tot">
       <div class="pc2-total-row"><span>Estoque total</span><span>${fmt(sal)}</span></div>
-      ${res?`<div class="pc2-total-row"><span>Reservado</span><span style="color:var(--pur)">${fmt(res)}</span></div>`:''}
+      ${res?`<div class="pc2-total-row"><span>Reservado</span><span>${fmt(res)}</span></div>`:''}
       ${fat?`<div class="pc2-total-row"><span>Faturado</span><span>${fmt(fat)}</span></div>`:''}
     </div>
   </div>`;
