@@ -1357,13 +1357,30 @@ function pCardProd(p, isMP, opts){
     o.saldo+=r.saldo; o.reserva+=r.reserva; o.disp+=r.disp; if(r._virtual) o.virtual=true;
   });
   const ordSis=o=>o.sistema==='TOTVS'?0:(o.origem==='Importado'?1:2);
-  const linhas=Object.values(mapa).sort((a,b)=>(WH_LIST.indexOf(a.wh)-WH_LIST.indexOf(b.wh))||(ordSis(a)-ordSis(b))||String(a.codigo).localeCompare(String(b.codigo)));
+  // GRADE PADRÃO: todo card tem sempre as mesmas linhas — os 3 armazéns da Eletra (código TOTVS) e a Fábrica Livoltek
+  // Manaus com o código importado e o nacional — com estoque 0 onde não há produto. Com filtro de armazém ativo,
+  // só as linhas daquele armazém. Linhas reais que fujam da grade (ex.: reserva num código/armazém que não bate)
+  // continuam aparecendo depois, com o alerta.
+  const FAB='Fábrica Livoltek', ELET=WH_LIST.filter(w=>w!==FAB), whF=(opts&&opts.whFiltro)||'';
+  const grade=[];
+  (sl.tot.length?sl.tot:[null]).forEach(c=>ELET.forEach(w=>grade.push({wh:w,codigo:c,sistema:'TOTVS',origem:'Importado'})));
+  (sl.imp.length?sl.imp:[null]).forEach(c=>grade.push({wh:FAB,codigo:c,sistema:'TOP Manager',origem:'Importado'}));
+  (sl.nac.length?sl.nac:[null]).forEach(c=>grade.push({wh:FAB,codigo:c,sistema:'TOP Manager',origem:'Nacional'}));
+  const usadas=new Set();
+  const doGrade=grade.filter(g=>!whF||g.wh===whF).map(g=>{
+    const k=(g.codigo===null?'':g.codigo)+'|'+g.wh;
+    const real=g.codigo!==null?mapa[k]:null; if(real) usadas.add(k);
+    return real?real:{codigo:g.codigo===null?'-':g.codigo,wh:g.wh,sistema:g.sistema,origem:g.origem,saldo:0,reserva:0,disp:0,virtual:false};
+  });
+  const extras=Object.entries(mapa).filter(([k])=>!usadas.has(k)).map(([,o])=>o).filter(o=>!whF||o.wh===whF);
+  const cmp=(a,b)=>(WH_LIST.indexOf(a.wh)-WH_LIST.indexOf(b.wh))||(ordSis(a)-ordSis(b))||String(a.codigo).localeCompare(String(b.codigo));
+  const linhas=[...doGrade.sort(cmp),...extras.sort(cmp)];
   const tbl=linhas.map(o=>{
     const zero=!o.saldo&&!o.reserva;
     const col=o.disp>0?'var(--grn-d)':o.disp<0?'var(--red)':'var(--txtm)';
     const aviso=o.virtual?'Reserva sem estoque neste código':(o.disp<0?'Reserva maior que o estoque':'');
     const sis=o.sistema==='TOTVS'?'TOTVS':'TOP Manager';
-    const finTag=(o.origem==='Nacional')?'<span class="pc3-fin" title="Elegível a financiamento FINAME" style="margin:0">⭐ FINAME</span>':'';
+    const finTag=(o.origem==='Nacional' && o.codigo && o.codigo!=='-')?'<span class="pc3-fin" title="Elegível a financiamento FINAME" style="margin:0">⭐ FINAME</span>':'';
     return `<div class="pc3-tr${zero?' z':''}">
       <div><div class="pc3-wn"><i class="ti ${WH_ICON[o.wh]||'ti-building-warehouse'}" style="color:${WH_COLOR[o.wh]||'#94a3b8'};font-size:12px"></i>${o.wh}</div>
       <div class="pc3-cd"><span class="pc3-cdc">${o.codigo}</span><span class="pc3-cds">${sis}</span>${finTag}</div></div>
@@ -1617,7 +1634,7 @@ function renderCat(tabId){
   dd.sort(porNome);
 
   const cardsEl=document.getElementById(tabId+'-cards');
-  if(cardsEl) cardsEl.innerHTML=dd.map(p=>pCardProd(p,false)).join('') ||
+  if(cardsEl) cardsEl.innerHTML=dd.map(p=>pCardProd(p,false,{whFiltro:wh})).join('') ||
     `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--txtm);font-size:13px">Nenhum produto encontrado.</div>`;
 
   // Seção inferior: Matéria-Prima da família (exceto na aba mp onde já são todos)
@@ -1639,7 +1656,7 @@ function renderCat(tabId){
           </span>
           <div style="flex:1;height:1px;background:var(--red)"></div>
         </div>
-        <div class="cgrid">${mpdd.map(p=>pCardProd(p,true)).join('')}</div>`;
+        <div class="cgrid">${mpdd.map(p=>pCardProd(p,true,{whFiltro:wh})).join('')}</div>`;
     } else {
       mpSecEl.style.display='none';
       mpSecEl.innerHTML=''; // não deixa cards antigos escondidos no DOM
