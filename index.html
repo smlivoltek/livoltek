@@ -109,6 +109,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc3-wn{font-size:12px;font-weight:500;color:var(--txt);display:flex;gap:5px;align-items:center}
 .pc3-cd{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:center;margin-top:1px}
 .pc3-cdc{font-family:'DM Mono',monospace;font-size:10px;color:var(--txtm);overflow-wrap:anywhere}
+.pc3-fin{display:inline-block;font-size:9px;font-weight:700;padding:0 6px;border-radius:4px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;white-space:nowrap;margin-right:6px}
 .pc3-cds{font-size:9px;font-weight:600;padding:0 6px;border-radius:4px;background:#f1f5f9;color:var(--txt2);white-space:nowrap}
 .pc3-tot .pc2-total-row{color:var(--txtm)}
 .pc3-tot .pc2-total-row span:last-child{color:var(--txtm);font-weight:400}
@@ -1344,10 +1345,10 @@ function pCardProd(p, isMP, opts){
   const meta=(cad&&cad.modelo)?`Modelo ${cad.modelo}`:''; // a potência não é mostrada no card (continua valendo na busca)
   const sl=slotsCodigos(p);
   // rótulo (e a origem do sistema logo abaixo); onde não há código fica "-" e preenche sozinho quando surgir
-  const linhaCod=(rot,sub,lista)=> (lista.length?lista:[null]).map(c=>`<div class="pc3-cr"><span class="pc3-cl">${rot}${sub?`<small>${sub}</small>`:''}</span>${c
-      ? `<span class="pc3-cv">${c}</span><button class="pc3-cp" onclick="copiarCodigo(this,'${String(c).replace(/'/g,"\\'")}')" title="Copiar código" aria-label="Copiar ${c}"><i class="ti ti-copy"></i></button>`
+  const linhaCod=(rot,sub,lista,fin)=> (lista.length?lista:[null]).map(c=>`<div class="pc3-cr"><span class="pc3-cl">${rot}${sub?`<small>${sub}</small>`:''}</span>${c
+      ? `<span class="pc3-cv">${fin?'<span class="pc3-fin" title="Elegível a financiamento FINAME">⭐ FINAME</span>':''}${c}</span><button class="pc3-cp" onclick="copiarCodigo(this,'${String(c).replace(/'/g,"\\'")}')" title="Copiar código" aria-label="Copiar ${c}"><i class="ti ti-copy"></i></button>`
       : `<span class="pc3-cv vz" title="Sem código — preenche quando houver estoque">-</span><span></span>`}</div>`).join('');
-  const codigosHtml=`<div class="pc3-codes">${linhaCod('TOP · Nacional','Fábrica Livoltek Manaus',sl.nac)}${linhaCod('TOP · Importado','Fábrica Livoltek Manaus',sl.imp)}${linhaCod('TOTVS · Importado','',sl.tot)}</div>`;
+  const codigosHtml=`<div class="pc3-codes">${linhaCod('TOP · Nacional','Fábrica Livoltek Manaus',sl.nac,true)}${linhaCod('TOP · Importado','Fábrica Livoltek Manaus',sl.imp)}${linhaCod('TOTVS · Importado','',sl.tot)}</div>`;
   // estoque por armazém E por código (cada saldo com o seu código/sistema/origem; nada é somado entre códigos na linha)
   const mapa={};
   p.rows.forEach(r=>{
@@ -1361,10 +1362,11 @@ function pCardProd(p, isMP, opts){
     const zero=!o.saldo&&!o.reserva;
     const col=o.disp>0?'var(--grn-d)':o.disp<0?'var(--red)':'var(--txtm)';
     const aviso=o.virtual?'Reserva sem estoque neste código':(o.disp<0?'Reserva maior que o estoque':'');
-    const sis=o.sistema==='TOTVS'?'TOTVS':(o.origem==='Nacional'?'TOP Manager · Nacional':'TOP Manager');
+    const sis=o.sistema==='TOTVS'?'TOTVS':'TOP Manager';
+    const finTag=(o.origem==='Nacional')?'<span class="pc3-fin" title="Elegível a financiamento FINAME" style="margin:0">⭐ FINAME</span>':'';
     return `<div class="pc3-tr${zero?' z':''}">
       <div><div class="pc3-wn"><i class="ti ${WH_ICON[o.wh]||'ti-building-warehouse'}" style="color:${WH_COLOR[o.wh]||'#94a3b8'};font-size:12px"></i>${o.wh}</div>
-      <div class="pc3-cd"><span class="pc3-cdc">${o.codigo}</span><span class="pc3-cds">${sis}</span></div></div>
+      <div class="pc3-cd"><span class="pc3-cdc">${o.codigo}</span><span class="pc3-cds">${sis}</span>${finTag}</div></div>
       <span class="n" style="color:var(--txt2);font-weight:400">${fmt(o.saldo)}</span>
       <span class="n" style="${o.reserva?'color:var(--pur)':'color:var(--txtm)'}">${o.reserva?fmt(o.reserva):'-'}</span>
       <span class="n" style="font-weight:600;${zero?'':'color:'+col}">${fmt(o.disp)}${aviso?` <i class="ti ti-alert-triangle" style="color:var(--red)" title="${aviso}"></i>`:''}</span>
@@ -1373,7 +1375,6 @@ function pCardProd(p, isMP, opts){
   return `<div class="pc2${isMP?' mp':''}" data-prod="${String(p.id).replace(/"/g,'')}">
     <div class="pc2-top">
       ${famLabel?`<span class="pc2-pill" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
-      ${p.isFiname?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
       ${p.isSemAfci?`<span class="pc2-pill" style="color:#ffffff;background:#dc2626;border:1px solid #dc2626;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
       <div class="pc2-id">
         ${fotoHtml(p.id, p.familia)}
