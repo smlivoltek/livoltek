@@ -388,7 +388,7 @@ const WH_COLOR = {'Curitiba (Eletra)':'var(--cwb)','Fortaleza (Eletra)':'var(--f
 const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra)':'ti-building-warehouse','Manaus (Eletra)':'ti-building-warehouse','Fábrica Livoltek':'ti-building-factory-2'};
 
 let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, CADASTRO_NACTOP={}, CADASTRO_NOM={}, MODO='novo';
-let VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[], VAL_FABRICA_HEXING=[], VAL_TOP_REPETIDO=[], VAL_VINCULO_AUTO=[];
+let VAL_SEM_DESCRICAO=[], VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[], VAL_FABRICA_HEXING=[], VAL_TOP_REPETIDO=[], VAL_TOP_FORA=[];
 
 // ══ CONFERÊNCIA TOTVS x SISTEMA ══
 // AUD_BASELINE: baseline "travada" por codigo|armazem, lida de data/overrides_estoque.csv (opcional).
@@ -636,7 +636,7 @@ function parseCadastro(csv){
       categoria:fixEnc(r[iCAT]), familia:String(r[iFAM]||'').trim(), nomenclatura:((iNOM>=0?String(r[iNOM]||'').trim():'')||String(r[iDESC]||'').trim()),
       exportacao: iEXP>=0 && celulaMarcada(r[iEXP]),
       titulo: (iNOM>=0?String(r[iNOM]||'').trim():''),   // título do card = NOMENCLATURA; vazia → o próprio código do produto
-      modelo: ((iMOD>=0?String(r[iMOD]||'').trim():'') || modeloDeCodigo(codigo)),
+      modelo: (iMOD>=0?String(r[iMOD]||'').trim():''), // só o que está no cadastro (coluna opcional MODELO)
       potenciaKW: (()=>{ const v=iPOT>=0?parseFloat(String(r[iPOT]||'').replace(',','.')):NaN; return isFinite(v)?v:potenciaDeFamilia(String(r[iFAM]||'')); })()
     };
     map[codigo]=item;
@@ -1015,10 +1015,6 @@ function joinCadastro(items){
     let cad=null, ehNac=false;
     if(s.wh==='Fábrica Livoltek' && CADASTRO_NACTOP[s.codigo]){ cad=CADASTRO_NACTOP[s.codigo]; ehNac=true; }
     else if(s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]){ cad=CADASTRO_TOP[s.codigo]; }
-    // TOP que ainda não está no cadastro: quando surge estoque, o relatório da Fábrica informa o Hexing do
-    // produto — se ele existe no cadastro, o TOP entra como TOP importado desse produto (preenche a lacuna).
-    // Vai pra Auditoria para conferência (o Hexing digitado no relatório já veio errado em versões antigas).
-    else if(s.wh==='Fábrica Livoltek' && !CADASTRO[s.codigo] && s.hexing && CADASTRO[s.hexing]){ cad=CADASTRO[s.hexing]; s._vinculoAuto=true; }
     else cad=(CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo] || (s.wh==='Fábrica Livoltek' ? buscarPorNomenclaturaParcial(s.codigo) : null));
     s._semCadastro=!cad;
     s.isFiname=ehNac;
@@ -1156,6 +1152,9 @@ function applyFaturados(){
 
 function validateAll(){
   VAL_SEM_CADASTRO=[]; VAL_INCOMPLETO=[]; VAL_INSUFICIENTE=[]; VAL_NEGATIVO=[];
+  // Produtos do cadastro que aparecem no dashboard (estoque ou reserva) mas estão SEM descrição no cadastro
+  { const ids=new Set(ST.map(s=>s.prodId||s.codigo));
+    VAL_SEM_DESCRICAO=Object.values(CADASTRO).filter(c=>!c.descricao && ids.has(c.codigo)).map(c=>({codigo:c.codigo,familia:c.familia||'',titulo:c.titulo||''})); }
   ST.forEach(s=>{
     if(s._semCadastro){ if(!VAL_SEM_CADASTRO.find(v=>v.codigo===s.codigo)) VAL_SEM_CADASTRO.push({codigo:s.codigo,descricao:s.descricao,wh:s.wh}); }
     if(AUDIT_INCOMPLETO_ATIVO&&s._incompleto&&s._incompleto.length>0) VAL_INCOMPLETO.push({codigo:s.codigo,descricao:s.nomenclatura||s.descricao,wh:s.wh,campos:s._incompleto});
@@ -1310,7 +1309,7 @@ function prodBusca(p,termos){
   const cad=CADASTRO[p.id]||{};
   const sl=slotsCodigos(p);
   const codes=[...sl.nac,...sl.imp,...sl.tot].map(_norm);
-  const texto=_norm([cad.titulo,cad.descricao,p.nome,cad.modelo,p.familia].join(' '));
+  const texto=_norm([cad.titulo,cad.descricao,cad.modelo,p.familia].join(' '));
   const pot=(cad.potenciaKW!==undefined&&cad.potenciaKW!==null)?cad.potenciaKW:null;
   return termos.every(t=> t.pot!==undefined ? (pot!==null && Math.abs(pot-t.pot)<1e-9) : (texto.includes(t.txt)||codes.some(c=>c.includes(t.txt))));
 }
@@ -1323,9 +1322,20 @@ function copiarCodigo(btn,code){
 
 // Título do card: NOMENCLATURA do cadastro; se vazia, o código do produto. A descrição completa fica logo abaixo.
 function tituloProd(p){ const c=CADASTRO[p.id]; return (c&&c.titulo)?c.titulo:p.id; }
-function descProd(p){ const c=CADASTRO[p.id]; const d=(c&&c.descricao)||(p.rows[0]&&p.rows[0].descricao)||''; return d!==tituloProd(p)?d:''; }
+// A descrição completa SEMPRE aparece abaixo do título, e vem SÓ do cadastro. Se o cadastro não tiver, o card fica sem descrição
+// e o produto entra na Auditoria ("Produtos sem descrição no cadastro") pra ser corrigido lá — nada é preenchido de outra fonte.
+function descProd(p){ const c=CADASTRO[p.id]; return (c&&c.descricao)||''; }
 
-function pCardProd(p, isMP){
+// Ordem alfabética pelo título exibido (nomenclatura ou, se vazia, o código) — mesma regra em todas as telas de cards.
+function ordemProd(a,b){ return String(tituloProd(a)).localeCompare(String(tituloProd(b)),'pt-BR',{sensitivity:'base'})||String(a.id).localeCompare(String(b.id),'pt-BR'); }
+// Produto comercial a que um código pertence (código TOTVS/Hexing, TOP importado ou TOP nacional).
+function prodIdDeCodigo(c){
+  const st=ST.find(x=>x.codigo===c); if(st&&st.prodId) return st.prodId;
+  const k=String(c||'').trim().toUpperCase(); const cad=CADASTRO[k]||CADASTRO_NACTOP[k]||CADASTRO_TOP[k];
+  return cad?cad.codigo:c;
+}
+
+function pCardProd(p, isMP, opts){
   const cad=CADASTRO[p.id]||null;
   const disp=p._disp, sal=p._sal, res=p._res, fat=p._fat;
   const dispCol=disp>0?'var(--grn-d)':disp===0?'var(--amb-d)':'var(--red)';
@@ -1376,16 +1386,17 @@ function pCardProd(p, isMP){
       </div>
     </div>
     <div class="pc2-disp-block">
-      <div class="pc2-disp-lbl">Total disponível para venda</div>
+      <div class="pc2-disp-lbl">${(opts&&opts.lblDisp)||'Total disponível para venda'}</div>
       <div class="pc2-disp-val" style="color:${dispCol}">${fmt(disp)}</div>
     </div>
     ${codigosHtml}
-    <div class="pc3-tbl"><div class="pc3-th"><span>Armazém · código</span><span>Estoque</span><span>Reserva</span><span>Disp.</span></div>${tbl}</div>
+    <div class="pc3-tbl"><div class="pc3-th"><span>Armazém · código</span><span>Estoque</span><span>Reserva</span><span>Disp.</span></div>${tbl||'<div class="pc3-tr z"><span style="font-size:11px;color:var(--txtm)">Sem estoque nos relatórios</span></div>'}</div>
     <div class="pc2-totals pc3-tot">
       <div class="pc2-total-row"><span>Estoque total</span><span>${fmt(sal)}</span></div>
       ${res?`<div class="pc2-total-row"><span>Reservado</span><span>${fmt(res)}</span></div>`:''}
       ${fat?`<div class="pc2-total-row"><span>Faturado</span><span>${fmt(fat)}</span></div>`:''}
     </div>
+    ${(opts&&opts.extra)||''}
   </div>`;
 }
 
@@ -1577,14 +1588,14 @@ function renderCat(tabId){
   // aparecia normal em Inversores/etc, confundindo o time de vendas (achavam que dava pra
   // vender no mercado interno). Corrigido em 22/09/2026.
   if(tabId==='todos'){
-    baseRows = ST.filter(r=>!r.isMP && !EXPORT_SKUS.includes(r.codigo));
-    baseMPRows = ST.filter(r=>r.isMP && !EXPORT_SKUS.includes(r.codigo));
+    baseRows = ST.filter(r=>!r.isMP && !ehExport(r));
+    baseMPRows = ST.filter(r=>r.isMP && !ehExport(r));
   } else if(tabId==='mp'){
-    baseRows = ST.filter(r=>r.isMP && !EXPORT_SKUS.includes(r.codigo));
+    baseRows = ST.filter(r=>r.isMP && !ehExport(r));
     baseMPRows = [];
   } else {
-    baseRows = ST.filter(r=>getCatTab(r)===tabId && !r.isMP && !EXPORT_SKUS.includes(r.codigo));
-    baseMPRows = ST.filter(r=>getCatTab(r)===tabId && r.isMP && !EXPORT_SKUS.includes(r.codigo));
+    baseRows = ST.filter(r=>getCatTab(r)===tabId && !r.isMP && !ehExport(r));
+    baseMPRows = ST.filter(r=>getCatTab(r)===tabId && r.isMP && !ehExport(r));
   }
 
   renderFamPills(tabId, [...baseRows,...baseMPRows]);
@@ -1598,7 +1609,7 @@ function renderCat(tabId){
   const termos=consultaBusca(q);
   // Ordem alfabética pelo título que aparece no card (nomenclatura ou, se vazia, o código). Sem ordem "natural"
   // de números (que colocava 91402LK014 antes de 3990028680): é a ordem alfabética comum, sem diferenciar acento nem maiúscula.
-  const porNome=(a,b)=>String(tituloProd(a)).localeCompare(String(tituloProd(b)),'pt-BR',{sensitivity:'base'})||String(a.id).localeCompare(String(b.id),'pt-BR');
+  const porNome=ordemProd;
   let dd=agruparProdutos(rows);
   if(finameFilters[tabId]) dd=dd.filter(p=>p.isFiname);
   if(termos.length) dd=dd.filter(p=>prodBusca(p,termos));
@@ -1640,7 +1651,7 @@ function rDash(){
   // STV = ST sem os produtos de EXPORT_SKUS — o Dashboard (categorias, armazéns, Top 10)
   // não pode contar estoque de exportação junto com o comercial normal, senão os números
   // e rankings ficam inflados com produto que o vendedor não pode oferecer no mercado interno.
-  const STV = ST.filter(r=>!EXPORT_SKUS.includes(r.codigo));
+  const STV = ST.filter(r=>!ehExport(r));
   const CAT_DEFS=[
     {tab:'inv',label:'Inversores',ico:'ti-bolt',col:'var(--cwb)',bg:'#dbeafe'},
     {tab:'ev',label:'Carregadores EV',ico:'ti-charging-pile',col:'var(--grn-d)',bg:'var(--grn-pale)'},
@@ -1744,68 +1755,35 @@ function rAll(){ renderCat('todos'); }
 function buildResRow(r){
   const w=r.wh||'—'; const wColor=WH_COLOR[w]||'#64748b';
   return `<div class="pc2-cli-row">
-    <span class="pc2-cli-nome">${r.cliente||'—'}<br><span style="font-size:10px;color:var(--txtm)">${r.responsavel||''}</span></span>
+    <span class="pc2-cli-nome">${r.cliente||'—'}<br><span style="font-size:10px;color:var(--txtm)">${r.responsavel||''}${r.responsavel?' · ':''}<span style="font-family:'DM Mono',monospace">${r.codigo}</span></span></span>
     <span class="wt" style="color:${wColor};font-size:9px">${w.split(' ')[0]}</span>
     <span class="pc2-cli-qtd">${fmt(r.qtd)}</span>
   </div>`;
 }
 
+// Card da aba Reservas: o mesmo card consolidado das demais telas (um por produto comercial, com os 3 códigos e a tabela
+// por armazém/código) + a lista de clientes que reservaram. Disponível e reserva mostram SEMPRE o total real do produto:
+// um filtro de diretoria/busca não pode fazer o produto parecer mais disponível do que está (caso real de 21/09/2026).
 function buildProdCard(g, modoDiretoria, isFiltered){
-  const st=ST.find(s=>s.codigo===g.codigo);
-  const nom=st?.nomenclatura||st?.descricao||g.codigo;
-  const familia=st?.familia||'';
-  const stRows=ST.filter(s=>s.codigo===g.codigo);
-  const sal=stRows.reduce((a,r)=>a+r.saldo,0);
-  const reservaTotalReal=dedup(stRows).reduce((a,r)=>a+r._res,0);
-  const dispTotalReal=dedup(stRows).reduce((a,r)=>a+r._disp,0);
-
-  // Disponível e Reserva SEMPRE mostram o total real do produto — igual em Todos, Reservas,
-  // BESS ou qualquer outra aba. Um filtro de diretoria/busca não pode fazer o produto parecer
-  // mais disponível do que está: mostrar só a reserva de uma diretoria e omitir a de outras
-  // dava um "disponível" que não existe de verdade (caso real: 300un aparecendo disponível
-  // com filtro, quando o produto está 100% reservado — corrigido em 21/09/2026).
-  // Com filtro ativo, a reserva filtrada aparece só como nota secundária, pra explicar por que
-  // a lista de clientes abaixo é menor que o total.
-  const reservaExibida = reservaTotalReal;
-  const dispExibido = dispTotalReal;
-
-  const dispCol=dispExibido>0?'var(--grn-d)':dispExibido===0&&sal>0?'var(--amb-d)':'var(--red)';
+  const rowsP=ST.filter(s=>(s.prodId||s.codigo)===g.id);
+  const cad=CADASTRO[g.id]||{};
+  const p = rowsP.length ? agruparProdutos(rowsP)[0]
+    : {id:g.id,rows:[],nome:cad.nomenclatura||cad.descricao||g.id,familia:cad.familia||'',categoria:cad.categoria||'',isMP:false,isSemAfci:!!cad.exportacao,isFiname:!!cad.nacional,_sal:0,_res:0,_fat:0,_disp:0};
   const sortedRes=g.reservas.slice().sort((a,b)=>b.qtd-a.qtd);
-  const expanded=resExpanded.has(g.codigo);
+  const expanded=resExpanded.has(g.id);
   const nCli=new Set(g.reservas.map(r=>r.cliente)).size;
-  const whRows=whListHtml((dedup(stRows)[0]||{})._byWH);
-
-  const dispLbl = 'Disponível Total';
-  const resLbl = 'Reserva';
-
-  return `<div class="pc2">
-    <div class="pc2-top">
-      ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
-      ${st?.isFiname?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
-      ${st?.isSemAfci?`<span class="pc2-pill" style="color:#ffffff;background:#dc2626;border:1px solid #dc2626;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
-      <div class="pc2-id">
-        ${fotoHtml(g.codigo, familia)}
-        <div class="pc2-id-txt">
-          <div class="pc2-head"><div class="pc2-cod">${g.codigo}</div></div>
-          <div class="pc2-nom">${nom}</div>
-        </div>
-      </div>
-    </div>
-    <div class="pc2-disp-block"><div class="pc2-disp-lbl">${dispLbl}</div><div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispExibido)}</div></div>
-    <div class="pc2-wh-list">${whRows}</div>
-    <div class="pc2-totals"><div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> ${resLbl}</span><span>${fmt(reservaExibida)}</span></div>
-    ${isFiltered?`<div class="pc2-note">Reserva do filtro atual (lista de clientes abaixo): ${fmt(g.totalQtd)}</div>`:''}
-    </div>
-    <div class="pc2-cli-toggle${expanded?' open':''}" onclick="toggleResCard('${g.codigo}')">
+  const idEsc=String(g.id).replace(/'/g,"\\'");
+  const extra=`${isFiltered?`<div class="pc2-note" style="padding:0 1rem .5rem">Reserva do filtro atual (lista de clientes abaixo): ${fmt(g.totalQtd)}</div>`:''}
+    <div class="pc2-cli-toggle${expanded?' open':''}" onclick="toggleResCard('${idEsc}')">
       <span><i class="ti ti-users"></i> ${nCli} cliente${nCli>1?'s':''} · ${fmt(g.totalQtd)} un.</span>
       <i class="ti ${expanded?'ti-chevron-up':'ti-chevron-down'}"></i>
     </div>
-    ${expanded?sortedRes.map(buildResRow).join(''):''}
-  </div>`;
+    ${expanded?sortedRes.map(buildResRow).join(''):''}`;
+  return pCardProd(p,p.isMP,{extra});
 }
 
-function toggleResCard(codigo){
-  if(resExpanded.has(codigo)) resExpanded.delete(codigo); else resExpanded.add(codigo);
+function toggleResCard(id){
+  if(resExpanded.has(id)) resExpanded.delete(id); else resExpanded.add(id);
   rRes();
 }
 
@@ -1815,6 +1793,9 @@ const EXPORT_SKUS = [
   'GT3-15KD1R11001','GT3-20KD1R11001','GT3-20KL-TW11001',
   'GT3-25KD1R11001','GT3-25KL-TW11001'
 ];
+
+// Linha de estoque de produto de exportação: vale o produto comercial (código TOTVS OU TOP importado ligado a ele).
+const ehExport = r => EXPORT_SKUS.includes(r.prodId||r.codigo);
 
 // Cards de exportação expandidos — mesmo padrão visual das reservas
 const expExpanded = new Set();
@@ -1827,89 +1808,16 @@ function toggleExpCard(sku){
 function rExp(){
   const el=document.getElementById('exp-cards');
   if(!el) return;
-
-  const html = EXPORT_SKUS.map(sku=>{
+  // Um card por produto de exportação, no mesmo formato das outras telas: 3 códigos (TOTVS, TOP importado e
+  // TOP nacional, quando houver), estoque por armazém e por código, título/descrição pela mesma regra.
+  const prods=EXPORT_SKUS.map(sku=>{
+    const rows=ST.filter(r=>(r.prodId||r.codigo)===sku);
+    if(rows.length) return agruparProdutos(rows)[0];
     const cad=CADASTRO[sku]||{};
-    const nom=cad.nomenclatura||cad.descricao||sku;
-    const familia=cad.familia||'Inversor';
-
-    // Faturado — mesma lógica do pCard
-    const fatKeys=Object.entries(FAT).filter(([k])=>k.endsWith('|'+sku));
-    const fatTotal=fatKeys.reduce((a,[,v])=>a+v.qtd,0);
-
-    // Estoque ARMZ=7 (comercial) — vem de ST
-    const stRows=ST.filter(r=>r.codigo===sku);
-    const dd=dedup(stRows);
-    const salTotal=dd.reduce((a,r)=>a+r._sal,0);
-    const resTotal=dd.reduce((a,r)=>a+r._res,0);
-    const dispTotal=dd.reduce((a,r)=>a+r._disp,0);
-
-    // Outros armazéns (ARMZ≠7, exceto 8/12/16) — vem de EXP_RAW
-    const expRows=EXP_RAW.filter(r=>r.codigo===sku);
-    const totalOutros=expRows.reduce((a,r)=>a+r.saldo,0);
-
-    const dispCol=dispTotal>0?'var(--grn-d)':dispTotal===0&&salTotal>0?'var(--amb-d)':'var(--red)';
-    const expanded=expExpanded.has(sku);
-
-    // Linhas de armazéns comerciais (ARMZ=7): Estoque + Disponível por armazém
-    const whRows=whListHtml((dd[0]||{})._byWH);
-
-    // Linhas dos outros armazéns (trânsito, exportação, etc.) — expandíveis
-    const outrosDetalhes=expRows.map(r=>{
-      const c=WH_COLOR[r.wh]||'#64748b';
-      return `<div class="pc2-cli-row">
-        <span class="pc2-cli-nome">${r.armzNome}<br>
-          <span style="font-size:10px;color:var(--txtm)">${r.wh}</span>
-        </span>
-        <span style="font-size:10px;color:var(--txtm)">ARMZ ${r.armz}</span>
-        <span class="pc2-cli-qtd" style="color:var(--cor-laranja)">${fmt(r.saldo)}</span>
-      </div>`;
-    }).join('');
-
-    return `<div class="pc2">
-      <div class="pc2-top">
-        ${familia?`<span class="pc2-pill" style="color:var(--pri);background:var(--pri-pale)">${familia}</span>`:''}
-        ${stRows.some(r=>r.isFiname)?`<span class="pc2-pill" style="color:#92400e;background:#fef3c7;border:1px solid #fcd34d;font-weight:700" title="Elegível a financiamento FINAME">⭐ FINAME</span>`:''}
-        ${(stRows.some(r=>r.isSemAfci)||!!(CADASTRO[sku]||{}).exportacao)?`<span class="pc2-pill" style="color:#ffffff;background:#dc2626;border:1px solid #dc2626;font-weight:700" title="Equipamento sem proteção AFCI">Exportação-S/AFCI</span>`:''}
-        <div class="pc2-id">
-          ${fotoHtml(sku, familia)}
-          <div class="pc2-id-txt">
-            <div class="pc2-head">
-              <div class="pc2-cod">${sku}</div>
-            </div>
-            <div class="pc2-nom">${nom}</div>
-          </div>
-        </div>
-      </div>
-      <div class="pc2-disp-block">
-        <div class="pc2-disp-lbl">Disponível (ARMZ 7)</div>
-        <div class="pc2-disp-val" style="color:${dispCol}">${fmt(dispTotal)}</div>
-      </div>
-      <div class="pc2-wh-list" style="flex:1">
-        ${whRows}
-      </div>
-      <div class="pc2-totals">
-        <div class="pc2-total-row"><span>Estoque Total</span><span>${fmt(salTotal)}</span></div>
-      </div>
-      ${(resTotal>0||fatTotal>0)?`
-      <div class="pc2-cli-toggle" onclick="toggleTotCard('${sku}',this)">
-        <span style="display:flex;gap:10px;align-items:center">
-          ${resTotal>0?`<span style="color:var(--pur)"><i class="ti ti-bookmark"></i> ${fmt(resTotal)}</span>`:''}
-          ${fatTotal>0?`<span class="pc2-fat"><i class="ti ti-truck-delivery"></i> ${fmt(fatTotal)}</span>`:''}
-        </span>
-        <i class="ti ti-chevron-down" style="font-size:12px;color:var(--txtm)"></i>
-      </div>
-      <div class="pc2-tot-detail" style="display:none">
-        <div class="pc2-totals" style="border-top:none;padding-top:0">
-          ${resTotal>0?`<div class="pc2-total-row pc2-res"><span><i class="ti ti-bookmark"></i> Reserva</span><span>${fmt(resTotal)}</span></div>`:''}
-          ${fatTotal>0?`<div class="pc2-total-row pc2-fat"><span><i class="ti ti-truck-delivery"></i> Faturado</span><span>${fmt(fatTotal)}</span></div>`:''}
-          <div class="pc2-note">Reserva e faturados já abatidos do disponível.</div>
-        </div>
-      </div>`:''}
-    </div>`;
-  }).join('');
-
-  el.innerHTML = html;
+    return {id:sku,rows:[],nome:cad.nomenclatura||cad.descricao||sku,familia:cad.familia||'',categoria:cad.categoria||'',isMP:false,
+      isSemAfci:!!cad.exportacao,isFiname:!!cad.nacional,_sal:0,_res:0,_fat:0,_disp:0};
+  }).sort(ordemProd);
+  el.innerHTML = prods.map(p=>pCardProd(p,false)).join('');
 }
 
 function rRes(){
@@ -1917,19 +1825,24 @@ function rRes(){
   const dir=document.getElementById('res-dir')?.value||'';
   const arm=document.getElementById('res-arm')?.value||'';
   const isFiltered = !!(q||dir||arm); // qualquer filtro ativo torna a Reserva exibida "parcial"
+  const termos=consultaBusca(q);
+  const idPorCod={}; ST.forEach(s=>{ idPorCod[s.codigo]=s.prodId||s.codigo; });
+  const idDe=c=> idPorCod[c] || prodIdDeCodigo(c);
+  const rowsPorProd={}; ST.forEach(s=>{ (rowsPorProd[s.prodId||s.codigo]=rowsPorProd[s.prodId||s.codigo]||[]).push(s); });
+  const cacheP={}; const prodDe=id=>cacheP[id]!==undefined?cacheP[id]:(cacheP[id]=(rowsPorProd[id]?agruparProdutos(rowsPorProd[id])[0]:null));
   const rows=RES.filter(r=>{
-    const stNom=(ST.find(s=>s.codigo===r.codigo)?.nomenclatura||'').toLowerCase();
-    const mq=!q||r.cliente.toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||stNom.includes(q)||(r.responsavel||'').toLowerCase().includes(q);
+    const mq=!q||r.cliente.toLowerCase().includes(q)||(r.responsavel||'').toLowerCase().includes(q)||r.codigo.toLowerCase().includes(q)||(termos.length&&(()=>{ const p=prodDe(idDe(r.codigo)); return p&&prodBusca(p,termos); })());
     const md=!dir||r.diretoria===dir;
     const ma=!arm||(r.wh||'').toLowerCase().includes(arm.toLowerCase());
     return mq&&md&&ma;
   });
-  const byCode={};
+  const byProd={};
   rows.forEach(r=>{
-    if(!byCode[r.codigo]) byCode[r.codigo]={codigo:r.codigo,reservas:[],totalQtd:0,whs:new Set()};
-    byCode[r.codigo].reservas.push(r); byCode[r.codigo].totalQtd+=r.qtd; if(r.wh) byCode[r.codigo].whs.add(r.wh);
+    const id=idDe(r.codigo);
+    if(!byProd[id]) byProd[id]={id,reservas:[],totalQtd:0,whs:new Set()};
+    byProd[id].reservas.push(r); byProd[id].totalQtd+=r.qtd; if(r.wh) byProd[id].whs.add(r.wh);
   });
-  const grupos=Object.values(byCode).sort((a,b)=>b.totalQtd-a.totalQtd);
+  const grupos=Object.values(byProd).sort((a,b)=>ordemProd({id:a.id,rows:(rowsPorProd[a.id]||[])},{id:b.id,rows:(rowsPorProd[b.id]||[])}));
   document.getElementById('res-cnt').textContent=fmt(rows.reduce((a,r)=>a+(r.qtd||0),0));
   document.getElementById('res-prod-cnt').textContent=grupos.length;
   const el=document.getElementById('res-cards');
@@ -1944,12 +1857,12 @@ function updateSidebar(){
   // do jeito antigo (contando via getCatTab(r)==='mp'), o contador ficava sempre em 0.
   const tabs=['inv','ev','bess','kit','strbox','div','mot'];
   tabs.forEach(tb=>{
-    const n=new Set(ST.filter(r=>getCatTab(r)===tb && !EXPORT_SKUS.includes(r.codigo)).map(r=>r.prodId||r.codigo)).size;
+    const n=new Set(ST.filter(r=>getCatTab(r)===tb && !ehExport(r)).map(r=>r.prodId||r.codigo)).size;
     const el=document.getElementById('sc-'+tb); if(el) el.textContent=n;
   });
-  document.getElementById('sc-mp').textContent=new Set(ST.filter(r=>r.isMP && !EXPORT_SKUS.includes(r.codigo)).map(r=>r.prodId||r.codigo)).size;
-  document.getElementById('sc-todos').textContent=new Set(ST.filter(r=>!EXPORT_SKUS.includes(r.codigo)).map(r=>r.prodId||r.codigo)).size;
-  document.getElementById('sc-res').textContent=new Set(RES.map(r=>r.codigo)).size;
+  document.getElementById('sc-mp').textContent=new Set(ST.filter(r=>r.isMP && !ehExport(r)).map(r=>r.prodId||r.codigo)).size;
+  document.getElementById('sc-todos').textContent=new Set(ST.filter(r=>!ehExport(r)).map(r=>r.prodId||r.codigo)).size;
+  document.getElementById('sc-res').textContent=new Set(RES.map(r=>prodIdDeCodigo(r.codigo))).size;
 }
 
 function populateSelects(){
@@ -2076,17 +1989,17 @@ function rAudit(){
         ${VAL_TOP_REPETIDO.map(v=>`<tr><td style="font-family:'DM Mono',monospace;font-weight:700;color:#991b1b">${v.top}</td><td>${v.a}</td><td>${v.b}</td></tr>`).join('')}
       </table>
     </div>` : '';
-  const vincAutoBlock = VAL_VINCULO_AUTO.length ? `
+  const vincAutoBlock = VAL_TOP_FORA.length ? `
     <div class="aud-block">
       <div class="aud-hdr" style="background:#fef3c7;color:#92400e;font-size:14px">
-        <i class="ti ti-link"></i> FÁBRICA — TOP VINCULADO AUTOMATICAMENTE · ${VAL_VINCULO_AUTO.length}
+        <i class="ti ti-link-off"></i> FÁBRICA — TOP COM ESTOQUE FORA DO CADASTRO · ${VAL_TOP_FORA.length}
       </div>
       <div style="background:#fffbeb;border:1px solid #fcd34d;border-top:none;padding:8px 14px;font-size:12px;color:#92400e">
-        Estes TOPs ainda não estão no cadastro. Entraram como <b>TOP importado</b> do produto que o relatório da Fábrica indica pelo Hexing. Confira e inclua o TOP na coluna CODIGO TOP MANAGER do cadastro.
+        Estes TOPs têm estoque no relatório da Fábrica, mas não estão no cadastro. Inclua cada TOP no cadastro (coluna <b>CODIGO TOP MANAGER</b> ou <b>CODIGO TOP MANAGER NACIONAL</b> do produto certo, ou uma linha nova). Até lá aparecem como produto sem cadastro e o código fica "-" no card do produto. O Hexing do relatório é só uma pista.
       </div>
       <table class="aud-tbl" style="border:1px solid #fcd34d;border-top:none">
-        <tr style="background:#fffbeb"><th>TOP</th><th>Hexing no relatório</th><th>Produto</th><th style="text-align:right">Estoque</th></tr>
-        ${VAL_VINCULO_AUTO.map(v=>`<tr><td style="font-family:'DM Mono',monospace;font-weight:700">${v.top}</td><td style="font-family:'DM Mono',monospace">${v.hexing}</td><td>${v.produto}</td><td style="text-align:right">${fmt(v.qtd)}</td></tr>`).join('')}
+        <tr style="background:#fffbeb"><th>TOP</th><th>Hexing no relatório (pista)</th><th>Produto no cadastro com esse Hexing</th><th style="text-align:right">Estoque</th></tr>
+        ${VAL_TOP_FORA.map(v=>`<tr><td style="font-family:'DM Mono',monospace;font-weight:700">${v.top}</td><td style="font-family:'DM Mono',monospace">${v.hexing||'—'}</td><td>${v.produto||'—'}</td><td style="text-align:right">${fmt(v.qtd)}</td></tr>`).join('')}
       </table>
     </div>` : '';
   const fabHexBlock = VAL_FABRICA_HEXING.length ? `
@@ -2203,6 +2116,12 @@ function rAudit(){
         ${fonteRows}${alertRows}
       </table>
     </div>`}
+    ${VAL_SEM_DESCRICAO.length?`<div class="aud-block">
+      <div class="aud-hdr" style="background:#fef3c7;color:#92400e"><i class="ti ti-file-description"></i> Produtos sem descrição no cadastro — ${VAL_SEM_DESCRICAO.length}</div>
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-top:none;padding:8px 14px;font-size:12px;color:#92400e">Preencha a coluna <b>DESCRICAO</b> destes produtos no cadastro_produtos. O card fica sem descrição até lá — o dashboard não busca de outra fonte.</div>
+      <table class="aud-tbl" style="border:1px solid #fcd34d;border-top:none">
+        <tr style="background:#fffbeb"><th>CODIGO</th><th>Família</th><th>Nomenclatura</th></tr>${VAL_SEM_DESCRICAO.slice(0,60).map(v=>`<tr><td style="font-family:'DM Mono',monospace;font-weight:700">${v.codigo}</td><td>${v.familia||'—'}</td><td>${v.titulo||'—'}</td></tr>`).join('')}
+      </table></div>`:''}
     ${VAL_SEM_CADASTRO.length?`<div class="aud-block">
       <div class="aud-hdr" style="background:#fee2e2;color:#991b1b"><i class="ti ti-alert-circle"></i> Produtos sem Cadastro Mestre — ${VAL_SEM_CADASTRO.length}</div>
       <table class="aud-tbl" style="border:1px solid #fca5a5;border-top:none">
@@ -2511,7 +2430,7 @@ async function boot(){
   joinCadastro(stItems);
   ST=stItems;
   VAL_FABRICA_HEXING=auditarHexingFabrica(stItems);
-  { const m={}; stItems.filter(s=>s._vinculoAuto).forEach(s=>{ const o=m[s.codigo]||(m[s.codigo]={top:s.codigo,hexing:s.hexing,produto:(CADASTRO[s.hexing]||{}).nomenclatura||'',qtd:0}); o.qtd+=s.saldo; }); VAL_VINCULO_AUTO=Object.values(m); }
+  { const m={}; stItems.filter(s=>s.wh==='Fábrica Livoltek' && s._semCadastro).forEach(s=>{ const o=m[s.codigo]||(m[s.codigo]={top:s.codigo,hexing:s.hexing||'',produto:(CADASTRO[s.hexing]||{}).codigo?((CADASTRO[s.hexing].titulo)||CADASTRO[s.hexing].codigo):'',qtd:0}); o.qtd+=s.saldo; }); VAL_TOP_FORA=Object.values(m); }
   // Códigos únicos "esperados": contados depois da unificação TOP local → Hexing (senão a conferência
   // da Auditoria acusaria falta falsa, porque o mesmo produto passa a ser um código só).
   if(ESTOQUE_RECONCILIACAO){
