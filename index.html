@@ -389,7 +389,7 @@ const WH_COLOR = {'Curitiba (Eletra)':'var(--cwb)','Fortaleza (Eletra)':'var(--f
 const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra)':'ti-building-warehouse','Manaus (Eletra)':'ti-building-warehouse','Fábrica Livoltek':'ti-building-factory-2'};
 
 let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, CADASTRO_NACTOP={}, CADASTRO_ALT={}, CADASTRO_NOM={}, MODO='novo';
-let VAL_SEM_DESCRICAO=[], VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[], VAL_FABRICA_HEXING=[], VAL_TOP_REPETIDO=[], VAL_TOP_FORA=[], VAL_TOTVS_DUP=[];
+let VAL_SEM_DESCRICAO=[], VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[], VAL_FABRICA_HEXING=[], VAL_TOP_REPETIDO=[], VAL_TOP_FORA=[], VAL_TOTVS_DUP=[], VAL_RETRABALHO=[];
 
 // ══ CONFERÊNCIA TOTVS x SISTEMA ══
 // AUD_BASELINE: baseline "travada" por codigo|armazem, lida de data/overrides_estoque.csv (opcional).
@@ -863,8 +863,12 @@ function parseReservasSheets(csv){
     const _codKey=_allKeys.find(k=>semAcento(k)==='CODIGO');
     const codigo=String((_codKey?r[_codKey]:'')||r['Código']||r['Codigo']||r['CODIGO']||'').trim().toUpperCase();
     const qtd=pn(r['QUANTIDADE_RESERVADA']||r['Qtdade']||r['QTD']||r['Quantidade']||0);
-    const cancelado=String(r['Cancelado']||r['CANCELADO']||'').trim();
+    const cancelado=String(r['Cancelado']||r['CANCELADO']||'').trim();   // qualquer valor (ex.: X) cancela a linha inteira
     if(!codigo||qtd<=0||cancelado) return;
+    // RETRABALHO: coluna "Codigo novo" = o produto do Código (A) será retrabalhado no código novo (B)
+    const _novoKey=_allKeys.find(k=>['CODIGONOVO','NOVOCODIGO','CODIGOB','CODIGODESTINO'].includes(semAcento(k)));
+    const codigoNovoRaw=String((_novoKey?r[_novoKey]:'')||'').trim().toUpperCase();
+    const codigoNovo=(codigoNovoRaw&&codigoNovoRaw!==codigo)?codigoNovoRaw:'';
     const armRaw=String(r['CODIGO_ARMAZEM']||r['Armazem']||r['Armazém']||r['ARMAZEM']||r['armazem']||'').trim();
     // Resolve código numérico (ex: 10102) ou nome completo para nome canônico
     const wh=normalizaArmazem(armRaw);
@@ -882,7 +886,7 @@ function parseReservasSheets(csv){
       cliente:String(r['Cliente']||r['CLIENTE']||'').trim(),
       responsavel:String(r['Responsavel']||r['Responsável']||r['RESPONSAVEL']||'').trim(),
       diretoria:String(r['Diretoria']||r['DIRETORIA']||'').trim(),
-      codigo, obs:String(r['OBSERVACAO']||r['Observações']||r['OBS']||'').trim(),
+      codigo, codigoNovo, obs:String(r['OBSERVACAO']||r['Observações']||r['OBS']||'').trim(),
       wh, armRaw, qtd, solicitado:String(r['Solicitado']||'').trim(),
     });
   });
@@ -1786,7 +1790,7 @@ function rAll(){ renderCat('todos'); }
 function buildResRow(r){
   const w=r.wh||'—'; const wColor=WH_COLOR[w]||'#64748b';
   return `<div class="pc2-cli-row">
-    <span class="pc2-cli-nome">${r.cliente||'—'}<br><span style="font-size:10px;color:var(--txtm)">${r.responsavel||''}${r.responsavel?' · ':''}<span style="font-family:'DM Mono',monospace">${r.codigo}</span></span></span>
+    <span class="pc2-cli-nome">${r.cliente||'—'}${r.retrabalhoPara?` <span class="pc3-cds" style="background:#fef3c7;color:#92400e">Retrabalho → ${r.retrabalhoPara}</span>`:''}${r.retrabalhoDe?` <span class="pc3-cds" style="background:#fef3c7;color:#92400e">Retrabalho de ${r.retrabalhoDe}</span>`:''}<br><span style="font-size:10px;color:var(--txtm)">${r.responsavel||''}${r.responsavel?' · ':''}<span style="font-family:'DM Mono',monospace">${r.codigo}</span></span></span>
     <span class="wt" style="color:${wColor};font-size:9px">${w.split(' ')[0]}</span>
     <span class="pc2-cli-qtd">${fmt(r.qtd)}</span>
   </div>`;
@@ -1874,7 +1878,7 @@ function rRes(){
     byProd[id].reservas.push(r); byProd[id].totalQtd+=r.qtd; if(r.wh) byProd[id].whs.add(r.wh);
   });
   const grupos=Object.values(byProd).sort((a,b)=>ordemProd({id:a.id,rows:(rowsPorProd[a.id]||[])},{id:b.id,rows:(rowsPorProd[b.id]||[])}));
-  document.getElementById('res-cnt').textContent=fmt(rows.reduce((a,r)=>a+(r.qtd||0),0));
+  document.getElementById('res-cnt').textContent=fmt(rows.filter(r=>!r._derivada).reduce((a,r)=>a+(r.qtd||0),0)); // a reserva derivada (código novo) não conta em dobro
   document.getElementById('res-prod-cnt').textContent=grupos.length;
   const el=document.getElementById('res-cards');
   el.innerHTML = grupos.length ? grupos.map(g=>buildProdCard(g,!!dir,isFiltered)).join('') :
@@ -2140,6 +2144,7 @@ function rAudit(){
   document.getElementById('audit-content').innerHTML=`
     ${totaisBlock}
     ${saldoBlock}
+    <div id="aud-retrab"></div>
     <div id="aud-variacao"></div>
     ${resSemArmBlock}
     ${resCodInvBlock}
@@ -2186,6 +2191,7 @@ function rAudit(){
       ⚠️ <b>${VAL_DUPLICADO.length} código(s) duplicado(s)</b> no cadastro: ${VAL_DUPLICADO.map(v=>v.codigo).slice(0,5).join(', ')}
     </div>`:''}`;
   renderVariacao();
+  renderRetrabalho();
 }
 
 // ══ VARIAÇÃO DE ESTOQUE vs. versão anterior (histórico de commits do GitHub) ══
@@ -2270,9 +2276,34 @@ async function carregarVariacaoEstoque(forcar){
     VARIACAO.erro=e.message||String(e);
   }
   renderVariacao();
+  renderRetrabalho();
 }
 
 function setFiltroVariacao(f){ VARIACAO.filtro=f; renderVariacao(); }
+
+function renderRetrabalho(){
+  const el=document.getElementById('aud-retrab'); if(!el) return;
+  if(!VAL_RETRABALHO.length){ el.innerHTML=''; return; }
+  const est=(c,wh)=>ST.filter(r=>r.codigo===c&&r.wh===wh&&!r._virtual).reduce((a,r)=>a+r.saldo,0);
+  const lin=(VARIACAO&&VARIACAO.estado==='ok')?VARIACAO.linhas:null;
+  const mud=(c)=>lin?lin.filter(x=>x.codigo===c):[];
+  const rows=VAL_RETRABALHO.map(v=>{
+    const eA=est(v.a,v.wh), eB=est(v.b,v.wh); const mA=mud(v.a), mB=mud(v.b);
+    const caiuA=mA.some(x=>x.dif<0), subiuB=mB.some(x=>x.dif>0);
+    let obs='<span style="color:var(--txtm)">Aguardando o retrabalho.</span>', alerta=false;
+    if(eB>=v.qtd){ obs='⚠️ O estoque do código novo já cobre a quantidade — provável retrabalho concluído. Confira.'; alerta=true; }
+    else if(caiuA||subiuB){ obs='⚠️ O estoque mudou desde a última atualização ('+[...mA,...mB].map(x=>x.codigo+' '+(x.dif>0?'+':'')+fmt(x.dif)).join(', ')+'). Confira se é o retrabalho.'; alerta=true; }
+    return `<tr style="${alerta?'background:#fffbeb':''}"><td>${v.cliente||'—'}</td><td style="font-family:'DM Mono',monospace">${v.a}</td><td style="font-family:'DM Mono',monospace;font-weight:700">${v.b}</td><td>${v.wh}</td><td style="text-align:right">${fmt(v.qtd)}</td><td style="text-align:right">${fmt(eA)}</td><td style="text-align:right">${fmt(eB)}</td><td style="${alerta?'color:#92400e;font-weight:600':''}">${obs}</td></tr>`;
+  }).join('');
+  el.innerHTML=`<div class="aud-block">
+    <div class="aud-hdr" style="background:#fef3c7;color:#92400e;font-size:14px"><i class="ti ti-tool"></i> RETRABALHO EM ANDAMENTO · ${VAL_RETRABALHO.length}</div>
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-top:none;padding:8px 14px;font-size:12px;color:#92400e">
+      Cada linha com <b>Codigo novo</b> reserva o código de origem (A) e o código novo (B, que fica negativo até o retrabalho). Quando o retrabalho terminar, passe B para a coluna <b>Codigo</b> e limpe <b>Codigo novo</b>; se a reserva não valer mais, marque <b>X</b> em <b>Cancelado</b>.
+    </div>
+    <table class="aud-tbl" style="border:1px solid #fcd34d;border-top:none">
+      <tr style="background:#fffbeb"><th>Cliente</th><th>Código de origem (A)</th><th>Código novo (B)</th><th>Armazém</th><th style="text-align:right">Qtd.</th><th style="text-align:right">Estoque A</th><th style="text-align:right">Estoque B</th><th>Observação</th></tr>${rows}
+    </table></div>`;
+}
 
 function renderVariacao(){
   const el=document.getElementById('aud-variacao'); if(!el) return;
@@ -2508,6 +2539,17 @@ async function boot(){
     }catch(e){}
   }
 
+  // RETRABALHO: linha com CODIGO NOVO (B) reserva os DOIS códigos — A (estoque comprometido com o retrabalho) e B (a demanda do
+  // cliente: fica negativo até o retrabalho acontecer, então não precisa lembrar de reservar depois). Quando o retrabalho terminar,
+  // é só passar B para a coluna Código e limpar CODIGO NOVO (a Auditoria avisa quando o estoque mudar).
+  VAL_RETRABALHO=[];
+  { const extra=[];
+    RES.forEach(r=>{ if(r.codigoNovo){
+      r.retrabalhoPara=r.codigoNovo;
+      extra.push({...r,codigo:r.codigoNovo,codigoNovo:'',retrabalhoPara:'',retrabalhoDe:r.codigo,_derivada:true});
+      VAL_RETRABALHO.push({cliente:r.cliente,a:r.codigo,b:r.codigoNovo,wh:r.wh,qtd:r.qtd});
+    } });
+    RES.push(...extra); }
   applyReservas();
   validateAll();
   renderSrcAlerts();
