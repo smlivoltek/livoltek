@@ -388,8 +388,8 @@ const WH_LIST  = ['Curitiba (Eletra)','Fortaleza (Eletra)','Manaus (Eletra)','F�
 const WH_COLOR = {'Curitiba (Eletra)':'var(--cwb)','Fortaleza (Eletra)':'var(--for)','Manaus (Eletra)':'var(--mao-e)','Fábrica Livoltek':'var(--mao-l)'};
 const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra)':'ti-building-warehouse','Manaus (Eletra)':'ti-building-warehouse','Fábrica Livoltek':'ti-building-factory-2'};
 
-let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, CADASTRO_NACTOP={}, CADASTRO_NOM={}, MODO='novo';
-let VAL_SEM_DESCRICAO=[], VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[], VAL_FABRICA_HEXING=[], VAL_TOP_REPETIDO=[], VAL_TOP_FORA=[];
+let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, CADASTRO_NACTOP={}, CADASTRO_ALT={}, CADASTRO_NOM={}, MODO='novo';
+let VAL_SEM_DESCRICAO=[], VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[], VAL_FABRICA_HEXING=[], VAL_TOP_REPETIDO=[], VAL_TOP_FORA=[], VAL_TOTVS_DUP=[];
 
 // ══ CONFERÊNCIA TOTVS x SISTEMA ══
 // AUD_BASELINE: baseline "travada" por codigo|armazem, lida de data/overrides_estoque.csv (opcional).
@@ -618,13 +618,16 @@ function parseCadastro(csv){
   const iTOPN = ci('CODIGO TOP MANAGER NACIONAL','TOP MANAGER NACIONAL','CODIGO TOP NACIONAL','TOP NACIONAL');
   const iNAC = ci('NACIONAL');
   const iEXP = ci('EXPORTACAO','EXPORTAÇÃO');
+  // Produto com MAIS DE UM código TOTVS (ex.: 9121500200 e HP1-1K5S2R11001 são o mesmo inversor): o CODIGO fica o principal e
+  // os demais vão nesta coluna opcional, separados por "/". Cada código continua com o seu estoque e as suas reservas.
+  const iALT = ci('TOTVS','CODIGO TOTVS ALTERNATIVO','CODIGOS TOTVS ALTERNATIVOS','OUTROS CODIGOS TOTVS','CODIGO TOTVS 2'); // coluna "TOTVS" do cadastro = demais códigos TOTVS do produto
   const iMOD = ci('MODELO');                                              // opcional
   const iPOT = ci('POTENCIA_KW','POTENCIA (KW)','POTENCIA KW','POTENCIA'); // opcional (em kW)
   const splitCod = v=>String(v||'').split(/[\/;,|]+/).map(x=>x.trim().toUpperCase().replace(/\.0$/,'').replace(/\.$/,'')).filter(Boolean);
   const repetidos=[];
   if(iTOPN<0 && iNAC<0) SRC_ALERTS.push({fonte:'cadastro_produtos.csv',msg:'⚠️ Coluna CODIGO TOP MANAGER NACIONAL não encontrada no cadastro — as tags FINAME não serão exibidas.',ts:new Date()});
   if(iEXP<0) SRC_ALERTS.push({fonte:'cadastro_produtos.csv',msg:'⚠️ Coluna EXPORTAÇÃO não encontrada no cadastro — as tags Exportação-S/AFCI não serão exibidas.',ts:new Date()});
-  const map={}, mapTop={}, mapNac={}, mapNomCount={}, mapNom={}, dupl=[];
+  const map={}, mapTop={}, mapNac={}, mapAlt={}, mapNomCount={}, mapNom={}, dupl=[];
   for(let i=hdrIdx+1;i<all.length;i++){
     const r=all[i];
     const codigo=String(r[iCOD]||'').trim().toUpperCase().replace(/\.$/,''); // remove ponto final
@@ -636,6 +639,7 @@ function parseCadastro(csv){
       codigo, descricao:String(r[iDESC]||'').trim(), topLocal, topNacional, nacional: topNacional.length>0,
       categoria:fixEnc(r[iCAT]), familia:String(r[iFAM]||'').trim(), nomenclatura:((iNOM>=0?String(r[iNOM]||'').trim():'')||String(r[iDESC]||'').trim()),
       exportacao: iEXP>=0 && celulaMarcada(r[iEXP]),
+      totvsAlt: iALT>=0 ? splitCod(r[iALT]).filter(c=>c!==codigo) : [],
       titulo: (iNOM>=0?String(r[iNOM]||'').trim():''),   // título do card = NOMENCLATURA; vazia → o próprio código do produto
       modelo: (iMOD>=0?String(r[iMOD]||'').trim():''), // só o que está no cadastro (coluna opcional MODELO)
       potenciaKW: (()=>{ const v=iPOT>=0?parseFloat(String(r[iPOT]||'').replace(',','.')):NaN; return isFinite(v)?v:potenciaDeFamilia(String(r[iFAM]||'')); })()
@@ -645,6 +649,7 @@ function parseCadastro(csv){
     // Um mesmo código TOP não pode estar em dois produtos: se estiver, vai pra Auditoria.
     topLocal.forEach(c=>{ if((mapTop[c]&&mapTop[c]!==item)||(mapNac[c]&&mapNac[c]!==item)) repetidos.push({top:c,a:(mapTop[c]||mapNac[c]).codigo,b:codigo}); mapTop[c]=item; });
     topNacional.forEach(c=>{ if((mapNac[c]&&mapNac[c]!==item)||(mapTop[c]&&mapTop[c]!==item)) repetidos.push({top:c,a:(mapNac[c]||mapTop[c]).codigo,b:codigo}); mapNac[c]=item; });
+    item.totvsAlt.forEach(c=>{ if(mapAlt[c]&&mapAlt[c]!==item) repetidos.push({top:c,a:mapAlt[c].codigo,b:codigo}); mapAlt[c]=item; });
     // Índice terciário: texto da Nomenclatura → registro. Alguns relatórios (ex: o Resumo
     // da Fábrica/Eletra Manaus) reportam o "Product" usando o texto da Nomenclatura em vez
     // de um código (ex: "GT3 -100K-1 380V AFCI"). Só usamos esse índice quando o texto é
@@ -660,8 +665,11 @@ function parseCadastro(csv){
   VAL_TOP_REPETIDO=repetidos;
   VAL_DUPLICADO=dupl.map(c=>({codigo:c,descricao:map[c]?.descricao||'',msg:'Código duplicado no cadastro_produtos'}));
   SRC_TS.cadastro=new Date();
+  // Código TOTVS que está na coluna TOTVS de um produto E ainda aparece como linha solta no cadastro (o cadastro vem do TOTVS e
+  // a linha volta sempre): vale a coluna — o código conta UMA vez só, dentro do produto, sem alerta e sem card duplicado.
   CADASTRO_TOP=mapTop;
   CADASTRO_NACTOP=mapNac;
+  CADASTRO_ALT=mapAlt;
   CADASTRO_NOM=mapNom;
   return map;
 }
@@ -964,12 +972,14 @@ function linhasFinameZeradas(items){
   const out=[];
   const nova=(codigo,desc)=>({codigo, descricao:desc, wh:'Fábrica Livoltek', armz:'07', saldo:0, reserva:0, fat:0, disp:0,
     categoria:'', familia:'', nomenclatura:'', isMP:false, _semCadastro:false, _incompleto:[], tp:'', _zero:true});
+  const ehAltDeOutro=c=>CADASTRO_ALT[c.codigo] && CADASTRO_ALT[c.codigo]!==c;
   Object.values(CADASTRO).forEach(c=>(c.topNacional||[]).forEach(t=>{
     if(!tem.has(t)){ out.push(nova(t,c.descricao)); tem.add(t); }
   }));
   const ABAS_PRODUTO=['inv','ev','bess','kit','strbox'];
   Object.values(CADASTRO).forEach(c=>{
     if(String(c.categoria||'').toUpperCase().trim()!=='PRODUTO') return;
+    if(ehAltDeOutro(c)) return; // o código já conta dentro de outro produto (coluna TOTVS)
     const cods=[c.codigo,...(c.topLocal||[]),...(c.topNacional||[])];
     if(cods.some(x=>tem.has(x))) return;
     if(!ABAS_PRODUTO.includes(getCatTab({familia:c.familia}))) return;
@@ -1016,7 +1026,7 @@ function joinCadastro(items){
     let cad=null, ehNac=false;
     if(s.wh==='Fábrica Livoltek' && CADASTRO_NACTOP[s.codigo]){ cad=CADASTRO_NACTOP[s.codigo]; ehNac=true; }
     else if(s.wh==='Fábrica Livoltek' && CADASTRO_TOP[s.codigo]){ cad=CADASTRO_TOP[s.codigo]; }
-    else cad=(CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo] || (s.wh==='Fábrica Livoltek' ? buscarPorNomenclaturaParcial(s.codigo) : null));
+    else cad=(CADASTRO_ALT[s.codigo] || CADASTRO[s.codigo] || CADASTRO_NOM[s.codigo] || (s.wh==='Fábrica Livoltek' ? buscarPorNomenclaturaParcial(s.codigo) : null));
     s._semCadastro=!cad;
     s.isFiname=ehNac;
     s.isSemAfci=!!(cad&&cad.exportacao);
@@ -1088,7 +1098,7 @@ function applyReservas(){
     if(aplicado.has(k)) return; // já foi aplicado em linha real do ST
     const [wh, ...codParts] = k.split('|');
     const codigo = codParts.join('|');
-    const cadItem = CADASTRO[codigo] || CADASTRO_NACTOP[codigo] || CADASTRO_TOP[codigo] || {};
+    const cadItem = CADASTRO_ALT[codigo] || CADASTRO[codigo] || CADASTRO_NACTOP[codigo] || CADASTRO_TOP[codigo] || {};
     const pareceCodigoValido = !!cadItem.nomenclatura || /\d/.test(codigo);
     if(!pareceCodigoValido){
       VAL_RES_CODIGO_INVALIDO.push({codigo, wh, qtd, msg:'Não parece ser um código de produto válido — verifique a coluna Código na planilha de Reservas'});
@@ -1134,7 +1144,7 @@ function applyFaturados(){
     }
     // Se não existe linha em ST para esse produto+armazém faturado, cria linha virtual
     if(!aplicadoFat.has(k)){
-      const cadItem=CADASTRO[codigo]||CADASTRO_NACTOP[codigo]||CADASTRO_TOP[codigo]||{};
+      const cadItem=CADASTRO_ALT[codigo]||CADASTRO[codigo]||CADASTRO_NACTOP[codigo]||CADASTRO_TOP[codigo]||{};
       ST.push({
         codigo, wh, saldo:0, reserva:0, fat:v.qtd, disp:-v.qtd, armz:'07',
         descricao:cadItem.descricao||codigo,
@@ -1287,14 +1297,17 @@ function agruparProdutos(rows){
 // Os três códigos do produto: do cadastro + o que as linhas de estoque comprovam (sistema/origem de cada linha).
 function slotsCodigos(p){
   const cad=CADASTRO[p.id]||null;
-  const nac=new Set(), imp=new Set(), tot=new Set();
-  p.rows.forEach(r=>{ if(r.sistema==='TOP Manager'){ (r.origemTxt==='Nacional'?nac:imp).add(r.codigo); } else tot.add(r.codigo); });
+  const nac=new Set(), imp=new Set(), totEv=new Set();
+  p.rows.forEach(r=>{ if(r.sistema==='TOP Manager'){ (r.origemTxt==='Nacional'?nac:imp).add(r.codigo); } else totEv.add(r.codigo); });
+  const tot=new Set();
   if(cad){
     (cad.topNacional||[]).forEach(c=>nac.add(c));
     (cad.topLocal||[]).forEach(c=>imp.add(c));
-    // o CODIGO do cadastro é o TOTVS importado, exceto se for ele mesmo um código TOP (nacional/importado)
+    // o CODIGO do cadastro é o TOTVS principal, exceto se for ele mesmo um código TOP (nacional/importado)
     if(!nac.has(cad.codigo) && !imp.has(cad.codigo)) tot.add(cad.codigo);
+    (cad.totvsAlt||[]).forEach(c=>tot.add(c));   // demais códigos TOTVS do mesmo produto
   }
+  totEv.forEach(c=>tot.add(c));
   return {nac:[...nac],imp:[...imp],tot:[...tot]};
 }
 // Busca: termos de potência (10, 10kw, 10 kW) comparam com o ATRIBUTO de potência do produto — nunca com
@@ -1332,7 +1345,7 @@ function ordemProd(a,b){ return String(tituloProd(a)).localeCompare(String(titul
 // Produto comercial a que um código pertence (código TOTVS/Hexing, TOP importado ou TOP nacional).
 function prodIdDeCodigo(c){
   const st=ST.find(x=>x.codigo===c); if(st&&st.prodId) return st.prodId;
-  const k=String(c||'').trim().toUpperCase(); const cad=CADASTRO[k]||CADASTRO_NACTOP[k]||CADASTRO_TOP[k];
+  const k=String(c||'').trim().toUpperCase(); const cad=CADASTRO_ALT[k]||CADASTRO[k]||CADASTRO_NACTOP[k]||CADASTRO_TOP[k];
   return cad?cad.codigo:c;
 }
 
@@ -1348,7 +1361,7 @@ function pCardProd(p, isMP, opts){
   const linhaCod=(rot,sub,lista,fin)=> (lista.length?lista:[null]).map(c=>`<div class="pc3-cr"><span class="pc3-cl">${rot}${sub?`<small>${sub}</small>`:''}</span>${c
       ? `<span class="pc3-cv">${fin?'<span class="pc3-fin" title="Elegível a financiamento FINAME">⭐ FINAME</span>':''}${c}</span><button class="pc3-cp" onclick="copiarCodigo(this,'${String(c).replace(/'/g,"\\'")}')" title="Copiar código" aria-label="Copiar ${c}"><i class="ti ti-copy"></i></button>`
       : `<span class="pc3-cv vz" title="Sem código — preenche quando houver estoque">-</span><span></span>`}</div>`).join('');
-  const codigosHtml=`<div class="pc3-codes">${linhaCod('TOP · Nacional','Fábrica Livoltek Manaus',sl.nac,true)}${linhaCod('TOP · Importado','Fábrica Livoltek Manaus',sl.imp)}${linhaCod('TOTVS · Importado','',sl.tot)}</div>`;
+  const codigosHtml=`<div class="pc3-codes">${linhaCod('TOP · Nacional','Fábrica Livoltek Manaus',sl.nac,true)}${linhaCod('TOP · Importado','Fábrica Livoltek Manaus',sl.imp)}${linhaCod('TOTVS','',sl.tot)}</div>`;
   // estoque por armazém E por código (cada saldo com o seu código/sistema/origem; nada é somado entre códigos na linha)
   const mapa={};
   p.rows.forEach(r=>{
@@ -2007,6 +2020,19 @@ function rAudit(){
         ${VAL_TOP_REPETIDO.map(v=>`<tr><td style="font-family:'DM Mono',monospace;font-weight:700;color:#991b1b">${v.top}</td><td>${v.a}</td><td>${v.b}</td></tr>`).join('')}
       </table>
     </div>` : '';
+  const totvsDupBlock = VAL_TOTVS_DUP.length ? `
+    <div class="aud-block">
+      <div class="aud-hdr" style="background:#fef3c7;color:#92400e;font-size:14px">
+        <i class="ti ti-copy"></i> TOTVS — POSSÍVEL SEGUNDO CÓDIGO DO MESMO PRODUTO · ${VAL_TOTVS_DUP.length}
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-top:none;padding:8px 14px;font-size:12px;color:#92400e">
+        Estes códigos TOTVS não estão no cadastro e a descrição deles no relatório cita o código de outro produto. Se forem o <b>mesmo produto</b>, coloque o código na coluna <b>CODIGO TOTVS ALTERNATIVO</b> do produto indicado (vários códigos separados por "/") A linha solta no cadastro não precisa ser apagada: o código passa a contar uma vez só, dentro do produto. Cada código mantém o seu estoque e as suas reservas.
+      </div>
+      <table class="aud-tbl" style="border:1px solid #fcd34d;border-top:none">
+        <tr style="background:#fffbeb"><th>Código TOTVS (sem cadastro)</th><th>Descrição no relatório</th><th>Produto do cadastro citado</th><th style="text-align:right">Estoque</th></tr>
+        ${VAL_TOTVS_DUP.map(v=>`<tr><td style="font-family:'DM Mono',monospace;font-weight:700">${v.codigo}</td><td>${v.descricao}</td><td style="font-family:'DM Mono',monospace">${v.produto}</td><td style="text-align:right">${fmt(v.qtd)}</td></tr>`).join('')}
+      </table>
+    </div>` : '';
   const vincAutoBlock = VAL_TOP_FORA.length ? `
     <div class="aud-block">
       <div class="aud-hdr" style="background:#fef3c7;color:#92400e;font-size:14px">
@@ -2118,6 +2144,7 @@ function rAudit(){
     ${resSemArmBlock}
     ${resCodInvBlock}
     ${topRepBlock}
+    ${totvsDupBlock}
     ${vincAutoBlock}
     ${fabHexBlock}
     ${totvsBlock}
@@ -2448,6 +2475,12 @@ async function boot(){
   joinCadastro(stItems);
   ST=stItems;
   VAL_FABRICA_HEXING=auditarHexingFabrica(stItems);
+  // Pista, sem ligar nada sozinho: código TOTVS sem cadastro cuja descrição no relatório cita o CODIGO de outro produto do cadastro
+  { const m={}; stItems.filter(s=>s.sistema==='TOTVS' && s._semCadastro).forEach(s=>{
+      const toks=new Set(String(s.descricao||'').toUpperCase().match(/[A-Z0-9][A-Z0-9\-\.]{4,}/g)||[]);
+      const hit=[...toks].find(t=>CADASTRO[t] && t!==String(s.codigo).toUpperCase());
+      if(hit){ const o=m[s.codigo]||(m[s.codigo]={codigo:s.codigo,descricao:s.descricao||'',produto:hit,qtd:0}); o.qtd+=s.saldo; } });
+    VAL_TOTVS_DUP=Object.values(m); }
   { const m={}; stItems.filter(s=>s.wh==='Fábrica Livoltek' && s._semCadastro).forEach(s=>{ const o=m[s.codigo]||(m[s.codigo]={top:s.codigo,hexing:s.hexing||'',produto:(CADASTRO[s.hexing]||{}).codigo?((CADASTRO[s.hexing].titulo)||CADASTRO[s.hexing].codigo):'',qtd:0}); o.qtd+=s.saldo; }); VAL_TOP_FORA=Object.values(m); }
   // Códigos únicos "esperados": contados depois da unificação TOP local → Hexing (senão a conferência
   // da Auditoria acusaria falta falsa, porque o mesmo produto passa a ser um código só).
