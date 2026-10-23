@@ -132,6 +132,13 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc2-disp-block{padding:.25rem 1rem .5rem}
 .pc2-disp-lbl{font-size:9px;font-weight:700;color:var(--grn-d);text-transform:uppercase;letter-spacing:.05em}
 .pc2-disp-val{font-family:'DM Mono',monospace;font-size:32px;font-weight:700;line-height:1}
+.pc3-sec{border-top:1px solid var(--brd);padding-bottom:.25rem}
+.pc3-sec-nac{background:#fffdf5;border-left:3px solid #fcd34d}
+.pc3-sec-h{display:flex;align-items:center;gap:6px;padding:.625rem 1rem 0;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--txt2)}
+.pc3-sec-h small{font-size:9px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--txtm)}
+.pc3-sec .pc3-codes{border-top:none;padding-top:.25rem}
+.pc3-sec .pc3-tbl{border-top:none;padding-top:0}
+.pc3-sec .pc2-disp-val{font-size:28px}
 .pc2-wh-list{padding:.375rem 1rem .5rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:3px;flex:1}
 .pc2-wh-row{display:flex;align-items:center;gap:7px}
 .pc2-wh-row.pc2-wh-zero{opacity:.4}
@@ -1360,6 +1367,13 @@ function pCardProd(p, isMP, opts){
   const famLabel=p.familia||p.categoria||'';
   const famCol=isMP?'var(--red)':'var(--pri)', famBg=isMP?'var(--red-pale)':'var(--pri-pale)';
   const meta=(cad&&cad.modelo)?`Modelo ${cad.modelo}`:''; // a potência não é mostrada no card (continua valendo na busca)
+  // PRODUTO NACIONAL (tem código TOP nacional / Finame): o card se divide em duas partes — em cima o NACIONAL (código, estoque,
+  // reserva e disponível dele) e embaixo o IMPORTADO (códigos TOP importado e TOTVS, com os armazéns). Estoques separados.
+  const dImp=p.rows.filter(r=>r.origemTxt!=='Nacional').reduce((a,r)=>a+r.disp,0);
+  const dNac=p.rows.filter(r=>r.origemTxt==='Nacional').reduce((a,r)=>a+r.disp,0);
+  const corImp=dImp>0?'var(--grn-d)':dImp<0?'var(--red)':'var(--amb-d)', corNac=dNac>0?'var(--grn-d)':dNac<0?'var(--red)':'var(--txtm)';
+  const blocoDisp=(rot,val,cor,tit)=>`<div class="pc2-disp-block"${tit?` title="${tit}"`:''}><div class="pc2-disp-lbl">${rot}</div><div class="pc2-disp-val" style="color:${cor}">${fmt(val)}</div></div>`;
+  const dispBloco=blocoDisp((opts&&opts.lblDisp)||'Total disponível para venda',disp,dispCol);
   const sl=slotsCodigos(p);
   // rótulo (e a origem do sistema logo abaixo); onde não há código fica "-" e preenche sozinho quando surgir
   const linhaCod=(rot,sub,lista,fin)=> (lista.length?lista:[null]).map(c=>`<div class="pc3-cr"><span class="pc3-cl">${rot}${sub?`<small>${sub}</small>`:''}</span>${c
@@ -1392,7 +1406,7 @@ function pCardProd(p, isMP, opts){
   const extras=Object.entries(mapa).filter(([k])=>!usadas.has(k)).map(([,o])=>o).filter(o=>!whF||o.wh===whF);
   const cmp=(a,b)=>(WH_LIST.indexOf(a.wh)-WH_LIST.indexOf(b.wh))||(ordSis(a)-ordSis(b))||String(a.codigo).localeCompare(String(b.codigo));
   const linhas=[...doGrade.sort(cmp),...extras.sort(cmp)];
-  const tbl=linhas.map(o=>{
+  const linhaTbl=o=>{
     const zero=!o.saldo&&!o.reserva;
     const col=o.disp>0?'var(--grn-d)':o.disp<0?'var(--red)':'var(--txtm)';
     const aviso=o.virtual?'Reserva sem estoque neste código':(o.disp<0?'Reserva maior que o estoque':'');
@@ -1405,7 +1419,29 @@ function pCardProd(p, isMP, opts){
       <span class="n" style="${o.reserva?'color:var(--pur)':'color:var(--txtm)'}">${o.reserva?fmt(o.reserva):'-'}</span>
       <span class="n" style="font-weight:600;${zero?'':'color:'+col}">${fmt(o.disp)}${aviso?` <i class="ti ti-alert-triangle" style="color:var(--red)" title="${aviso}"></i>`:''}</span>
     </div>`;
-  }).join('');
+  };
+  const tabela=lista=>`<div class="pc3-tbl"><div class="pc3-th"><span>Armazém · código</span><span>Estoque</span><span>Reserva</span><span>Disp.</span></div>${lista.map(linhaTbl).join('')||'<div class="pc3-tr z"><span style="font-size:11px;color:var(--txtm)">Sem estoque nos relatórios</span></div>'}</div>`;
+  const dividir = sl.nac.length>0 && !whF;   // com filtro de armazém ativo, mantém o formato de uma parte só
+  let corpoEstoque;
+  if(dividir){
+    const lNac=linhas.filter(o=>o.origem==='Nacional'), lImp=linhas.filter(o=>o.origem!=='Nacional');
+    corpoEstoque=`<div class="pc3-sec pc3-sec-nac">
+        <div class="pc3-sec-h"><span>Nacional</span><small>Fábrica Livoltek Manaus</small><span class="pc3-fin" style="margin:0 0 0 auto" title="Elegível a financiamento FINAME">⭐ FINAME</span></div>
+        ${blocoDisp('Disponível nacional',dNac,corNac,'Estoque da Fábrica Livoltek Manaus com código TOP nacional (Finame)')}
+        <div class="pc3-codes">${linhaCod('TOP · Nacional','',sl.nac)}</div>
+        ${tabela(lNac)}
+      </div>
+      <div class="pc3-sec">
+        <div class="pc3-sec-h"><span>Importado</span><small>TOTVS (Eletra) e Fábrica Livoltek Manaus</small></div>
+        ${blocoDisp('Disponível importado',dImp,corImp)}
+        <div class="pc3-codes">${linhaCod('TOP · Importado','Fábrica Livoltek Manaus',sl.imp)}${linhaCod('TOTVS','',sl.tot)}</div>
+        ${tabela(lImp)}
+      </div>`;
+  } else {
+    corpoEstoque=`${dispBloco}
+      ${codigosHtml}
+      ${tabela(linhas)}`;
+  }
   return `<div class="pc2${isMP?' mp':''}" data-prod="${String(p.id).replace(/"/g,'')}">
     <div class="pc2-top">
       ${famLabel?`<span class="pc2-pill" style="color:${famCol};background:${famBg}">${famLabel}</span>`:''}
@@ -1420,12 +1456,7 @@ function pCardProd(p, isMP, opts){
         </div>
       </div>
     </div>
-    <div class="pc2-disp-block">
-      <div class="pc2-disp-lbl">${(opts&&opts.lblDisp)||'Total disponível para venda'}</div>
-      <div class="pc2-disp-val" style="color:${dispCol}">${fmt(disp)}</div>
-    </div>
-    ${codigosHtml}
-    <div class="pc3-tbl"><div class="pc3-th"><span>Armazém · código</span><span>Estoque</span><span>Reserva</span><span>Disp.</span></div>${tbl||'<div class="pc3-tr z"><span style="font-size:11px;color:var(--txtm)">Sem estoque nos relatórios</span></div>'}</div>
+    ${corpoEstoque}
     <div class="pc2-totals pc3-tot">
       <div class="pc2-total-row"><span>Estoque total</span><span>${fmt(sal)}</span></div>
       ${res?`<div class="pc2-total-row"><span>Reservado</span><span>${fmt(res)}</span></div>`:''}
