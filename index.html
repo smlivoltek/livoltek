@@ -141,17 +141,19 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc3-sec .pc3-codes{border-top:none;padding-top:.25rem}
 .pc3-sec .pc3-tbl{border-top:none;padding-top:0}
 .pc3-sec .pc2-disp-val{font-size:28px}
+.pc3-th.mp5,.pc3-tr.mp5{grid-template-columns:minmax(0,1fr) 44px 44px 48px 54px;gap:4px}
+.pc3-tr .m{font-family:'DM Mono',monospace;font-size:11px;text-align:right;color:var(--txt2);white-space:nowrap}
+.pc3-tr .m.vz{color:var(--txtm)}
+.pc3-mpv{background:none;border:0;padding:0;margin:0;cursor:pointer;border-bottom:1px dotted var(--txtm);justify-self:end}
+.pc3-mpv.sh{color:#92400e;font-weight:700;border-bottom-color:#92400e}
+.pc3-mpv[aria-expanded="true"]{background:#fef3c7;border-radius:3px}
+.pc3-mp-panel{border-top:1px solid var(--brd);padding:.5rem 1rem .625rem;background:#f8fafc;display:flex;flex-direction:column;gap:6px}
+.pc3-mp-panel[hidden]{display:none}
+.pc3-mp-panel .pc3-mp-b{margin:0}
+@media(max-width:400px){ .pc3-tbl,.pc3-codes,.pc3-mp-panel{padding-left:.625rem;padding-right:.625rem} .pc3-th.mp5,.pc3-tr.mp5{grid-template-columns:minmax(0,1fr) 42px 42px 46px 52px;gap:3px} }
 .pc3-al{font-size:10.5px;padding:0 1rem .25rem;color:var(--txtm);display:flex;gap:4px;align-items:flex-start;line-height:1.3}
 .pc3-al.w{color:var(--red)}
-details.pc3-mp{border-top:1px solid var(--brd);padding:.375rem 1rem .5rem;background:#f8fafc}
-.pc3-mp summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center;font-size:11px}
-.pc3-mp summary::-webkit-details-marker{display:none}
-.pc3-mp summary::after{content:'▾';margin-left:auto;color:var(--txtm)}
-.pc3-mp[open] summary::after{content:'▴'}
 .pc3-mp-t{font-weight:700;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--txt2)}
-.pc3-mp-c{font-family:'DM Mono',monospace;font-weight:600;word-break:break-all}
-.pc3-mp-s{color:var(--txt2)}
-.pc3-mp-sh{background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600}
 .pc3-mp-b{margin-top:.375rem;display:flex;flex-direction:column;gap:3px;font-size:11.5px}
 .pc3-mp-r{display:flex;justify-content:space-between;gap:8px}
 .pc3-mp-r b{font-family:'DM Mono',monospace;font-weight:600;text-align:right}
@@ -1421,8 +1423,9 @@ function mpIndiceEstoque(){
   const key=ST.length+'|'+RES.length; if(_mpIdx&&_mpIdx.key===key) return _mpIdx.m;
   const m={};
   ST.forEach(r=>{ const ks=new Set([String(r.prodId||'').toUpperCase(),String(r.codigo||'').toUpperCase()]); ks.delete('');
-    ks.forEach(k=>{ const o=m[k]||(m[k]={found:false,saldo:0,reserva:0,disp:0,byWh:{}});
-      if(!r._virtual) o.found=true; o.saldo+=r.saldo; o.reserva+=r.reserva; o.disp+=r.disp; if(r.saldo) o.byWh[r.wh]=(o.byWh[r.wh]||0)+r.saldo; }); });
+    ks.forEach(k=>{ const o=m[k]||(m[k]={found:false,saldo:0,reserva:0,disp:0,byWh:{},wo:{}});
+      if(!r._virtual) o.found=true; o.saldo+=r.saldo; o.reserva+=r.reserva; o.disp+=r.disp; if(r.saldo) o.byWh[r.wh]=(o.byWh[r.wh]||0)+r.saldo;
+      const kk=r.wh+'|'+(r.origemTxt==='Nacional'?'N':'I'); const x=o.wo[kk]||(o.wo[kk]={saldo:0,found:false}); x.saldo+=r.saldo; if(!r._virtual) x.found=true; }); });
   _mpIdx={key,m}; return m;
 }
 function mpVinculos(){   // código de matéria-prima → produtos acabados válidos do cadastro (cada produto conta uma vez)
@@ -1435,32 +1438,43 @@ function mpVinculos(){   // código de matéria-prima → produtos acabados vál
   });
   _mpVinc={ref:CADASTRO,m}; return m;
 }
+function mpSaldoRow(code,wh,nacional){   // saldo da MP naquele armazém e origem; null = sem dado (nunca assume zero)
+  const e=mpIndiceEstoque()[code]; const x=e&&e.wo[wh+'|'+(nacional?'N':'I')]; return (x&&x.found)?x.saldo:null;
+}
+function toggleMP(btn){
+  const card=btn.closest('.pc2'), pn=card&&card.querySelector('.pc3-mp-panel'); if(!pn) return;
+  const abrir=pn.hasAttribute('hidden'); if(abrir) pn.removeAttribute('hidden'); else pn.setAttribute('hidden','');
+  card.querySelectorAll('.pc3-mpv').forEach(b=>b.setAttribute('aria-expanded',abrir?'true':'false'));
+  if(abrir&&pn.scrollIntoView) pn.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+// Detalhes da matéria-prima (recolhidos por padrão): código, estoque, a caminho, previsão e quantos produtos ela atende.
 function blocoMP(p,cad){
   const mps=(cad&&cad.materiaPrima)||[]; if(!mps.length) return '';      // coluna vazia: nada é exibido nem presumido
   const idx=mpIndiceEstoque(), vinc=mpVinculos();
   const fdata=d=>d?d.toLocaleDateString('pt-BR'):'sem previsão';
-  return mps.map(code=>{
+  const corpo=mps.map(code=>{
     const e=idx[code], achou=e&&e.found, n=Math.max((vinc[code]||[]).length,1), comp=n>=2;
-    const estTxt=achou?`${fmt(e.saldo)} un.`:'informação não disponível';
-    let transTxt, transResumo='', remHtml='';
+    const estTxt=achou?`${fmt(e.saldo)} un.`:'<span class="pc3-mp-nd">informação não disponível</span>';
+    let transTxt, remHtml='';
     if(TRANSITO_ESTADO==='ok'){
       const rem=TRANSITO[code]||[], tot=rem.reduce((a,x)=>a+x.qtd,0);
-      if(rem.length){ transTxt=`${fmt(tot)} un.`; const prox=rem.find(x=>x.eta);
-        transResumo=` · a caminho ${fmt(tot)} un.${prox?` (prev. ${fdata(prox.eta)})`:''}`;
-        remHtml=rem.slice(0,6).map(x=>`<div class="pc3-mp-rem"><span>${fmt(x.qtd)} un. · ${x.eta?'prev. '+fdata(x.eta):'sem previsão'}</span><span>${x.status||''}${x.po?' · '+x.po:''}</span></div>`).join('')+(rem.length>6?`<div class="pc3-mp-rem"><span>+ ${rem.length-6} remessa(s)</span></div>`:''); }
+      if(rem.length){ const prox=rem.find(x=>x.eta); transTxt=`${fmt(tot)} un.`;
+        remHtml=rem.slice(0,6).map(x=>`<div class="pc3-mp-rem"><span>${fmt(x.qtd)} un. · ${x.eta?'prev. '+fdata(x.eta):'sem previsão'}</span><span>${x.status||''}${x.po?' · '+x.po:''}</span></div>`).join('')+(rem.length>6?`<div class="pc3-mp-rem"><span>+ ${rem.length-6} remessa(s)</span></div>`:'');
+        if(prox) transTxt+=` · próxima prev. ${fdata(prox.eta)}`; }
       else transTxt='nenhuma remessa registrada';
     } else transTxt='<span class="pc3-mp-nd">informação não disponível</span>';
-    const whs=achou?Object.entries(e.byWh).map(([w,q])=>`${w.replace(' (Eletra)','')} ${fmt(q)}`).join(' · '):'';
-    return `<details class="pc3-mp"><summary><span class="pc3-mp-t">Matéria-prima</span><span class="pc3-mp-c">${code}</span><span class="pc3-mp-s">${achou?'estoque '+estTxt:'<span class="pc3-mp-nd">estoque: '+estTxt+'</span>'}${transResumo}</span>${comp?`<span class="pc3-mp-sh">compartilhada · ${n} produtos</span>`:''}</summary>
-      <div class="pc3-mp-b">
-        <div class="pc3-mp-r"><span>Estoque atual</span><b>${achou?estTxt:'<span class="pc3-mp-nd">informação não disponível</span>'}</b></div>
-        ${achou&&e.reserva?`<div class="pc3-mp-r"><span>Reservado · disponível</span><b>${fmt(e.reserva)} · ${fmt(e.disp)}</b></div>`:''}
-        ${whs?`<div class="pc3-mp-wh">${whs}</div>`:''}
+    const detalhe=achou?Object.entries(e.wo).filter(([,x])=>x.found).map(([k,x])=>{ const [w,o]=k.split('|'); return `${w.replace(' (Eletra)','')}${o==='N'?' (nacional)':''} ${fmt(x.saldo)}`; }).join(' · '):'';
+    return `<div class="pc3-mp-b">
+        <div class="pc3-mp-r"><span class="pc3-mp-t">Matéria-prima</span><b>${code}</b></div>
+        <div class="pc3-mp-r"><span>Estoque atual</span><b>${estTxt}</b></div>
+        ${detalhe?`<div class="pc3-mp-wh">${detalhe}</div>`:''}
         <div class="pc3-mp-r"><span>A caminho do Brasil</span><b>${transTxt}</b></div>
         ${remHtml}
-        ${comp?`<div class="pc3-mp-al">⚠ Matéria-prima compartilhada — atende ${n} produtos. O saldo é o mesmo para todos e não é somado nos totais.</div>`:''}
-      </div></details>`;
+        <div class="pc3-mp-r"><span>Produtos atendidos</span><b>${n}</b></div>
+        ${comp?`<div class="pc3-mp-al">⚠ Matéria-prima compartilhada — atende ${n} produtos. O saldo é o mesmo para todos e não entra no Disp. nem nos totais.</div>`:''}
+      </div>`;
   }).join('');
+  return `<div class="pc3-mp-panel" hidden>${corpo}</div>`;
 }
 
 function pCardProd(p, isMP, opts){
@@ -1509,21 +1523,30 @@ function pCardProd(p, isMP, opts){
   const extras=Object.entries(mapa).filter(([k])=>!usadas.has(k)).map(([,o])=>o).filter(o=>!whF||o.wh===whF);
   const cmp=(a,b)=>(WH_LIST.indexOf(a.wh)-WH_LIST.indexOf(b.wh))||(ordSis(a)-ordSis(b))||String(a.codigo).localeCompare(String(b.codigo));
   const linhas=[...doGrade.sort(cmp),...extras.sort(cmp)];
+  // Coluna MP (depois do Disp.): saldo da matéria-prima do produto, só informativo — não entra no Disp., no estoque nem nos totais.
+  // Linha nacional (FINAME) consulta a MP nacional; as demais, a importada, sempre no mesmo armazém da linha. Sem dado = "—" (nunca zero).
+  const mpCodes=(cad&&cad.materiaPrima)||[], mpCode=mpCodes[0]||'', temMP=!!mpCode;
+  const mpN=temMP?Math.max((mpVinculos()[mpCode]||[]).length,1):0, mpComp=mpN>=2;
+  const mpCell=o=>{ if(!temMP) return '';
+    const v=(o.codigo==='-')?null:mpSaldoRow(mpCode,o.wh,o.origem==='Nacional');
+    const tip=v===null?'Informação não disponível — toque para ver detalhes':(mpComp?`Matéria-prima compartilhada por ${mpN} produtos — toque para ver detalhes`:'Matéria-prima — toque para ver detalhes');
+    return `<button type="button" class="m pc3-mpv${mpComp&&v!==null?' sh':''}${v===null?' vz':''}" aria-expanded="false" title="${tip}" onclick="toggleMP(this)">${v===null?'—':fmt(v)+(mpComp?'*':'')}</button>`; };
   const linhaTbl=o=>{
     const zero=!o.saldo&&!o.reserva;
     const col=o.disp>0?'var(--grn-d)':o.disp<0?'var(--red)':'var(--txtm)';
     const aviso=o.virtual?'Reserva sem estoque neste código':(o.disp<0?'Reserva maior que o estoque':'');
     const sis=o.sistema==='TOTVS'?'TOTVS':'TOP Manager';
     const finTag=(o.origem==='Nacional' && o.codigo && o.codigo!=='-')?'<span class="pc3-fin" title="Elegível a financiamento FINAME" style="margin:0">⭐ FINAME</span>':'';
-    return `<div class="pc3-tr${zero?' z':''}">
+    return `<div class="pc3-tr${zero?' z':''}${temMP?' mp5':''}">
       <div><div class="pc3-wn"><i class="ti ${WH_ICON[o.wh]||'ti-building-warehouse'}" style="color:${WH_COLOR[o.wh]||'#94a3b8'};font-size:12px"></i>${o.wh}</div>
       <div class="pc3-cd"><span class="pc3-cdc">${o.codigo}</span><span class="pc3-cds">${sis}</span>${finTag}</div></div>
       <span class="n" style="color:var(--txt2);font-weight:400">${fmt(o.saldo)}</span>
       <span class="n" style="${o.reserva?'color:var(--pur)':'color:var(--txtm)'}">${o.reserva?fmt(o.reserva):'-'}</span>
       <span class="n" style="font-weight:600;${zero?'':'color:'+col}">${fmt(o.disp)}${aviso?` <i class="ti ti-alert-triangle" style="color:var(--red)" title="${aviso}"></i>`:''}</span>
+      ${mpCell(o)}
     </div>`;
   };
-  const tabela=lista=>`<div class="pc3-tbl"><div class="pc3-th"><span>Armazém · código</span><span>Estoque</span><span>Reserva</span><span>Disp.</span></div>${lista.map(linhaTbl).join('')||'<div class="pc3-tr z"><span style="font-size:11px;color:var(--txtm)">Sem estoque nos relatórios</span></div>'}</div>`;
+  const tabela=lista=>`<div class="pc3-tbl"><div class="pc3-th${temMP?' mp5':''}"><span>Armazém · código</span><span>Estoque</span><span>Reserva</span><span>Disp.</span>${temMP?'<span title="Saldo da matéria-prima (informativo)">MP</span>':''}</div>${lista.map(linhaTbl).join('')||'<div class="pc3-tr z"><span style="font-size:11px;color:var(--txtm)">Sem estoque nos relatórios</span></div>'}</div>`;
   const totaisSec=(lista,pred)=>{ const sal=lista.reduce((a,o)=>a+o.saldo,0), rs=lista.reduce((a,o)=>a+o.reserva,0), ft=p.rows.filter(pred).reduce((a,r)=>a+(r.fat||0),0);
     return `<div class="pc2-totals pc3-tot"><div class="pc2-total-row"><span>Estoque total</span><span>${fmt(sal)}</span></div>${rs?`<div class="pc2-total-row"><span>Reservado</span><span>${fmt(rs)}</span></div>`:''}${ft?`<div class="pc2-total-row"><span>Faturado</span><span>${fmt(ft)}</span></div>`:''}</div>`; };
   // Alertas (os valores originais nunca são escondidos nem transformados): saldo 0 = pode não ter chegado ou a saída não foi
