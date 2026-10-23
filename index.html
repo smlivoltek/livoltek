@@ -88,7 +88,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .kcard-val{font-family:'DM Mono',monospace;font-size:26px;font-weight:700;margin-top:4px}
 
 /* ── Cards de produto (pc2) ── */
-.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:.625rem;align-items:stretch}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(310px,100%),1fr));gap:.625rem;align-items:stretch}
 /* card consolidado (1 produto comercial = 1 card, com os códigos TOP nacional, TOP importado e TOTVS) */
 .pc3-meta{font-size:11px;color:var(--txt2);margin-top:2px}
 .pc3-codes{padding:.5rem 1rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:5px}
@@ -141,6 +141,25 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc3-sec .pc3-codes{border-top:none;padding-top:.25rem}
 .pc3-sec .pc3-tbl{border-top:none;padding-top:0}
 .pc3-sec .pc2-disp-val{font-size:28px}
+.pc3-al{font-size:10.5px;padding:0 1rem .25rem;color:var(--txtm);display:flex;gap:4px;align-items:flex-start;line-height:1.3}
+.pc3-al.w{color:var(--red)}
+details.pc3-mp{border-top:1px solid var(--brd);padding:.375rem 1rem .5rem;background:#f8fafc}
+.pc3-mp summary{cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:center;font-size:11px}
+.pc3-mp summary::-webkit-details-marker{display:none}
+.pc3-mp summary::after{content:'▾';margin-left:auto;color:var(--txtm)}
+.pc3-mp[open] summary::after{content:'▴'}
+.pc3-mp-t{font-weight:700;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--txt2)}
+.pc3-mp-c{font-family:'DM Mono',monospace;font-weight:600;word-break:break-all}
+.pc3-mp-s{color:var(--txt2)}
+.pc3-mp-sh{background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600}
+.pc3-mp-b{margin-top:.375rem;display:flex;flex-direction:column;gap:3px;font-size:11.5px}
+.pc3-mp-r{display:flex;justify-content:space-between;gap:8px}
+.pc3-mp-r b{font-family:'DM Mono',monospace;font-weight:600;text-align:right}
+.pc3-mp-wh{font-size:10.5px;color:var(--txtm)}
+.pc3-mp-rem{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--txt2);padding-left:.5rem}
+.pc3-mp-al{font-size:10.5px;color:#92400e;background:#fffbeb;border-radius:6px;padding:4px 6px}
+.pc3-mp-nd{color:var(--txtm);font-style:italic;font-weight:400}
+.pc2,.pc3-tr>div{min-width:0}
 .pc2-wh-list{padding:.375rem 1rem .5rem;border-top:1px solid var(--brd);display:flex;flex-direction:column;gap:3px;flex:1}
 .pc2-wh-row{display:flex;align-items:center;gap:7px}
 .pc2-wh-row.pc2-wh-zero{opacity:.4}
@@ -399,6 +418,7 @@ const WH_ICON  = {'Curitiba (Eletra)':'ti-building-warehouse','Fortaleza (Eletra
 
 let ST=[], RES=[], CADASTRO={}, CADASTRO_TOP={}, CADASTRO_NACTOP={}, CADASTRO_ALT={}, CADASTRO_NOM={}, MODO='novo';
 let VAL_SEM_DESCRICAO=[], VAL_SEM_CADASTRO=[], VAL_INCOMPLETO=[], VAL_WH_INVALIDO=[], VAL_INSUFICIENTE=[], VAL_NEGATIVO=[], VAL_DUPLICADO=[], VAL_RES_SEM_ARMAZEM=[], VAL_RES_CODIGO_INVALIDO=[], VAL_FABRICA_HEXING=[], VAL_TOP_REPETIDO=[], VAL_TOP_FORA=[], VAL_TOTVS_DUP=[], VAL_RETRABALHO=[];
+let CADASTRO_TEM_MP=false, _mpIdx=null, _mpVinc=null;
 
 // ══ CONFERÊNCIA TOTVS x SISTEMA ══
 // AUD_BASELINE: baseline "travada" por codigo|armazem, lida de data/overrides_estoque.csv (opcional).
@@ -603,6 +623,36 @@ function parseArmazens(csv){
   return map;
 }
 
+function parseDataBR(v){
+  const t=String(v==null?'':v).trim(); if(!t||/^pending$/i.test(t)) return null;
+  let m=t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/); if(m){ const y=+m[3]<100?2000+ +m[3]:+m[3]; const d=new Date(y,+m[2]-1,+m[1]); return isNaN(d)?null:d; }
+  m=t.match(/^(\d{4})-(\d{2})-(\d{2})/); if(m){ const d=new Date(+m[1],+m[2]-1,+m[3]); return isNaN(d)?null:d; }
+  return null;
+}
+async function carregarTransito(){
+  TRANSITO={}; TRANSITO_LINHAS=0;
+  if(!TRANSITO_CSV_URL){ TRANSITO_ESTADO='desligado'; return; }
+  try{
+    const resp=await fetch(TRANSITO_CSV_URL,{cache:'no-store'}); if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const txt=new TextDecoder('windows-1252').decode(await resp.arrayBuffer()).replace(/^\uFEFF/,'');
+    const delim=txt.split('\n').slice(0,8).some(l=>l.includes(';'))?';':',';   // o separador vale para o arquivo todo (a 1ª linha pode ser só um título)
+    const all=Papa.parse(txt,{header:false,skipEmptyLines:true,delimiter:delim}).data;
+    let h=0; for(let i=0;i<Math.min(8,all.length);i++){ if(makeCI(all[i])('Livoltek Code')>=0){h=i;break;} }   // o cabeçalho pode vir depois de linhas de título
+    const ci=makeCI(all[h]); const iC=ci('Livoltek Code'), iQ=ci('Quantidade'), iE=ci('ETA Destination'), iS=ci('Status'), iP=ci('PO Number'), iI=ci('IP Number');
+    if(iC<0||iQ<0) throw new Error('colunas "Livoltek Code" e "Quantidade" não encontradas');
+    for(let i=h+1;i<all.length;i++){
+      const r=all[i]; const code=String(r[iC]||'').trim().toUpperCase(); if(!code) continue;
+      const st=iS>=0?String(r[iS]||'').trim():''; if(/ENTREG|CANCEL/i.test(norm(st))) continue;   // entregue ou cancelado: não está "a caminho"
+      const q=parseFloat(String(r[iQ]||'').replace(/\./g,'').replace(',','.'))||parseFloat(String(r[iQ]||'').replace(',','.')); if(!(q>0)) continue;
+      const eta=iE>=0?parseDataBR(r[iE]):null;
+      (TRANSITO[code]||(TRANSITO[code]=[])).push({qtd:q,eta,status:st,po:iP>=0?String(r[iP]||'').trim():'',ip:iI>=0?String(r[iI]||'').trim():''});
+      TRANSITO_LINHAS++;
+    }
+    Object.values(TRANSITO).forEach(l=>l.sort((a,b)=>(a.eta?a.eta.getTime():9e15)-(b.eta?b.eta.getTime():9e15)));   // cada remessa mantém a sua data; sem previsão por último
+    TRANSITO_ESTADO='ok';
+  }catch(e){ TRANSITO_ESTADO='erro'; SRC_ALERTS.push({fonte:'Trânsito',msg:'⚠️ Não foi possível ler o trânsito: '+e.message+' — "A caminho do Brasil" ficará como "Informação não disponível".',ts:new Date()}); }
+}
+
 function parseCadastro(csv){
   const fixEnc = s=>String(s||'').trim().replace(/\uFFFD/g,'');
   const clean=csv.replace(/^\uFEFF/,'');
@@ -630,6 +680,10 @@ function parseCadastro(csv){
   // Produto com MAIS DE UM código TOTVS (ex.: 9121500200 e HP1-1K5S2R11001 são o mesmo inversor): o CODIGO fica o principal e
   // os demais vão nesta coluna opcional, separados por "/". Cada código continua com o seu estoque e as suas reservas.
   const iALT = ci('TOTVS','CODIGO TOTVS ALTERNATIVO','CODIGOS TOTVS ALTERNATIVOS','OUTROS CODIGOS TOTVS','CODIGO TOTVS 2'); // coluna "TOTVS" do cadastro = demais códigos TOTVS do produto
+  // MATÉRIA-PRIMA do produto acabado: código (da própria coluna "Materia-Prima") usado para buscar estoque e trânsito nas bases
+  // existentes. O mesmo código pode servir vários produtos acabados. Coluna vazia = o card não mostra nada (nada é presumido).
+  const iMP = ci('MATERIA-PRIMA','MATERIA PRIMA','MATERIAPRIMA');
+  CADASTRO_TEM_MP = iMP>=0;
   const iMOD = ci('MODELO');                                              // opcional
   const iPOT = ci('POTENCIA_KW','POTENCIA (KW)','POTENCIA KW','POTENCIA'); // opcional (em kW)
   const splitCod = v=>String(v||'').split(/[\/;,|]+/).map(x=>x.trim().toUpperCase().replace(/\.0$/,'').replace(/\.$/,'')).filter(Boolean);
@@ -649,6 +703,7 @@ function parseCadastro(csv){
       categoria:fixEnc(r[iCAT]), familia:String(r[iFAM]||'').trim(), nomenclatura:((iNOM>=0?String(r[iNOM]||'').trim():'')||String(r[iDESC]||'').trim()),
       exportacao: iEXP>=0 && celulaMarcada(r[iEXP]),
       totvsAlt: iALT>=0 ? splitCod(r[iALT]).filter(c=>c!==codigo) : [],
+      materiaPrima: iMP>=0 ? splitCod(r[iMP]) : [],
       titulo: (iNOM>=0?String(r[iNOM]||'').trim():''),   // título do card = NOMENCLATURA; vazia → o próprio código do produto
       modelo: (iMOD>=0?String(r[iMOD]||'').trim():''), // só o que está no cadastro (coluna opcional MODELO)
       potenciaKW: (()=>{ const v=iPOT>=0?parseFloat(String(r[iPOT]||'').replace(',','.')):NaN; return isFinite(v)?v:potenciaDeFamilia(String(r[iFAM]||'')); })()
@@ -1362,6 +1417,52 @@ function prodIdDeCodigo(c){
   return cad?cad.codigo:c;
 }
 
+function mpIndiceEstoque(){
+  const key=ST.length+'|'+RES.length; if(_mpIdx&&_mpIdx.key===key) return _mpIdx.m;
+  const m={};
+  ST.forEach(r=>{ const ks=new Set([String(r.prodId||'').toUpperCase(),String(r.codigo||'').toUpperCase()]); ks.delete('');
+    ks.forEach(k=>{ const o=m[k]||(m[k]={found:false,saldo:0,reserva:0,disp:0,byWh:{}});
+      if(!r._virtual) o.found=true; o.saldo+=r.saldo; o.reserva+=r.reserva; o.disp+=r.disp; if(r.saldo) o.byWh[r.wh]=(o.byWh[r.wh]||0)+r.saldo; }); });
+  _mpIdx={key,m}; return m;
+}
+function mpVinculos(){   // código de matéria-prima → produtos acabados válidos do cadastro (cada produto conta uma vez)
+  if(_mpVinc&&_mpVinc.ref===CADASTRO) return _mpVinc.m;
+  const m={};
+  Object.values(CADASTRO).forEach(c=>{
+    const cat=norm(c.categoria); if(cat!=='PRODUTO'&&cat!=='EXPORTACAO') return;
+    if(CADASTRO_ALT[c.codigo]&&CADASTRO_ALT[c.codigo]!==c) return;     // linha solta de um código TOTVS que já conta dentro de outro produto
+    (c.materiaPrima||[]).forEach(mp=>{ const l=m[mp]||(m[mp]=[]); if(!l.includes(c.codigo)) l.push(c.codigo); });
+  });
+  _mpVinc={ref:CADASTRO,m}; return m;
+}
+function blocoMP(p,cad){
+  const mps=(cad&&cad.materiaPrima)||[]; if(!mps.length) return '';      // coluna vazia: nada é exibido nem presumido
+  const idx=mpIndiceEstoque(), vinc=mpVinculos();
+  const fdata=d=>d?d.toLocaleDateString('pt-BR'):'sem previsão';
+  return mps.map(code=>{
+    const e=idx[code], achou=e&&e.found, n=Math.max((vinc[code]||[]).length,1), comp=n>=2;
+    const estTxt=achou?`${fmt(e.saldo)} un.`:'informação não disponível';
+    let transTxt, transResumo='', remHtml='';
+    if(TRANSITO_ESTADO==='ok'){
+      const rem=TRANSITO[code]||[], tot=rem.reduce((a,x)=>a+x.qtd,0);
+      if(rem.length){ transTxt=`${fmt(tot)} un.`; const prox=rem.find(x=>x.eta);
+        transResumo=` · a caminho ${fmt(tot)} un.${prox?` (prev. ${fdata(prox.eta)})`:''}`;
+        remHtml=rem.slice(0,6).map(x=>`<div class="pc3-mp-rem"><span>${fmt(x.qtd)} un. · ${x.eta?'prev. '+fdata(x.eta):'sem previsão'}</span><span>${x.status||''}${x.po?' · '+x.po:''}</span></div>`).join('')+(rem.length>6?`<div class="pc3-mp-rem"><span>+ ${rem.length-6} remessa(s)</span></div>`:''); }
+      else transTxt='nenhuma remessa registrada';
+    } else transTxt='<span class="pc3-mp-nd">informação não disponível</span>';
+    const whs=achou?Object.entries(e.byWh).map(([w,q])=>`${w.replace(' (Eletra)','')} ${fmt(q)}`).join(' · '):'';
+    return `<details class="pc3-mp"><summary><span class="pc3-mp-t">Matéria-prima</span><span class="pc3-mp-c">${code}</span><span class="pc3-mp-s">${achou?'estoque '+estTxt:'<span class="pc3-mp-nd">estoque: '+estTxt+'</span>'}${transResumo}</span>${comp?`<span class="pc3-mp-sh">compartilhada · ${n} produtos</span>`:''}</summary>
+      <div class="pc3-mp-b">
+        <div class="pc3-mp-r"><span>Estoque atual</span><b>${achou?estTxt:'<span class="pc3-mp-nd">informação não disponível</span>'}</b></div>
+        ${achou&&e.reserva?`<div class="pc3-mp-r"><span>Reservado · disponível</span><b>${fmt(e.reserva)} · ${fmt(e.disp)}</b></div>`:''}
+        ${whs?`<div class="pc3-mp-wh">${whs}</div>`:''}
+        <div class="pc3-mp-r"><span>A caminho do Brasil</span><b>${transTxt}</b></div>
+        ${remHtml}
+        ${comp?`<div class="pc3-mp-al">⚠ Matéria-prima compartilhada — atende ${n} produtos. O saldo é o mesmo para todos e não é somado nos totais.</div>`:''}
+      </div></details>`;
+  }).join('');
+}
+
 function pCardProd(p, isMP, opts){
   const cad=CADASTRO[p.id]||null;
   const disp=p._disp, sal=p._sal, res=p._res, fat=p._fat;
@@ -1425,6 +1526,10 @@ function pCardProd(p, isMP, opts){
   const tabela=lista=>`<div class="pc3-tbl"><div class="pc3-th"><span>Armazém · código</span><span>Estoque</span><span>Reserva</span><span>Disp.</span></div>${lista.map(linhaTbl).join('')||'<div class="pc3-tr z"><span style="font-size:11px;color:var(--txtm)">Sem estoque nos relatórios</span></div>'}</div>`;
   const totaisSec=(lista,pred)=>{ const sal=lista.reduce((a,o)=>a+o.saldo,0), rs=lista.reduce((a,o)=>a+o.reserva,0), ft=p.rows.filter(pred).reduce((a,r)=>a+(r.fat||0),0);
     return `<div class="pc2-totals pc3-tot"><div class="pc2-total-row"><span>Estoque total</span><span>${fmt(sal)}</span></div>${rs?`<div class="pc2-total-row"><span>Reservado</span><span>${fmt(rs)}</span></div>`:''}${ft?`<div class="pc2-total-row"><span>Faturado</span><span>${fmt(ft)}</span></div>`:''}</div>`; };
+  // Alertas (os valores originais nunca são escondidos nem transformados): saldo 0 = pode não ter chegado ou a saída não foi
+  // registrada na fonte — aviso neutro, sem presumir venda; reserva maior que o estoque = inconsistência a conferir.
+  const alertasEstoque=lista=>{ let h=''; if(lista.reduce((a,o)=>a+o.saldo,0)===0) h+='<div class="pc3-al"><i class="ti ti-info-circle"></i>Sem saldo registrado — verificar disponibilidade.</div>';
+    if(lista.some(o=>o.reserva>o.saldo)) h+='<div class="pc3-al w"><i class="ti ti-alert-triangle"></i>Reserva maior que o estoque registrado — conferir.</div>'; return h; };
   const dividir = sl.nac.length>0 && !whF;   // com filtro de armazém ativo, mantém o formato de uma parte só
   let corpoEstoque;
   if(dividir){
@@ -1432,6 +1537,7 @@ function pCardProd(p, isMP, opts){
     corpoEstoque=`<div class="pc3-sec pc3-sec-nac">
         <div class="pc3-sec-h"><span>Nacional</span><small>Fábrica Livoltek Manaus</small><span class="pc3-fin" style="margin:0 0 0 auto" title="Elegível a financiamento FINAME">⭐ FINAME</span></div>
         ${blocoDisp('Disponível nacional',dNac,corNac,'Estoque da Fábrica Livoltek Manaus com código TOP nacional (Finame)')}
+        ${alertasEstoque(lNac)}
         <div class="pc3-codes">${linhaCod('TOP · Nacional','',sl.nac)}</div>
         ${tabela(lNac)}
         ${totaisSec(lNac,r=>r.origemTxt==='Nacional')}
@@ -1439,12 +1545,14 @@ function pCardProd(p, isMP, opts){
       <div class="pc3-sec">
         <div class="pc3-sec-h"><span>Importado</span><small>TOTVS (Eletra) e Fábrica Livoltek Manaus</small></div>
         ${blocoDisp('Disponível importado',dImp,corImp)}
+        ${alertasEstoque(lImp)}
         <div class="pc3-codes">${linhaCod('TOP · Importado','Fábrica Livoltek Manaus',sl.imp)}${linhaCod('TOTVS','',sl.tot)}</div>
         ${tabela(lImp)}
         ${totaisSec(lImp,r=>r.origemTxt!=='Nacional')}
       </div>`;
   } else {
     corpoEstoque=`${dispBloco}
+      ${alertasEstoque(linhas)}
       ${codigosHtml}
       ${tabela(linhas)}`;
   }
@@ -1468,6 +1576,7 @@ function pCardProd(p, isMP, opts){
       ${res?`<div class="pc2-total-row"><span>Reservado</span><span>${fmt(res)}</span></div>`:''}
       ${fat?`<div class="pc2-total-row"><span>Faturado</span><span>${fmt(fat)}</span></div>`:''}
     </div>`}
+    ${blocoMP(p,cad)}
     ${(opts&&opts.extra)||''}
   </div>`;
 }
@@ -2181,6 +2290,7 @@ function rAudit(){
   document.getElementById('audit-content').innerHTML=`
     ${totaisBlock}
     ${saldoBlock}
+    <div id="aud-mp">${htmlAuditMP()}</div>
     <div id="aud-retrab"></div>
     <div id="aud-variacao"></div>
     ${resSemArmBlock}
@@ -2318,6 +2428,19 @@ async function carregarVariacaoEstoque(forcar){
 
 function setFiltroVariacao(f){ VARIACAO.filtro=f; renderVariacao(); }
 
+function htmlAuditMP(){
+  const cab=(t,cor,bg)=>`<div class="aud-hdr" style="background:${bg};color:${cor};font-size:14px"><i class="ti ti-box"></i> ${t}</div>`;
+  const nota=(t)=>`<div style="background:#f8fafc;border:1px solid var(--brd);border-top:none;padding:8px 14px;font-size:12px;color:var(--txt2)">${t}</div>`;
+  let h='';
+  if(!CADASTRO_TEM_MP) return `<div class="aud-block">${cab('MATÉRIA-PRIMA DOS PRODUTOS','#475569','#f1f5f9')}${nota('A coluna <b>Materia-Prima</b> ainda não existe no cadastro de produtos — a seção de matéria-prima só aparece nos cards depois que ela for adicionada.')}</div>`;
+  const vinc=mpVinculos(), idx=mpIndiceEstoque(); const codes=Object.keys(vinc);
+  const sem=codes.filter(c=>!(idx[c]&&idx[c].found));
+  const comp=codes.filter(c=>vinc[c].length>=2).length;
+  const tr={desligado:'Base de trânsito <b>não conectada</b> (o Excel de controle de trânsito ainda não foi publicado no GitHub): o card mostra "Informação não disponível" em "A caminho do Brasil".',erro:'Base de trânsito com <b>erro de leitura</b>: o card mostra "Informação não disponível" em "A caminho do Brasil".',ok:`Base de trânsito lida: ${fmt(TRANSITO_LINHAS)} remessa(s) em aberto (entregues e canceladas ficam de fora).`,carregando:'Base de trânsito carregando.'}[TRANSITO_ESTADO]||'';
+  const tabela=sem.length?`<table class="aud-tbl" style="border:1px solid var(--brd);border-top:none"><tr style="background:#f8fafc"><th>Código da matéria-prima</th><th>Produtos que usam</th><th>Situação</th></tr>${sem.map(c=>`<tr><td style="font-family:'DM Mono',monospace">${c}</td><td>${vinc[c].length} · ${vinc[c].slice(0,3).join(', ')}${vinc[c].length>3?'…':''}</td><td>Código sem correspondência nas bases de estoque — o card mostra "Informação não disponível" (não assume zero).</td></tr>`).join('')}</table>`:'';
+  return `<div class="aud-block">${cab(`MATÉRIA-PRIMA DOS PRODUTOS · ${codes.length} código(s)`,sem.length?'#92400e':'#166534',sem.length?'#fef3c7':'#dcfce7')}${nota(`${comp} código(s) compartilhado(s) por 2 ou mais produtos (o saldo é o mesmo e não é somado nos totais). ${sem.length?`<b>${sem.length} sem correspondência</b> no estoque.`:'Todos os códigos informados têm correspondência no estoque.'}<br>${tr}`)}${tabela}</div>`;
+}
+
 function renderRetrabalho(){
   const el=document.getElementById('aud-retrab'); if(!el) return;
   if(!VAL_RETRABALHO.length){ el.innerHTML=''; return; }
@@ -2398,6 +2521,12 @@ function renderSrcAlerts(){
 }
 
 // ══ BOOT ══
+// TRÂNSITO da matéria-prima. A base existe hoje só no Excel "Livoltek Transit control" (aba Controle), ainda NÃO publicada no GitHub.
+// Enquanto esta URL estiver vazia, o card mostra "Informação não disponível" no "A caminho do Brasil" (nada é inventado).
+// Quando houver um CSV exportado dessa aba (colunas reais: Livoltek Code, Quantidade, ETA Destination, Status, PO Number, IP Number),
+// é só colocar o caminho aqui, ex.: 'data/<arquivo>.csv'. Status Entregue/Cancelado* não contam; datas "pending"/vazias = sem previsão.
+const TRANSITO_CSV_URL = '';
+let TRANSITO = {}, TRANSITO_ESTADO = TRANSITO_CSV_URL ? 'carregando' : 'desligado', TRANSITO_LINHAS = 0;
 const RESERVAS_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR3uDoajQWkalh8Tgks3Vl9G_hS8LHt19wtVmK33LydkfHE7fHBFVE4U3ajgbwVIpyaFiSLeOSYWGi5/pub?gid=577818960&single=true&output=csv';
 const PEDIDOS_CSV_URL = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
 const DATA_CORTE_FATURADOS = new Date(2026, 6, 8); // 08/07/2026 — saldo do inventário já está líquido de tudo faturado até 07/07/2026 (inclusive), então só conta faturados a partir de 08/07 pra não abater 2x
@@ -2557,6 +2686,7 @@ async function boot(){
     ESTOQUE_RECONCILIACAO.produtosPorArmazemEsperado=produtosPorArmazem([...geralItems,...fabricaItems]);
   }
 
+  await carregarTransito();
   // 4. Reservas — Google Sheets em tempo real (com fallback local)
   if(RESERVAS_SHEET_URL){
     prog('Carregando Reservas...');
