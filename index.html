@@ -133,7 +133,9 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Aria
 .pc2-disp-lbl{font-size:9px;font-weight:700;color:var(--grn-d);text-transform:uppercase;letter-spacing:.05em}
 .pc2-disp-val{font-family:'DM Mono',monospace;font-size:32px;font-weight:700;line-height:1}
 .pc3-sec{border-top:1px solid var(--brd);padding-bottom:.25rem}
-.pc3-sec-nac{background:#fffdf5;border-left:3px solid #fcd34d}
+.pc2{border-left:0}
+.pc2 > *{border-left:4px solid #0079f0}            /* barra lateral azul Livoltek (#0079f0) */
+.pc2 > .pc3-sec-nac{border-left-color:#f7d341;background:#fffdf5}   /* parte NACIONAL / Finame: barra amarela (amarelo de apoio da marca) */
 .pc3-sec-h{display:flex;align-items:center;gap:6px;padding:.625rem 1rem 0;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--txt2)}
 .pc3-sec-h small{font-size:9px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--txtm)}
 .pc3-sec .pc3-codes{border-top:none;padding-top:.25rem}
@@ -1421,6 +1423,8 @@ function pCardProd(p, isMP, opts){
     </div>`;
   };
   const tabela=lista=>`<div class="pc3-tbl"><div class="pc3-th"><span>Armazém · código</span><span>Estoque</span><span>Reserva</span><span>Disp.</span></div>${lista.map(linhaTbl).join('')||'<div class="pc3-tr z"><span style="font-size:11px;color:var(--txtm)">Sem estoque nos relatórios</span></div>'}</div>`;
+  const totaisSec=(lista,pred)=>{ const sal=lista.reduce((a,o)=>a+o.saldo,0), rs=lista.reduce((a,o)=>a+o.reserva,0), ft=p.rows.filter(pred).reduce((a,r)=>a+(r.fat||0),0);
+    return `<div class="pc2-totals pc3-tot"><div class="pc2-total-row"><span>Estoque total</span><span>${fmt(sal)}</span></div>${rs?`<div class="pc2-total-row"><span>Reservado</span><span>${fmt(rs)}</span></div>`:''}${ft?`<div class="pc2-total-row"><span>Faturado</span><span>${fmt(ft)}</span></div>`:''}</div>`; };
   const dividir = sl.nac.length>0 && !whF;   // com filtro de armazém ativo, mantém o formato de uma parte só
   let corpoEstoque;
   if(dividir){
@@ -1430,12 +1434,14 @@ function pCardProd(p, isMP, opts){
         ${blocoDisp('Disponível nacional',dNac,corNac,'Estoque da Fábrica Livoltek Manaus com código TOP nacional (Finame)')}
         <div class="pc3-codes">${linhaCod('TOP · Nacional','',sl.nac)}</div>
         ${tabela(lNac)}
+        ${totaisSec(lNac,r=>r.origemTxt==='Nacional')}
       </div>
       <div class="pc3-sec">
         <div class="pc3-sec-h"><span>Importado</span><small>TOTVS (Eletra) e Fábrica Livoltek Manaus</small></div>
         ${blocoDisp('Disponível importado',dImp,corImp)}
         <div class="pc3-codes">${linhaCod('TOP · Importado','Fábrica Livoltek Manaus',sl.imp)}${linhaCod('TOTVS','',sl.tot)}</div>
         ${tabela(lImp)}
+        ${totaisSec(lImp,r=>r.origemTxt!=='Nacional')}
       </div>`;
   } else {
     corpoEstoque=`${dispBloco}
@@ -1457,11 +1463,11 @@ function pCardProd(p, isMP, opts){
       </div>
     </div>
     ${corpoEstoque}
-    <div class="pc2-totals pc3-tot">
+    ${dividir?'':`<div class="pc2-totals pc3-tot">
       <div class="pc2-total-row"><span>Estoque total</span><span>${fmt(sal)}</span></div>
       ${res?`<div class="pc2-total-row"><span>Reservado</span><span>${fmt(res)}</span></div>`:''}
       ${fat?`<div class="pc2-total-row"><span>Faturado</span><span>${fmt(fat)}</span></div>`:''}
-    </div>
+    </div>`}
     ${(opts&&opts.extra)||''}
   </div>`;
 }
