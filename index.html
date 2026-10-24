@@ -1480,7 +1480,7 @@ function blocoMP(p,cad){
 function pCardProd(p, isMP, opts){
   const cad=CADASTRO[p.id]||null;
   const disp=p._disp, sal=p._sal, res=p._res, fat=p._fat;
-  const dispCol=disp>0?'var(--grn-d)':disp===0?'var(--amb-d)':'var(--red)';
+  const dispCol=disp>0?'var(--grn-d)':disp<0?'var(--red)':'var(--txtm)';   // verde >0 · vermelho <0 · zero sempre cinza
   const famLabel=p.familia||p.categoria||'';
   const famCol=isMP?'var(--red)':'var(--pri)', famBg=isMP?'var(--red-pale)':'var(--pri-pale)';
   const meta=(cad&&cad.modelo)?`Modelo ${cad.modelo}`:''; // a potência não é mostrada no card (continua valendo na busca)
@@ -1488,7 +1488,7 @@ function pCardProd(p, isMP, opts){
   // reserva e disponível dele) e embaixo o IMPORTADO (códigos TOP importado e TOTVS, com os armazéns). Estoques separados.
   const dImp=p.rows.filter(r=>r.origemTxt!=='Nacional').reduce((a,r)=>a+r.disp,0);
   const dNac=p.rows.filter(r=>r.origemTxt==='Nacional').reduce((a,r)=>a+r.disp,0);
-  const corImp=dImp>0?'var(--grn-d)':dImp<0?'var(--red)':'var(--amb-d)', corNac=dNac>0?'var(--grn-d)':dNac<0?'var(--red)':'var(--txtm)';
+  const corImp=dImp>0?'var(--grn-d)':dImp<0?'var(--red)':'var(--txtm)', corNac=dNac>0?'var(--grn-d)':dNac<0?'var(--red)':'var(--txtm)';
   const blocoDisp=(rot,val,cor,tit)=>`<div class="pc2-disp-block"${tit?` title="${tit}"`:''}><div class="pc2-disp-lbl">${rot}</div><div class="pc2-disp-val" style="color:${cor}">${fmt(val)}</div></div>`;
   const dispBloco=blocoDisp((opts&&opts.lblDisp)||'Total disponível para venda',disp,dispCol);
   const sl=slotsCodigos(p);
@@ -1610,7 +1610,7 @@ function pCard(r, isMP){
   const sal=r._sal;
   const res=r._res||0;
   const fat=r._fat||0;
-  const dispCol=disp>0?'var(--grn-d)':disp===0?'var(--amb-d)':'var(--red)';
+  const dispCol=disp>0?'var(--grn-d)':disp<0?'var(--red)':'var(--txtm)';   // verde >0 · vermelho <0 · zero sempre cinza
   const famLabel=r.familia||r.categoria||'';
   const famCol=isMP?'var(--red)':'var(--pri)';
   const famBg=isMP?'var(--red-pale)':'var(--pri-pale)';
